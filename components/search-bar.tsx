@@ -22,30 +22,40 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
   const [scope, setScope] = useState(initialScope)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
-  const [results, setResults] = useState<{ q: string; data: Suggestions }>({ q: '', data: EMPTY })
+  // recent answers, newest first, so backspacing and retyping show suggestions instantly
+  const [seen, setSeen] = useState<{ key: string; data: Suggestions }[]>([])
   const listId = useId()
+  const prefix = q.trim().toLowerCase()
 
   useEffect(() => {
-    if (!q.trim()) return
+    if (!prefix) return
     const ctrl = new AbortController()
     const t = setTimeout(() => {
-      fetch(`/api/suggest?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+      fetch(`/api/suggest?q=${encodeURIComponent(prefix)}`, { signal: ctrl.signal })
         .then((r) => r.json())
-        .then((data: Suggestions) => setResults({ q, data }))
+        .then((data: Suggestions) => setSeen((s) => [{ key: prefix, data }, ...s.filter((x) => x.key !== prefix)].slice(0, 20)))
         .catch(() => {})
-    }, 120)
+    }, 100)
     return () => {
       clearTimeout(t)
       ctrl.abort()
     }
-  }, [q])
+  }, [prefix])
 
-  const data = q.trim() && results.q === q ? results.data : EMPTY
-  const prefix = q.trim().toLowerCase()
   // where the typed text starts a word of the term (for the bold completion), or -1
   const at = (t: string) => (t.startsWith(prefix) ? 0 : t.indexOf(` ${prefix}`) + 1 || -1)
-  // lib/catalog suggest() returns query completions only; a result that raced a newer keystroke may not fit, so drop those
-  const terms = data.terms.filter((t) => at(t) >= 0)
+  const words = prefix.split(/\s+/).filter(Boolean)
+  const fits = (title: string) => {
+    const titleWords = title.toLowerCase().split(/[^\p{L}\p{N}]+/u)
+    return words.every((w) => titleWords.some((t) => t.startsWith(w)))
+  }
+  // Use the answer for exactly what's typed once it arrives. Until then keep the latest answer, trimmed to the rows that
+  // still fit, or untrimmed when none do, so the list never blinks shut and pops back open over the page while typing.
+  const exact = seen.find((x) => x.key === prefix)?.data
+  const latest = seen[0]?.data ?? EMPTY
+  const fitting = { terms: latest.terms.filter((t) => at(t) >= 0), products: latest.products.filter((p) => fits(p.title)) }
+  const data: Suggestions = !prefix ? EMPTY : exact ?? (fitting.terms.length + fitting.products.length ? fitting : latest)
+  const terms = data.terms
   const options = [...terms.map((term) => ({ kind: 'term' as const, term, at: at(term) })), ...data.products.map((p) => ({ kind: 'product' as const, p }))]
   const showList = open && options.length > 0
   const highlighted = options[active]
@@ -155,9 +165,15 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
                   <SearchIcon className="size-4 shrink-0 text-muted" />
                   {/* what was typed in normal weight, the completion around it in bold, like Amazon */}
                   <span className="truncate">
-                    <b>{o.term.slice(0, o.at)}</b>
-                    {o.term.slice(o.at, o.at + prefix.length)}
-                    <b>{o.term.slice(o.at + prefix.length)}</b>
+                    {o.at < 0 ? (
+                      o.term // an earlier answer still on screen while the next one loads
+                    ) : (
+                      <>
+                        <b>{o.term.slice(0, o.at)}</b>
+                        {o.term.slice(o.at, o.at + prefix.length)}
+                        <b>{o.term.slice(o.at + prefix.length)}</b>
+                      </>
+                    )}
                   </span>
                 </>
               ) : (

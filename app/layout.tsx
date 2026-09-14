@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { preconnect } from 'react-dom'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // every product image comes from DummyJSON's CDN: open that connection while the HTML is still streaming
+  preconnect('https://cdn.dummyjson.com')
   return (
     <html lang="en">
       <body id="top" className="flex min-h-screen flex-col antialiased">

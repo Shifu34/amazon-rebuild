@@ -102,7 +102,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
             <li key={src} className="w-full shrink-0 snap-center">
               <button type="button" onClick={() => openViewer(i)} aria-label={`Image ${i + 1} of ${n}, open full-screen viewer`} className="flex aspect-square w-full items-center justify-center bg-[#f7f7f7] p-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={i === 0 ? title : ''} loading={i ? 'lazy' : 'eager'} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                <img src={src} alt={i === 0 ? title : ''} loading="eager" className="max-h-full max-w-full object-contain mix-blend-multiply" />
               </button>
             </li>
           ))}

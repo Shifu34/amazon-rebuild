@@ -1,12 +1,32 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { ChevronIcon } from './icons'
 
 // Horizontal row with Amazon's tall arrow buttons, always visible on desktop so the row reads as scrollable; the row keeps a
 // gutter under each arrow so no card is ever covered. Touch devices swipe.
 export function Scroller({ label, children }: { label: string; children: React.ReactNode }) {
   const ref = useRef<HTMLUListElement>(null)
+
+  // Cards past the right edge are lazy images, which the browser only fetches once scrolled to, so they popped in while
+  // scrolling. When the row comes within reach of the screen, fetch the whole row so every card is ready before a scroll.
+  useEffect(() => {
+    const list = ref.current
+    if (!list) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return
+        list.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((img) => {
+          img.loading = 'eager'
+        })
+        observer.disconnect()
+      },
+      { rootMargin: '800px 0px' },
+    )
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [])
+
   const page = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: 'smooth' })
   const arrow = 'absolute top-1/2 z-10 hidden h-24 w-11 -translate-y-1/2 cursor-pointer items-center justify-center bg-white/95 shadow-[0_1px_3px_rgba(15,17,17,0.3)] hover:bg-white md:flex'
   return (
