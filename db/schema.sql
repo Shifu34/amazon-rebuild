@@ -118,3 +118,14 @@ create table if not exists browsing_history (
 -- checkout: one order per rendered checkout token, so a double-submitted "Place your order" can't create two orders
 alter table orders add column if not exists idempotency_key text;
 create unique index if not exists orders_idempotency_key on orders (idempotency_key);
+
+-- product detail slice: one default list per user, helpful votes (one per voter per review), lookups by product/recency
+create unique index if not exists lists_one_default on lists (user_id) where is_default;
+create table if not exists review_votes (
+  review_id uuid not null references reviews(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (review_id, user_id)
+);
+create index if not exists reviews_product on reviews (product_id);
+create index if not exists browsing_history_recent on browsing_history (user_id, viewed_at desc);
