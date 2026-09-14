@@ -114,3 +114,7 @@ create table if not exists browsing_history (
   viewed_at timestamptz not null default now(),
   primary key (user_id, product_id)
 );
+
+-- checkout: one order per rendered checkout token, so a double-submitted "Place your order" can't create two orders
+alter table orders add column if not exists idempotency_key text;
+create unique index if not exists orders_idempotency_key on orders (idempotency_key);
