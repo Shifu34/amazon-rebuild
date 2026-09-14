@@ -151,9 +151,9 @@ export async function Header() {
 
           <Link href="/cart" className="nav-item flex items-end px-2 py-1.5 md:h-[50px] md:px-[9px] md:pt-0 md:pb-[7px]" aria-label={`Cart, ${count} ${count === 1 ? 'item' : 'items'}`}>
             <span className="relative">
-              <CartIcon className="h-8 w-10" />
+              <CartIcon className="h-7 w-10" />
               {/* centered over the basket at any width: 1, 12 or 99+ */}
-              <span className={`absolute -top-1 left-[27px] -translate-x-1/2 leading-5 font-bold text-brand md:left-[24px] ${count > 99 ? 'text-sm' : 'text-base'}`}>{count > 99 ? '99+' : count}</span>
+              <span className={`absolute -top-[3px] left-[23px] -translate-x-1/2 leading-5 font-bold text-brand ${count > 99 ? 'text-sm' : 'text-base'}`}>{count > 99 ? '99+' : count}</span>
             </span>
             <span className="mb-[3px] hidden text-sm leading-4 font-bold md:inline">Cart</span>
           </Link>

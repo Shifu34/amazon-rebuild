@@ -25,11 +25,12 @@ export function FlagUS({ className }: P) {
 }
 
 export function CartIcon({ className }: P) {
+  // Amazon's cart: a handle on the left, a basket open at the top (the count sits in the opening), two solid wheels
   return (
-    <svg viewBox="0 0 40 32" className={className} aria-hidden>
-      <path d="M2 5h6.5l5 16h19l4.5-12H11" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="15.5" cy="27" r="2.4" fill="currentColor" />
-      <circle cx="29.5" cy="27" r="2.4" fill="currentColor" />
+    <svg viewBox="0 0 40 28" className={className} aria-hidden>
+      <path d="M1.5 4.5H9l5.5 14H31l5.5-12" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinejoin="round" />
+      <circle cx="15.8" cy="24.4" r="2.9" fill="currentColor" />
+      <circle cx="29.2" cy="24.4" r="2.9" fill="currentColor" />
     </svg>
   )
 }
