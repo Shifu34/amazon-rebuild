@@ -20,9 +20,8 @@ export async function authenticate(prev: AuthState, form: FormData): Promise<Aut
   const email = String(form.get('email') ?? prev.email).trim().toLowerCase()
   const returnTo = safeReturnTo(form.get('return_to'))
 
-  if (!EMAIL.test(email)) {
-    return { step: step === 'create' ? 'create' : 'email', email, name: String(form.get('name') ?? ''), errors: { email: email ? 'Invalid email address.' : 'Enter your email address.' } }
-  }
+  const emailError = EMAIL.test(email) ? undefined : email ? 'Invalid email address.' : 'Enter your email address.'
+  if (emailError && step !== 'create') return { step: 'email', email, errors: { email: emailError } }
 
   if (step === 'email') {
     const exists = await one('select 1 from users where email = $1', [email])
@@ -43,8 +42,9 @@ export async function authenticate(prev: AuthState, form: FormData): Promise<Aut
   const name = String(form.get('name') ?? '').trim()
   const password = String(form.get('password') ?? '')
   const confirm = String(form.get('confirm') ?? '')
-  const errors: AuthState['errors'] = {}
+  const errors: AuthState['errors'] = {} // every create-account field error at once, not one per submit
   if (!name) errors.name = 'Enter your name.'
+  if (emailError) errors.email = emailError
   if (password.length < 6) errors.password = 'Minimum 6 characters required.'
   else if (password !== confirm) errors.confirm = 'Passwords must match.'
   if (Object.keys(errors).length) return { step: 'create', email, name, errors }

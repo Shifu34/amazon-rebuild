@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { clearViewed, pauseHistory, removeViewed } from '@/app/actions/account'
+import { FreshOnBack } from '@/components/account/fresh-on-back'
 import { ConfirmDialog } from '@/components/account/modal'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { ProductCard } from '@/components/product-card'
@@ -37,7 +38,7 @@ export default async function HistoryPage() {
               <b aria-hidden className="w-6 text-left">{paused ? 'Off' : 'On'}</b>
             </button>
           </form>
-          {items.length > 0 && (
+          {items.length > 0 && !paused && (
             <ConfirmDialog label="Remove all items" title="Remove all items" action={clearViewed} confirm="Remove all" cancel="Cancel">
               Remove all items from your browsing history? This can&apos;t be undone.
             </ConfirmDialog>
@@ -70,6 +71,7 @@ export default async function HistoryPage() {
           ))}
         </ul>
       )}
+      <FreshOnBack />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ClearAlert } from './clear-alert'
 
 // "Your Account › Your Addresses": every crumb but the last is a link.
 export function Crumbs({ trail }: { trail: [label: string, href?: string][] }) {
@@ -22,6 +23,7 @@ export function Notice({ children }: { children: React.ReactNode }) {
     <div role="status" className="mb-4 flex items-center gap-3 rounded-lg border border-[#0b7b3c] px-4 py-3 shadow-[0_0_0_4px_#e8f5ed_inset]">
       <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#0b7b3c] text-xs font-bold text-white">✓</span>
       <p className="font-bold text-[#0b7b3c]">{children}</p>
+      <ClearAlert />
     </div>
   )
 }

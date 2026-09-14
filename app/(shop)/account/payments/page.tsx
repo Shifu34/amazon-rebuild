@@ -35,9 +35,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         <h2 id="wallet-title" className="border-b border-line px-4 py-3 text-lg">Cards &amp; accounts</h2>
 
         {cards.length === 0 && !adding && (
-          <div className="px-4 py-8 text-center">
-            <p className="font-bold">No cards yet.</p>
-            <p className="text-sm text-muted">Add a card to check out faster. This is a demo store: nothing is charged.</p>
+          <div className="px-4 py-12 text-center">
+            <p>You don&apos;t have any payment methods saved.</p>
+            <Link href="/account/payments?add=1" scroll={false} className="btn btn-cart mt-4">Add a payment method</Link>
+            <p className="mt-3 text-xs text-muted">Demo store: nothing is charged.</p>
           </div>
         )}
 
@@ -88,21 +89,23 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
           </ul>
         )}
 
-        <div className="px-4 py-3">
-          {adding ? (
-            <div>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-lg">Add a credit or debit card</h2>
-                <Link href="/account/payments" aria-label="Close" scroll={false} className="flex size-9 items-center justify-center rounded-md hover:bg-[#f0f2f2]">
-                  <CloseIcon className="size-4" />
-                </Link>
-              </div>
-              <CardForm returnTo="/account/payments?alert=added" />
+        {adding ? (
+          <div className="px-4 py-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg">Add a credit or debit card</h2>
+              <Link href="/account/payments" aria-label="Close" scroll={false} className="flex size-9 items-center justify-center rounded-md hover:bg-[#f0f2f2]">
+                <CloseIcon className="size-4" />
+              </Link>
             </div>
-          ) : (
-            <Link href="/account/payments?add=1" scroll={false} className="link text-sm">+ Add a credit or debit card</Link>
-          )}
-        </div>
+            <CardForm returnTo="/account/payments?alert=added" />
+          </div>
+        ) : (
+          cards.length > 0 && (
+            <div className="px-4 py-3">
+              <Link href="/account/payments?add=1" scroll={false} className="link text-sm">+ Add a credit or debit card</Link>
+            </div>
+          )
+        )}
       </section>
     </div>
   )

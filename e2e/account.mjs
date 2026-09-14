@@ -145,8 +145,8 @@ try {
 
   step('payments: empty wallet, add a card, remove it')
   await page.goto(`${base}/account/payments`)
-  await page.getByText('No cards yet.').waitFor()
-  await page.getByRole('link', { name: '+ Add a credit or debit card' }).click()
+  await page.getByText("You don't have any payment methods saved.").waitFor()
+  await page.getByRole('link', { name: 'Add a payment method' }).click()
   await page.getByLabel('Card number').fill('4242 4242 4242 4242')
   await page.getByLabel('Name on card').fill('Annie Renamed')
   await page.getByLabel('Expiration month').selectOption('12')
@@ -158,7 +158,7 @@ try {
   await page.getByRole('button', { name: 'Remove Visa ending in 4242' }).click()
   await dialog('Remove card').getByRole('button', { name: 'Confirm Remove' }).click()
   await page.getByRole('status').filter({ hasText: 'Card removed' }).waitFor()
-  await page.getByText('No cards yet.').waitFor()
+  await page.getByText("You don't have any payment methods saved.").waitFor()
 
   step('lists: create via ?create=1 with validation and duplicate names')
   await page.goto(`${base}/lists?create=1`)
