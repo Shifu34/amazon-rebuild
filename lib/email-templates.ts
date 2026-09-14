@@ -9,6 +9,7 @@ export type OrderEmailInput = { order: Order; name: string; origin: string; prod
 export type RenderedEmail = { subject: string; html: string; text: string }
 
 const DAY = 86_400_000
+const F = 'font-family:Arial,Helvetica,sans-serif;' // inline on every element: Gmail strips <body> styles and Outlook doesn't inherit fonts into tables
 const C = { ink: '#0f1111', muted: '#565959', line: '#e7e7e7', total: '#b12704', success: '#067d62' }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
@@ -20,13 +21,13 @@ const quoted = (items: { title: string }[]) =>
 const count = (items: OrderItem[]) => items.reduce((n, i) => n + i.quantity, 0)
 const place = (o: Order) => `${o.shipTo.city}, ${o.shipTo.state} ${o.shipTo.zip}`
 
-const p = (html: string, style = '') => `<p style="margin:0 0 14px;font-size:14px;line-height:21px;${style}">${html}</p>`
+const p = (html: string, style = '') => `<p style="${F}margin:0 0 14px;font-size:14px;line-height:21px;${style}">${html}</p>`
 const button = (href: string, label: string) =>
-  `<a href="${esc(href)}" style="display:inline-block;background:#ffd814;border:1px solid #fcd200;border-radius:999px;padding:10px 24px;color:${C.ink};font-size:14px;text-decoration:none">${esc(label)}</a>`
+  `<a href="${esc(href)}" style="${F}display:inline-block;background:#ffd814;border:1px solid #fcd200;border-radius:999px;padding:10px 24px;color:${C.ink};font-size:14px;text-decoration:none">${esc(label)}</a>`
 const link = (href: string, label: string) => `<a href="${esc(href)}" style="color:#007185;text-decoration:none">${esc(label)}</a>`
 
 function itemsTable(items: OrderItem[], amount: (i: OrderItem) => number) {
-  const cell = `border-top:1px solid ${C.line};padding:10px 0;vertical-align:top`
+  const cell = `${F}border-top:1px solid ${C.line};padding:10px 0;vertical-align:top`
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 14px">${items
     .map(
       (i) => `<tr>
@@ -40,8 +41,8 @@ function itemsTable(items: OrderItem[], amount: (i: OrderItem) => number) {
 
 function summary(rows: [label: string, value: string][], total: [label: string, value: string]) {
   const row = ([k, v]: [string, string], strong = false) =>
-    `<tr><td style="padding:${strong ? '9px' : '3px'} 0 3px;font-size:${strong ? 16 : 14}px;${strong ? `font-weight:bold;color:${C.total};border-top:1px solid ${C.line}` : ''}">${esc(k)}</td>` +
-    `<td align="right" style="padding:${strong ? '9px' : '3px'} 0 3px;font-size:${strong ? 16 : 14}px;${strong ? `font-weight:bold;color:${C.total};border-top:1px solid ${C.line}` : ''}">${esc(v)}</td></tr>`
+    `<tr><td style="${F}padding:${strong ? '9px' : '3px'} 0 3px;font-size:${strong ? 16 : 14}px;${strong ? `font-weight:bold;color:${C.total};border-top:1px solid ${C.line}` : ''}">${esc(k)}</td>` +
+    `<td align="right" style="${F}padding:${strong ? '9px' : '3px'} 0 3px;font-size:${strong ? 16 : 14}px;${strong ? `font-weight:bold;color:${C.total};border-top:1px solid ${C.line}` : ''}">${esc(v)}</td></tr>`
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 14px">${rows.map((r) => row(r)).join('')}${row(total, true)}</table>`
 }
 
@@ -49,11 +50,11 @@ function layout(o: { preheader: string; title: string; body: string; reason: str
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(o.title)}</title></head>
 <body style="margin:0;padding:0;background:#eaeded;font-family:Arial,Helvetica,sans-serif;color:${C.ink}">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.preheader)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eaeded"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="${F}background:#eaeded"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden">
-<tr><td style="background:#131921;padding:14px 24px"><div style="color:#ffffff;font-size:26px;line-height:26px;font-weight:900;letter-spacing:-1px">nile</div><div style="width:40px;height:4px;margin:3px 0 0 4px;border-radius:0 0 12px 12px;background:#ff9900"></div></td></tr>
-<tr><td style="padding:24px 24px 6px"><h1 style="margin:0 0 14px;font-size:22px;line-height:28px">${esc(o.title)}</h1>${o.body}</td></tr>
-<tr><td style="padding:16px 24px 20px;background:#f7f8f8;font-size:12px;line-height:18px;color:${C.muted}">${esc(o.reason)}<br>nile is a portfolio rebuild of Amazon.com and isn't affiliated with Amazon. Orders are simulated: nothing is charged and nothing ships.</td></tr>
+<tr><td style="background:#131921;padding:14px 24px"><div style="${F}color:#ffffff;font-size:26px;line-height:26px;font-weight:900;letter-spacing:-1px">nile</div><div style="width:40px;height:4px;margin:3px 0 0 4px;border-radius:0 0 12px 12px;background:#ff9900"></div></td></tr>
+<tr><td style="padding:24px 24px 6px"><h1 style="${F}margin:0 0 14px;font-size:22px;line-height:28px">${esc(o.title)}</h1>${o.body}</td></tr>
+<tr><td style="${F}padding:16px 24px 20px;background:#f7f8f8;font-size:12px;line-height:18px;color:${C.muted}">${esc(o.reason)}<br>nile is a portfolio rebuild of Amazon.com and isn't affiliated with Amazon. Orders are simulated: nothing is charged and nothing ships.</td></tr>
 </table></td></tr></table></body></html>`
 }
 
@@ -69,8 +70,8 @@ function confirmation({ order, name, origin }: OrderEmailInput): RenderedEmail {
   const body =
     p(`Hi ${esc(firstName(name))}, we've got your order. You can track or change it any time in Your Orders.`) +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 16px;background:#f7f8f8;border-radius:8px"><tr>
-<td style="padding:14px 16px;vertical-align:top;font-size:13px;color:${C.muted}">Arriving by<div style="font-size:16px;font-weight:bold;color:${C.success};margin:2px 0">${esc(arriving)}</div>${esc(speed)}</td>
-<td style="padding:14px 16px;vertical-align:top;font-size:13px;color:${C.muted}">Ship to<div style="font-size:14px;font-weight:bold;color:${C.ink};margin:2px 0">${esc(order.shipTo.fullName)}</div>${esc(place(order))}</td>
+<td style="${F}padding:14px 16px;vertical-align:top;font-size:13px;color:${C.muted}">Arriving by<div style="font-size:16px;font-weight:bold;color:${C.success};margin:2px 0">${esc(arriving)}</div>${esc(speed)}</td>
+<td style="${F}padding:14px 16px;vertical-align:top;font-size:13px;color:${C.muted}">Ship to<div style="font-size:14px;font-weight:bold;color:${C.ink};margin:2px 0">${esc(order.shipTo.fullName)}</div>${esc(place(order))}</td>
 </tr></table>` +
     p(button(url, 'View or manage order')) +
     p(`Order #<b>${esc(order.id)}</b> · placed ${esc(fullDate(order.placedAt))}`, `font-size:13px;color:${C.muted};margin:6px 0 0`) +
@@ -116,7 +117,7 @@ function returnStarted({ order, name, origin, productIds = [] }: OrderEmailInput
   const url = `${origin}/orders/${order.id}/return?code=${encodeURIComponent(code)}`
   const body =
     p(`Hi ${esc(firstName(name))}, your return is on its way. Return ${items.length === 1 ? 'your item' : 'your items'} by <b>${esc(dropOffBy)}</b>. ${esc(how)}`) +
-    `<div style="margin:0 0 6px;font-size:13px;color:${C.muted}">Show this code at drop-off</div><div style="margin:0 0 16px;padding:14px;border:1px dashed #888c8c;border-radius:8px;text-align:center;font:bold 22px/1 'Courier New',monospace;letter-spacing:3px">${esc(code)}</div>` +
+    `<div style="${F}margin:0 0 6px;font-size:13px;color:${C.muted}">Show this code at drop-off</div><div style="margin:0 0 16px;padding:14px;border:1px dashed #888c8c;border-radius:8px;text-align:center;font:bold 22px/1 'Courier New',monospace;letter-spacing:3px">${esc(code)}</div>` +
     itemsTable(items, (i) => i.refundCents ?? 0) +
     (replacement
       ? p('Your replacement ships as soon as the carrier scans your return. There is no charge for it.')
