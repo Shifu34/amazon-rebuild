@@ -4,10 +4,12 @@ import { DealRail } from '@/components/home/deal'
 import { inScope, ranked } from '@/components/home/scope'
 import { PictureTiles, type PictureTile } from '@/components/home/tiles'
 import { ProductCarousel } from '@/components/product-carousel'
-import { parseQuery, toHref, toSearch, type Query } from '@/components/search/params'
+import { displayAmount, parseQuery, toHref, toSearch, toUrlDollars, type Query } from '@/components/search/params'
 import { getUser } from '@/lib/auth'
 import { deals, getProduct, related, search, type Product } from '@/lib/catalog'
 import { query } from '@/lib/db'
+import type { CurrencyCode } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
 
 // The catalog is static, so every card and tile below is computed once per server start.
 const BLANK = parseQuery({})
@@ -50,39 +52,47 @@ const TILES: PictureTile[] = [
   tile("Today's Deals", '/deals', '#ffe3a3', ALL_DEALS.slice(0, 3), ALL_DEALS.length ? `Up to ${ALL_DEALS[0].discount}% off` : undefined),
 ].flat()
 
-const CARDS: Card[] = [
-  card('Plug in with our electronics', find({ i: 'electronics' }), [s('Cell phones', { i: 'smartphones' }), s('Laptops', { i: 'laptops' }), s('Tablets', { i: 'tablets' }), s('Smart speakers', { k: 'smart speakers' })]),
-  card('Score the top Apple gear', find({ brand: ['Apple'] }), [s('iPhone', { k: 'iphone', brand: ['Apple'] }), s('MacBook', { k: 'macbook' }), s('iPad', { k: 'ipad' }), s('AirPods', { k: 'airpods' })]),
-  card('Gear up for game day', find({ i: 'sports' }), [s('Basketball', { k: 'basketball', i: 'sports' }), s('Cricket', { k: 'cricket' }), s('Tennis', { k: 'tennis' }), s('Baseball', { k: 'baseball', i: 'sports' })]),
-  card('Popular finds under $25', find({ max: 25 }), [s('Kitchen', { i: 'kitchen-accessories', max: 25 }), s('Beauty', { i: 'beauty-personal-care', max: 25 }), s("Women's fashion", { i: 'womens-fashion', max: 25 }), s('Sports', { i: 'sports', max: 25 })]),
+// "under $25" cards in rupees: a round amount at or above the dollar one, so every destination still has results
+const RUPEES: Record<number, number> = { 10: 3000, 25: 7000, 50: 15000, 100: 30000, 150: 45000 }
 
-  card('Fantastic finds for home', find({ i: 'home-kitchen' }), [s('Kitchen', { i: 'kitchen-accessories' }), s('Home décor', { i: 'home-decoration' }), s('Furniture', { i: 'furniture' }), s('Lighting', { k: 'lamp', i: 'home-kitchen' })]),
-  card('Shine brighter with your fashion faves', find({ i: 'womens-fashion' }), [s('Jewelry', { i: 'womens-jewellery' }), s('Handbags', { i: 'womens-bags' }), s('Footwear', { i: 'womens-shoes' }), s('Dresses', { i: 'womens-dresses' })]),
-  card('Unveil your radiance', find({ i: 'beauty-personal-care' }), [s('Make-up', { i: 'beauty' }), s('Fragrances', { i: 'fragrances' }), s('Skin care', { i: 'skin-care' }), s('Body care', { k: 'body' })]),
-  card('Find your next phone', find({ i: 'smartphones' }), [s('iPhone', { k: 'iphone', i: 'smartphones' }), s('Samsung Galaxy', { k: 'samsung galaxy', i: 'smartphones' }), s('Realme', { k: 'realme' }), s('Vivo', { k: 'vivo' })]),
+const cardsIn = (c: CurrencyCode): Card[] => {
+  const max = (usd: number) => (c === 'USD' ? usd : toUrlDollars(RUPEES[usd], c))
+  const under = (usd: number) => displayAmount(max(usd), c)
+  return [
+    card('Plug in with our electronics', find({ i: 'electronics' }), [s('Cell phones', { i: 'smartphones' }), s('Laptops', { i: 'laptops' }), s('Tablets', { i: 'tablets' }), s('Smart speakers', { k: 'smart speakers' })]),
+    card('Score the top Apple gear', find({ brand: ['Apple'] }), [s('iPhone', { k: 'iphone', brand: ['Apple'] }), s('MacBook', { k: 'macbook' }), s('iPad', { k: 'ipad' }), s('AirPods', { k: 'airpods' })]),
+    card('Gear up for game day', find({ i: 'sports' }), [s('Basketball', { k: 'basketball', i: 'sports' }), s('Cricket', { k: 'cricket' }), s('Tennis', { k: 'tennis' }), s('Baseball', { k: 'baseball', i: 'sports' })]),
+    card(`Popular finds under ${under(25)}`, find({ max: max(25) }), [s('Kitchen', { i: 'kitchen-accessories', max: max(25) }), s('Beauty', { i: 'beauty-personal-care', max: max(25) }), s("Women's fashion", { i: 'womens-fashion', max: max(25) }), s('Sports', { i: 'sports', max: max(25) })]),
 
-  card('Fashion trends in shoes', find({ k: 'shoes' }), [s("Women's", { i: 'womens-shoes' }), s("Men's", { i: 'mens-shoes' }), s('Sneakers', { k: 'sneakers' }), s('Heels', { k: 'heel' })]),
-  card('Cook like a pro', find({ i: 'kitchen-accessories' }), [s('Cookware', { k: 'cookware' }), s('Appliances', { k: 'kitchen appliances' }), s('Utensils', { k: 'utensils' }), s('Drinkware', { k: 'drinkware' })]),
-  card('Shoes under $100', find({ k: 'shoes', max: 100 }), [s("Women's", { i: 'womens-shoes', max: 100 }), s("Men's", { i: 'mens-shoes', max: 100 }), s('Casual shoes', { k: 'casual shoes', max: 100 }), s('Heels', { k: 'heel', max: 100 })]),
-  card('Deals on top categories', '/deals', [at('Electronics', '/deals?i=electronics', dealsIn('electronics')), at('Fashion', '/deals?i=womens-fashion', dealsIn('womens-fashion')), at('Beauty', '/deals?i=beauty-personal-care', dealsIn('beauty-personal-care')), at('Home', '/deals?i=home-kitchen', dealsIn('home-kitchen'))]),
+    card('Fantastic finds for home', find({ i: 'home-kitchen' }), [s('Kitchen', { i: 'kitchen-accessories' }), s('Home décor', { i: 'home-decoration' }), s('Furniture', { i: 'furniture' }), s('Lighting', { k: 'lamp', i: 'home-kitchen' })]),
+    card('Shine brighter with your fashion faves', find({ i: 'womens-fashion' }), [s('Jewelry', { i: 'womens-jewellery' }), s('Handbags', { i: 'womens-bags' }), s('Footwear', { i: 'womens-shoes' }), s('Dresses', { i: 'womens-dresses' })]),
+    card('Unveil your radiance', find({ i: 'beauty-personal-care' }), [s('Make-up', { i: 'beauty' }), s('Fragrances', { i: 'fragrances' }), s('Skin care', { i: 'skin-care' }), s('Body care', { k: 'body' })]),
+    card('Find your next phone', find({ i: 'smartphones' }), [s('iPhone', { k: 'iphone', i: 'smartphones' }), s('Samsung Galaxy', { k: 'samsung galaxy', i: 'smartphones' }), s('Realme', { k: 'realme' }), s('Vivo', { k: 'vivo' })]),
 
-  card('New home arrivals under $50', find({ i: 'home-kitchen', max: 50, sort: 'newest' }), [s('Kitchen & dining', { i: 'kitchen-accessories', max: 50, sort: 'newest' }), s('Décor', { i: 'home-decoration', max: 50, sort: 'newest' }), s('Cookware', { k: 'cookware', max: 50, sort: 'newest' }), s('Appliances', { k: 'kitchen appliances', max: 50, sort: 'newest' })]),
-  card('Discover the latest arrivals', find({ sort: 'newest' }), [s('Electronics', { i: 'electronics', sort: 'newest' }), s('Home', { i: 'home-kitchen', sort: 'newest' }), s('Beauty', { i: 'beauty-personal-care', sort: 'newest' }), s('Fashion', { i: 'womens-fashion', sort: 'newest' })]),
-  card('Dapper picks for men', find({ i: 'mens-fashion' }), [s('Shirts', { i: 'mens-shirts' }), s('Shoes', { i: 'mens-shoes' }), s('Watches', { i: 'mens-watches' }), s('Sunglasses', { i: 'sunglasses' })]),
-  card('Level up your beauty routine', find({ i: 'beauty' }), [s('Mascara', { k: 'mascara' }), s('Lipstick', { k: 'lipstick' }), s('Eyeshadow', { k: 'eyeshadow' }), s('Nail polish', { k: 'nail polish' })]),
+    card('Fashion trends in shoes', find({ k: 'shoes' }), [s("Women's", { i: 'womens-shoes' }), s("Men's", { i: 'mens-shoes' }), s('Sneakers', { k: 'sneakers' }), s('Heels', { k: 'heel' })]),
+    card('Cook like a pro', find({ i: 'kitchen-accessories' }), [s('Cookware', { k: 'cookware' }), s('Appliances', { k: 'kitchen appliances' }), s('Utensils', { k: 'utensils' }), s('Drinkware', { k: 'drinkware' })]),
+    card(`Shoes under ${under(100)}`, find({ k: 'shoes', max: max(100) }), [s("Women's", { i: 'womens-shoes', max: max(100) }), s("Men's", { i: 'mens-shoes', max: max(100) }), s('Casual shoes', { k: 'casual shoes', max: max(100) }), s('Heels', { k: 'heel', max: max(100) })]),
+    card('Deals on top categories', '/deals', [at('Electronics', '/deals?i=electronics', dealsIn('electronics')), at('Fashion', '/deals?i=womens-fashion', dealsIn('womens-fashion')), at('Beauty', '/deals?i=beauty-personal-care', dealsIn('beauty-personal-care')), at('Home', '/deals?i=home-kitchen', dealsIn('home-kitchen'))]),
 
-  card('Handpicked smart gadgets', find({ i: 'mobile-accessories' }), [s('Smart speakers', { k: 'smart speakers' }), s('Earphones', { k: 'earphones' }), s('Chargers', { k: 'charger' }), s('Smartwatches', { k: 'smartwatch' })]),
-  card('Stock up on groceries', find({ i: 'grocery' }), [s('Fruits', { k: 'fruits' }), s('Vegetables', { k: 'vegetables' }), s('Beverages', { k: 'beverages' }), s('Dairy & eggs', { k: 'dairy' })]),
-  card('Timeless watches', find({ k: 'watches' }), [s("Men's", { i: 'mens-watches' }), s("Women's", { i: 'womens-watches' }), s('Rolex', { k: 'rolex' }), s('Under $150', { k: 'watches', max: 150 })]),
-  card("Fragrances they'll love", find({ i: 'fragrances' }), ['Chanel', 'Dior', 'Gucci', 'Calvin Klein'].map((b) => s(b, { i: 'fragrances', brand: [b] }))),
+    card(`New home arrivals under ${under(50)}`, find({ i: 'home-kitchen', max: max(50), sort: 'newest' }), [s('Kitchen & dining', { i: 'kitchen-accessories', max: max(50), sort: 'newest' }), s('Décor', { i: 'home-decoration', max: max(50), sort: 'newest' }), s('Cookware', { k: 'cookware', max: max(50), sort: 'newest' }), s('Appliances', { k: 'kitchen appliances', max: max(50), sort: 'newest' })]),
+    card('Discover the latest arrivals', find({ sort: 'newest' }), [s('Electronics', { i: 'electronics', sort: 'newest' }), s('Home', { i: 'home-kitchen', sort: 'newest' }), s('Beauty', { i: 'beauty-personal-care', sort: 'newest' }), s('Fashion', { i: 'womens-fashion', sort: 'newest' })]),
+    card('Dapper picks for men', find({ i: 'mens-fashion' }), [s('Shirts', { i: 'mens-shirts' }), s('Shoes', { i: 'mens-shoes' }), s('Watches', { i: 'mens-watches' }), s('Sunglasses', { i: 'sunglasses' })]),
+    card('Level up your beauty routine', find({ i: 'beauty' }), [s('Mascara', { k: 'mascara' }), s('Lipstick', { k: 'lipstick' }), s('Eyeshadow', { k: 'eyeshadow' }), s('Nail polish', { k: 'nail polish' })]),
 
-  card('Explore Best Sellers', '/bestsellers', [at('Electronics', '/bestsellers/electronics', ranked('electronics')), at('Home & Kitchen', '/bestsellers/home-kitchen', ranked('home-kitchen')), at('Beauty', '/bestsellers/beauty-personal-care', ranked('beauty-personal-care')), at('Fashion', '/bestsellers/womens-fashion', ranked('womens-fashion'))]),
-  card('Highly rated by customers', find({ rating: 4 }), [s('Electronics', { i: 'electronics', rating: 4 }), s('Home', { i: 'home-kitchen', rating: 4 }), s('Beauty', { i: 'beauty-personal-care', rating: 4 }), s('Sports', { i: 'sports', rating: 4 })]),
-  card('Everyday essentials under $10', find({ max: 10 }), [s('Kitchen tools', { i: 'kitchen-accessories', max: 10 }), s('Grocery', { i: 'grocery', max: 10 }), s('Beauty', { i: 'beauty-personal-care', max: 10 }), s('Sports', { i: 'sports', max: 10 })]),
-  card("Women's fashion under $50", find({ i: 'womens-fashion', max: 50 }), [s('Tops', { i: 'tops', max: 50 }), s('Shoes', { i: 'womens-shoes', max: 50 }), s('Handbags', { i: 'womens-bags', max: 50 }), s('Jewelry', { i: 'womens-jewellery', max: 50 })]),
+    card('Handpicked smart gadgets', find({ i: 'mobile-accessories' }), [s('Smart speakers', { k: 'smart speakers' }), s('Earphones', { k: 'earphones' }), s('Chargers', { k: 'charger' }), s('Smartwatches', { k: 'smartwatch' })]),
+    card('Stock up on groceries', find({ i: 'grocery' }), [s('Fruits', { k: 'fruits' }), s('Vegetables', { k: 'vegetables' }), s('Beverages', { k: 'beverages' }), s('Dairy & eggs', { k: 'dairy' })]),
+    card('Timeless watches', find({ k: 'watches' }), [s("Men's", { i: 'mens-watches' }), s("Women's", { i: 'womens-watches' }), s('Rolex', { k: 'rolex' }), s(`Under ${under(150)}`, { k: 'watches', max: max(150) })]),
+    card("Fragrances they'll love", find({ i: 'fragrances' }), ['Chanel', 'Dior', 'Gucci', 'Calvin Klein'].map((b) => s(b, { i: 'fragrances', brand: [b] }))),
 
-  card('Refresh your space', find({ i: 'home-decoration' }), [s('Plants', { k: 'plant' }), s('Photo frames', { k: 'photo frame' }), s('Lighting', { k: 'lamp', i: 'home-decoration' }), s('Swings', { k: 'swing' })]),
-].flat()
+    card('Explore Best Sellers', '/bestsellers', [at('Electronics', '/bestsellers/electronics', ranked('electronics')), at('Home & Kitchen', '/bestsellers/home-kitchen', ranked('home-kitchen')), at('Beauty', '/bestsellers/beauty-personal-care', ranked('beauty-personal-care')), at('Fashion', '/bestsellers/womens-fashion', ranked('womens-fashion'))]),
+    card('Highly rated by customers', find({ rating: 4 }), [s('Electronics', { i: 'electronics', rating: 4 }), s('Home', { i: 'home-kitchen', rating: 4 }), s('Beauty', { i: 'beauty-personal-care', rating: 4 }), s('Sports', { i: 'sports', rating: 4 })]),
+    card(`Everyday essentials under ${under(10)}`, find({ max: max(10) }), [s('Kitchen tools', { i: 'kitchen-accessories', max: max(10) }), s('Grocery', { i: 'grocery', max: max(10) }), s('Beauty', { i: 'beauty-personal-care', max: max(10) }), s('Sports', { i: 'sports', max: max(10) })]),
+    card(`Women's fashion under ${under(50)}`, find({ i: 'womens-fashion', max: max(50) }), [s('Tops', { i: 'tops', max: max(50) }), s('Shoes', { i: 'womens-shoes', max: max(50) }), s('Handbags', { i: 'womens-bags', max: max(50) }), s('Jewelry', { i: 'womens-jewellery', max: max(50) })]),
+
+    card('Refresh your space', find({ i: 'home-decoration' }), [s('Plants', { k: 'plant' }), s('Photo frames', { k: 'photo frame' }), s('Lighting', { k: 'lamp', i: 'home-decoration' }), s('Swings', { k: 'swing' })]),
+  ].flat()
+}
+const CARDS: Record<CurrencyCode, Card[]> = { USD: cardsIn('USD'), PKR: cardsIn('PKR') }
 
 // soft picture backgrounds, one per card in turn
 const TINTS = ['#eef3f8', '#fdf1e7', '#eef6ee', '#f6eff8', '#fff6d9', '#eaf5f7', '#f9eeee', '#f2f2f2']
@@ -117,13 +127,13 @@ function CardGrid({ cards, offset }: { cards: Card[]; offset: number }) {
 }
 
 export default async function Home() {
-  const user = await getUser()
+  const [user, { currency }] = await Promise.all([getUser(), getRegion()])
   const [viewed, bought] = user ? await Promise.all([recentlyViewed(user.id), boughtBefore(user.id)]) : [[], []]
   const personal: Card[] = [
     ...(viewed.length ? [{ title: 'Pick up where you left off', href: '/history', tiles: productTiles(viewed) }] : []),
     ...(bought.length ? [{ title: 'Buy again', href: '/orders?tab=buy-again', tiles: productTiles(bought) }] : []),
   ]
-  const cards = [...personal, ...CARDS].slice(0, PAGE)
+  const cards = [...personal, ...CARDS[currency]].slice(0, PAGE)
   const seen = new Set(viewed.map((p) => p.id))
   const inspired = [...new Set(viewed.slice(0, 6).flatMap((p) => related(p, 8)))].filter((p) => !seen.has(p.id)).slice(0, 20)
 

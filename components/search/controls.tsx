@@ -3,6 +3,7 @@
 import { useLinkStatus } from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
+import { CURRENCIES, type CurrencyCode } from '@/lib/region'
 
 const PRICE_FORM = 'price-form'
 
@@ -18,7 +19,9 @@ const isDirty = (form: HTMLFormElement) =>
   [...form.querySelectorAll<HTMLInputElement>('input[type=number]')].some((i) => i.value.trim() !== i.defaultValue)
 
 // Custom price. `keep` is the query string of every other filter. Without JS it is a plain GET form.
-export function PriceForm({ keep, min, max }: { keep: string; min?: number; max?: number }) {
+// `min`/`max` and what the shopper types are in `currency`; outside USD `cur` tells parseQuery to convert them to dollars.
+export function PriceForm({ keep, min, max, currency }: { keep: string; min?: number; max?: number; currency: CurrencyCode }) {
+  const { prefix, label } = CURRENCIES[currency]
   const router = useRouter()
   const [pending, start] = useTransition()
   return (
@@ -36,14 +39,16 @@ export function PriceForm({ keep, min, max }: { keep: string; min?: number; max?
         }
         // like Amazon, Go with nothing typed does nothing (and empty params never reach the URL)
         if (!sp.has('min') && !sp.has('max') && min === undefined && max === undefined) return
+        if (currency !== 'USD' && (sp.has('min') || sp.has('max'))) sp.set('cur', currency)
         start(() => router.push(sp.size ? `/s?${sp}` : '/s'))
       }}
     >
       {[...new URLSearchParams(keep)].map(([name, value], idx) => (
         <input key={idx} type="hidden" name={name} value={value} />
       ))}
-      <input name="min" type="number" min={0} step="any" inputMode="decimal" placeholder="$ Min" aria-label="Minimum price, in dollars" defaultValue={min} className="input w-20 text-base lg:text-sm" />
-      <input name="max" type="number" min={0} step="any" inputMode="decimal" placeholder="$ Max" aria-label="Maximum price, in dollars" defaultValue={max} className="input w-20 text-base lg:text-sm" />
+      {currency !== 'USD' && <input type="hidden" name="cur" value={currency} />}
+      <input name="min" type="number" min={0} step="any" inputMode="decimal" placeholder={`${prefix} Min`} aria-label={`Minimum price, in ${label}s`} defaultValue={min} className="input w-20 text-base lg:text-sm" />
+      <input name="max" type="number" min={0} step="any" inputMode="decimal" placeholder={`${prefix} Max`} aria-label={`Maximum price, in ${label}s`} defaultValue={max} className="input w-20 text-base lg:text-sm" />
       <button type="submit" className="btn btn-plain">Go</button>
       <PendingMark on={pending} />
     </form>

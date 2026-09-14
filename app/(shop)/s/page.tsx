@@ -12,6 +12,7 @@ import { SortSelect } from '@/components/search/sort-select'
 import { correctSpelling } from '@/components/search/spelling'
 import { cartQuantities } from '@/lib/cart'
 import { DEPARTMENTS, SORTS, bestSellers, scopeName, search } from '@/lib/catalog'
+import { getRegion } from '@/lib/region-server'
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> }
 type Facets = ReturnType<typeof search>['facets']
@@ -34,7 +35,8 @@ export default async function SearchPage({ searchParams }: Props) {
   if (fix && fixed?.total) [k, r] = [fix, fixed]
 
   const base = toSearch(q, k)
-  const chips = appliedFilters(q)
+  const { currency } = await getRegion()
+  const chips = appliedFilters(q, currency)
   const showFilters = r.total > 0 || chips.length > 0
   const dept = q.i ? departmentOf(q.i) : undefined
   const scope = !q.i ? '' : dept && dept.slug !== q.i ? `${dept.name} : ${scopeName(q.i)}` : scopeName(q.i)
@@ -79,7 +81,7 @@ export default async function SearchPage({ searchParams }: Props) {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto overscroll-contain px-4 lg:overflow-visible lg:px-0">
-                <Filters q={q} base={base} facets={r.facets} />
+                <Filters q={q} base={base} facets={r.facets} currency={currency} />
               </div>
               <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 lg:hidden">
                 {chips.length > 0 ? <Link href={clearFilters(q)} className="link text-sm">Clear Filters</Link> : <span />}

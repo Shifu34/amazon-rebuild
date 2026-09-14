@@ -2,8 +2,9 @@ import Link from 'next/link'
 import { Fragment } from 'react'
 import { Stars } from '@/components/stars'
 import { DEPARTMENTS, categoryName, search, type SearchParams } from '@/lib/catalog'
+import type { CurrencyCode } from '@/lib/region'
 import { LinkPending, PriceForm } from './controls'
-import { PRICE_RANGES, departmentOf, priceLabel, toHref, type Query } from './params'
+import { departmentOf, displayNumber, priceLabel, priceRanges, toHref, type Query } from './params'
 
 type Facets = ReturnType<typeof search>['facets']
 type Department = (typeof DEPARTMENTS)[number]
@@ -103,10 +104,12 @@ function Departments({ q, facets }: { q: Query; facets: Facets }) {
 }
 
 // `base` is the effective search (after any spelling fix); counts are what each option would return
-export function Filters({ q, base, facets }: { q: Query; base: SearchParams; facets: Facets }) {
+// `currency` is the display currency: bands, labels and the typed amounts are in it, the URL stays in US dollars
+export function Filters({ q, base, facets, currency }: { q: Query; base: SearchParams; facets: Facets; currency: CurrencyCode }) {
   const count = (patch: Partial<SearchParams>) => search({ ...base, ...patch, page: 1, perPage: 1 }).total
   const ratingCounts = [4, 3, 2, 1].map((rating) => count({ rating }))
-  const priceCounts = PRICE_RANGES.map(([min, max]) => count({ min, max }))
+  const ranges = priceRanges(currency)
+  const priceCounts = ranges.map(([min, max]) => count({ min, max }))
   const dealCount = count({ deals: true })
   const outOfStock = count({ inStock: false }) - count({ inStock: true })
   const hasPrice = q.min !== undefined || q.max !== undefined
@@ -157,17 +160,23 @@ export function Filters({ q, base, facets }: { q: Query; base: SearchParams; fac
       )}
 
       <Section title="Price" clear={hasPrice ? toHref(q, { min: undefined, max: undefined }) : undefined}>
-        {PRICE_RANGES.map(([min, max], idx) => {
+        {ranges.map(([min, max], idx) => {
           const on = q.min === min && q.max === max
           if (!on && !priceCounts[idx]) return null
           return (
             <Item key={idx} on={on} href={toHref(q, on ? { min: undefined, max: undefined } : { min, max })}>
-              {priceLabel(min, max)} <Count n={priceCounts[idx]} />
+              {priceLabel(min, max, currency)} <Count n={priceCounts[idx]} />
             </Item>
           )
         })}
         <li>
-          <PriceForm key={`${q.min}-${q.max}`} keep={toHref(q, { min: undefined, max: undefined }).split('?')[1] ?? ''} min={q.min} max={q.max} />
+          <PriceForm
+            key={`${q.min}-${q.max}-${currency}`}
+            keep={toHref(q, { min: undefined, max: undefined }).split('?')[1] ?? ''}
+            min={q.min === undefined ? undefined : displayNumber(q.min, currency)}
+            max={q.max === undefined ? undefined : displayNumber(q.max, currency)}
+            currency={currency}
+          />
         </li>
       </Section>
 

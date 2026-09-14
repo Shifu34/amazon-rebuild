@@ -1,5 +1,6 @@
 // URL state for /s: parse untrusted params into a clean query, and build links that change one thing at a time.
 import { CATEGORY_NAMES, DEPARTMENTS, SORTS, scopeName, type SearchParams, type SortKey } from '@/lib/catalog'
+import { CURRENCIES, fromDisplayAmount, isCurrencyCode, rateFor, type CurrencyCode } from '@/lib/region'
 
 export const PER_PAGE = 24
 
@@ -21,10 +22,14 @@ type RawParams = Record<string, string | string[] | undefined>
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? ''
 
-function dollars(v: string | string[] | undefined) {
+// An amount in `currency` -> US dollars as the URL keeps them. 4 decimals, so a whole-rupee amount reads back as the same rupees.
+export const toUrlDollars = (amount: number, currency: CurrencyCode = 'USD') => Math.round(fromDisplayAmount(amount, currency) * 1e4) / 1e4
+
+// `cur` is set only by the no-JS price form, which submits the amounts as typed in the shopper's currency
+function dollars(v: string | string[] | undefined, currency: CurrencyCode) {
   const s = first(v).replace(/[$,\s]/g, '')
   const n = Number(s)
-  return s && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined
+  return s && Number.isFinite(n) && n >= 0 ? toUrlDollars(n, currency) : undefined
 }
 
 // Object.hasOwn so ?i=constructor can't reach Object.prototype
@@ -33,8 +38,9 @@ export const departmentOf = (slug: string) => DEPARTMENTS.find((d) => d.slug ===
 
 // Anything invalid is dropped rather than erroring; min > max is swapped
 export function parseQuery(sp: RawParams): Query {
-  let min = dollars(sp.min)
-  let max = dollars(sp.max)
+  const cur = first(sp.cur)
+  let min = dollars(sp.min, isCurrencyCode(cur) ? cur : 'USD')
+  let max = dollars(sp.max, isCurrencyCode(cur) ? cur : 'USD')
   if (min !== undefined && max !== undefined && min > max) [min, max] = [max, min]
   const i = first(sp.i)
   const rating = Number(first(sp.rating))
@@ -88,25 +94,44 @@ export const toSearch = (q: Query, k = q.k): SearchParams => ({
   perPage: PER_PAGE,
 })
 
-export const PRICE_RANGES: [number | undefined, number | undefined][] = [[undefined, 25], [25, 50], [50, 100], [100, 200], [200, undefined]]
+type Band = [min: number | undefined, max: number | undefined]
+// Price filter bands in each currency's own round amounts (search and Today's Deals)
+export const PRICE_BANDS: Record<CurrencyCode, Band[]> = {
+  USD: [[undefined, 25], [25, 50], [50, 100], [100, 200], [200, undefined]],
+  PKR: [[undefined, 5000], [5000, 15000], [15000, 30000], [30000, 60000], [60000, undefined]],
+}
+// the shopper's bands as US-dollar bounds
+export const priceRanges = (currency: CurrencyCode = 'USD') =>
+  PRICE_BANDS[currency].map((band) => band.map((n) => (n === undefined ? undefined : toUrlDollars(n, currency))) as Band)
 
-const dollarLabel = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`
+// US dollars -> the amount a filter shows: dollars to the cent, whole rupees
+export const displayNumber = (usd: number, currency: CurrencyCode = 'USD') =>
+  currency === 'USD' ? Math.round(usd * 100) / 100 : Math.round(usd * rateFor(currency))
 
-export function priceLabel(min?: number, max?: number) {
-  if (min === undefined) return `Up to ${dollarLabel(max ?? 0)}`
-  return max === undefined ? `${dollarLabel(min)} & above` : `${dollarLabel(min)} to ${dollarLabel(max)}`
+// "$25", "$19.99", "PKR 5,000"; `prefix` false leaves the currency off
+export function displayAmount(usd: number, currency: CurrencyCode = 'USD', prefix = true) {
+  const n = displayNumber(usd, currency)
+  const text = n.toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })
+  const p = CURRENCIES[currency].prefix
+  return !prefix ? text : p.length > 1 ? `${p} ${text}` : `${p}${text}`
+}
+
+// "$25 to $50", "PKR 5,000 to 15,000", "Up to PKR 5,000", "PKR 60,000 & above"
+export function priceLabel(min?: number, max?: number, currency: CurrencyCode = 'USD') {
+  if (min === undefined) return `Up to ${displayAmount(max ?? 0, currency)}`
+  return max === undefined ? `${displayAmount(min, currency)} & above` : `${displayAmount(min, currency)} to ${displayAmount(max, currency, currency === 'USD')}`
 }
 
 // `without` is the query with this one filter removed
 export type Chip = { label: string; href: string; without: Query }
 
-export function appliedFilters(q: Query): Chip[] {
+export function appliedFilters(q: Query, currency: CurrencyCode = 'USD'): Chip[] {
   const chip = (label: string, patch: Partial<Query>): Chip => ({ label, href: toHref(q, patch), without: { ...q, page: 1, ...patch } })
   const chips: Chip[] = []
   if (q.i) chips.push(chip(scopeName(q.i) ?? q.i, { i: '' }))
   for (const b of q.brand) chips.push(chip(b, { brand: q.brand.filter((x) => x !== b) }))
   if (q.rating) chips.push(chip(`${q.rating} Stars & Up`, { rating: undefined }))
-  if (q.min !== undefined || q.max !== undefined) chips.push(chip(priceLabel(q.min, q.max), { min: undefined, max: undefined }))
+  if (q.min !== undefined || q.max !== undefined) chips.push(chip(priceLabel(q.min, q.max, currency), { min: undefined, max: undefined }))
   if (q.deals) chips.push(chip("Today's Deals", { deals: false }))
   if (q.oos) chips.push(chip('Include Out of Stock', { oos: false }))
   return chips

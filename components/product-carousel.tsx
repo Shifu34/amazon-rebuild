@@ -1,14 +1,16 @@
 import Link from 'next/link'
 import type { Product } from '@/lib/catalog'
+import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
 import { DeliveryLine } from './product-card'
 import { Scroller } from './scroller'
 import { Stars } from './stars'
 
 // "Best Sellers in Kitchen", "Customers also viewed"... `details` adds title, stars, price and delivery date under each image.
-// `loading="eager"` when the row is visible as the page opens.
-export function ProductCarousel({ title, products, href, details = true, loading = 'lazy' }: { title: string; products: Product[]; href?: string; details?: boolean; loading?: 'lazy' | 'eager' }) {
+// `loading="eager"` when the row is visible as the page opens. Prices are in the shopper's display currency.
+export async function ProductCarousel({ title, products, href, details = true, loading = 'lazy' }: { title: string; products: Product[]; href?: string; details?: boolean; loading?: 'lazy' | 'eager' }) {
   if (!products.length) return null
+  const { currency, rate } = await getRegion()
   return (
     <section aria-label={title} className="bg-white px-4 pt-4 pb-1">
       <div className="mb-3 flex items-baseline gap-3">
@@ -36,7 +38,7 @@ export function ProductCarousel({ title, products, href, details = true, loading
                   <Stars rating={p.rating} className="h-3.5" />
                   <span className="text-xs text-link">{p.ratingCount.toLocaleString('en-US')}</span>
                 </div>
-                <div className="text-lg leading-6"><Price value={p.price} /></div>
+                <div className="text-lg leading-6"><Price value={p.price} currency={currency} rate={rate} /></div>
                 <DeliveryLine product={p} compact />
               </div>
             )}

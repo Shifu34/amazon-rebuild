@@ -4,6 +4,7 @@ import { FilterToggle } from '@/components/home/filter-toggle'
 import { Price } from '@/components/price'
 import { Stars } from '@/components/stars'
 import { CATEGORY_NAMES, DEPARTMENTS, type Product } from '@/lib/catalog'
+import { getRegion } from '@/lib/region-server'
 
 const item = 'block rounded-sm py-1.5 hover:text-link-hover hover:underline lg:py-1'
 
@@ -54,8 +55,9 @@ export function BestSellersLayout({ slug, children }: { slug?: string; children:
 }
 
 // `inCart` is the server cart quantity (for the action button); `priority` loads the image first (first grid row).
-export function RankTile({ product: p, rank, action = false, inCart, priority = false }: { product: Product; rank: number; action?: boolean; inCart?: number; priority?: boolean }) {
+export async function RankTile({ product: p, rank, action = false, inCart, priority = false }: { product: Product; rank: number; action?: boolean; inCart?: number; priority?: boolean }) {
   const href = `/dp/${p.id}`
+  const { currency, rate } = await getRegion()
   return (
     <article className="relative flex h-full flex-col">
       <span className="absolute top-0 left-0 z-10 rounded-tl-lg rounded-br-lg bg-[#c45500] px-2 py-0.5 text-sm font-bold text-white">#{rank}</span>
@@ -70,7 +72,7 @@ export function RankTile({ product: p, rank, action = false, inCart, priority = 
         <Stars rating={p.rating} className="h-3.5" />
         <span className="text-xs text-link">{p.ratingCount.toLocaleString('en-US')}</span>
       </div>
-      {p.stock > 0 ? <div className="mt-1 text-lg leading-6"><Price value={p.price} /></div> : <p className="mt-1 text-sm text-danger">Currently unavailable.</p>}
+      {p.stock > 0 ? <div className="mt-1 text-lg leading-6"><Price value={p.price} currency={currency} rate={rate} /></div> : <p className="mt-1 text-sm text-danger">Currently unavailable.</p>}
       {action && p.stock > 0 && (
         <div className="mt-auto pt-2">
           <AddToCartButton productId={p.id} inCart={inCart} />

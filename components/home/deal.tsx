@@ -4,7 +4,8 @@ import { Price } from '@/components/price'
 import { Scroller } from '@/components/scroller'
 import { Stars } from '@/components/stars'
 import type { Product } from '@/lib/catalog'
-import { usd } from '@/lib/format'
+import { formatDollars } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
 
 export function DealBadge({ discount }: { discount: number }) {
   return (
@@ -19,9 +20,10 @@ export function DealBadge({ discount }: { discount: number }) {
 }
 
 // Today's Deals tile. `compact` (home rail) drops the rating row and the cart button.
-// `inCart` is the server cart quantity; `priority` loads the image first (first grid row).
-export function DealCard({ product: p, compact = false, inCart, priority = false }: { product: Product; compact?: boolean; inCart?: number; priority?: boolean }) {
+// `inCart` is the server cart quantity; `priority` loads the image first (first grid row). `data-price` stays US dollars.
+export async function DealCard({ product: p, compact = false, inCart, priority = false }: { product: Product; compact?: boolean; inCart?: number; priority?: boolean }) {
   const href = `/dp/${p.id}`
+  const { currency, rate } = await getRegion()
   return (
     <article data-price={p.price} className="relative flex h-full flex-col">
       <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-3">
@@ -31,8 +33,8 @@ export function DealCard({ product: p, compact = false, inCart, priority = false
       <div className="mt-2 flex flex-1 flex-col gap-1">
         <DealBadge discount={p.discount} />
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="text-[21px] leading-7"><Price value={p.price} /></span>
-          {p.listPrice && <span className="text-xs text-muted">List: <s>{usd(p.listPrice)}</s></span>}
+          <span className="text-[21px] leading-7"><Price value={p.price} currency={currency} rate={rate} /></span>
+          {p.listPrice && <span className="text-xs text-muted">List: <s>{formatDollars(p.listPrice, currency, rate)}</s></span>}
         </div>
         <h3 className="text-sm font-normal">
           <Link href={href} className="line-clamp-2 hover:text-link-hover hover:underline">{p.title}</Link>

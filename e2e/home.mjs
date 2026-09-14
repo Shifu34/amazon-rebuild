@@ -219,6 +219,32 @@ try {
   await page.waitForTimeout(500)
   assert.equal(await page.getByRole('dialog', { name: 'All departments' }).count(), 0, 'drawer closed')
 
+  step('PKR (currency cookie): round-rupee "under" cards search real dollar bounds, rupee deals facet, no dollars, no overflow at 390px')
+  const pkr = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+  await pkr.addCookies([{ name: 'currency', value: 'PKR', url: base }])
+  const rp = await pkr.newPage()
+  await rp.goto(base)
+  assert.equal(await rp.locator('main h2.font-display').count(), 24, 'every card still has results in rupees')
+  assert.equal(await rp.getByRole('heading', { name: 'Popular finds under PKR 7,000' }).getByRole('link').getAttribute('href'), '/s?max=25.2644')
+  assert.ok((await rp.request.get(`${base}/s?max=25.2644`).then((r) => r.text())).includes('Remove filter: Up to PKR 7,000'))
+  assert.match(await rp.getByRole('region', { name: "Today's Deals", exact: true }).locator('article').first().textContent(), /PKR [\d,]+/)
+  await rp.goto(`${base}/deals`)
+  await rp.getByRole('link', { name: 'Up to PKR 5,000' }).click()
+  await rp.waitForURL(/price=pkr-under-5000/)
+  const under5k = await rp.locator('main li article').evaluateAll((els) => els.map((el) => Number(el.dataset.price)))
+  assert.ok(under5k.length && under5k.every((usd) => usd * 277.07 < 5000), 'rupee band filters deals')
+  for (const path of ['/', '/deals', '/bestsellers', '/bestsellers/electronics']) {
+    await rp.goto(base + path)
+    assert.doesNotMatch(await rp.locator('main').innerText(), /\$/, `${path} shows dollars in PKR`)
+  }
+  await rp.setViewportSize({ width: 390, height: 844 })
+  for (const path of ['/', '/deals?sort=price-desc', '/bestsellers', '/bestsellers/electronics']) {
+    await rp.goto(base + path)
+    const overflow = await rp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    assert.ok(overflow <= 0, `${path} overflows by ${overflow}px in PKR`)
+  }
+  await pkr.close()
+
   console.log('e2e home ok')
 } catch (e) {
   await page.screenshot({ path: 'e2e/home-failure.png', fullPage: true }).catch(() => {})

@@ -2,8 +2,9 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useId, useState } from 'react'
-import { usd } from '@/lib/format'
+import { formatDollars } from '@/lib/region'
 import { CaretIcon, SearchIcon } from './icons'
+import { useRegion } from './region-provider'
 
 type Suggestions = { terms: string[]; products: { id: number; title: string; thumbnail: string; price: number }[] }
 const EMPTY: Suggestions = { terms: [], products: [] }
@@ -18,6 +19,7 @@ export function SearchBar(props: { departments: { slug: string; name: string }[]
 
 function SearchBox({ departments, initialQuery, initialScope }: { departments: { slug: string; name: string }[]; initialQuery: string; initialScope: string }) {
   const router = useRouter()
+  const { currency, rate } = useRegion()
   const [q, setQ] = useState(initialQuery)
   const [scope, setScope] = useState(initialScope)
   const [open, setOpen] = useState(false)
@@ -181,7 +183,7 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={o.p.thumbnail} alt="" className="size-10 shrink-0 object-contain" />
                   <span className="min-w-0 flex-1 truncate">{o.p.title}</span>
-                  <span className="shrink-0 font-bold">{usd(o.p.price)}</span>
+                  <span className="shrink-0 font-bold">{formatDollars(o.p.price, currency, rate)}</span>
                 </>
               )}
             </li>

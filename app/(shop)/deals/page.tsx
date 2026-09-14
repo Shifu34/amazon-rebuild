@@ -3,23 +3,29 @@ import Link from 'next/link'
 import { DealCard } from '@/components/home/deal'
 import { FilterToggle } from '@/components/home/filter-toggle'
 import { inScope, scopeLabel } from '@/components/home/scope'
+import { PRICE_BANDS, priceLabel, toUrlDollars } from '@/components/search/params'
 import { Stars } from '@/components/stars'
 import { cartQuantities } from '@/lib/cart'
 import { CATEGORY_NAMES, deals, DEPARTMENTS, popularity, type Product } from '@/lib/catalog'
 import { plural } from '@/lib/format'
+import type { CurrencyCode } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
 import { SortSelect } from './sort-select'
 
 export const metadata: Metadata = { title: "Today's Deals" }
 
 const BATCH = 40
 const DISCOUNTS = [10, 15, 20, 25, 50]
-const PRICES: Record<string, [label: string, min: number, max: number]> = {
-  'under-25': ['Up to $25', 0, 25],
-  '25-50': ['$25 to $50', 25, 50],
-  '50-100': ['$50 to $100', 50, 100],
-  '100-200': ['$100 to $200', 100, 200],
-  '200-up': ['$200 & Above', 200, Infinity],
-}
+// Price facet keys in dollars ('under-25', '25-50', '200-up') and rupees ('pkr-under-5000', 'pkr-60000-up'). Every key
+// filters in any currency so shared links keep working; the rail offers the shopper's own bands. Bounds are US dollars.
+const PRICES: Record<string, { currency: CurrencyCode; min: number; max: number }> = Object.fromEntries(
+  (Object.keys(PRICE_BANDS) as CurrencyCode[]).flatMap((c) =>
+    PRICE_BANDS[c].map(([lo, hi]) => [
+      `${c === 'USD' ? '' : `${c.toLowerCase()}-`}${lo ?? 'under'}-${hi ?? 'up'}`,
+      { currency: c, min: lo === undefined ? 0 : toUrlDollars(lo, c), max: hi === undefined ? Infinity : toUrlDollars(hi, c) },
+    ]),
+  ),
+)
 const SORTS: Record<string, [label: string, compare: (a: Product, b: Product) => number]> = {
   featured: ['Featured', (a, b) => b.discount - a.discount || popularity(b) - popularity(a)],
   'price-asc': ['Price: Low to High', (a, b) => a.price - b.price],
@@ -70,12 +76,14 @@ export default async function DealsPage({ searchParams }: PageProps<'/deals'>) {
     return q.size ? `/deals?${q}` : '/deals'
   }
 
+  const { currency } = await getRegion()
+  const priceText = (key: string) => priceLabel(PRICES[key].min || undefined, Number.isFinite(PRICES[key].max) ? PRICES[key].max : undefined, currency)
   const all = deals(Infinity)
   // counts ignore the facet's own filter so its other options stay visible
   const pass = (p: Product, skip?: Filter) =>
     (skip === 'i' || !i || inScope(p, i)) &&
     (skip === 'discount' || !discount || p.discount >= discount) &&
-    (skip === 'price' || !price || (p.price >= PRICES[price][1] && p.price < PRICES[price][2])) &&
+    (skip === 'price' || !price || (p.price >= PRICES[price].min && p.price < PRICES[price].max)) &&
     (skip === 'rating' || !rating || p.rating >= rating)
   const count = (skip: Filter, test: (p: Product) => boolean) => all.filter((p) => pass(p, skip) && test(p)).length
   const results = all.filter((p) => pass(p)).sort(SORTS[sort][1])
@@ -85,7 +93,7 @@ export default async function DealsPage({ searchParams }: PageProps<'/deals'>) {
     [
       [i && scopeLabel(i), { i: undefined }],
       [discount && `${discount}% off or more`, { discount: undefined }],
-      [price && PRICES[price][0], { price: undefined }],
+      [price && priceText(price), { price: undefined }],
       [rating && '4 Stars & Up', { rating: undefined }],
     ] as const
   ).filter(([label]) => label)
@@ -95,7 +103,7 @@ export default async function DealsPage({ searchParams }: PageProps<'/deals'>) {
   const dept = i ? DEPARTMENTS.find((d) => d.slug === i || d.categories.includes(i)) : undefined
   const departments = DEPARTMENTS.filter((d) => d === dept || count('i', (p) => inScope(p, d.slug)) > 0)
   const categories = dept ? dept.categories.filter((c) => c === i || count('i', (p) => p.category === c) > 0) : []
-  const prices = Object.entries(PRICES).filter(([key, [, min, max]]) => key === price || count('price', (p) => p.price >= min && p.price < max) > 0)
+  const prices = Object.entries(PRICES).filter(([key, { currency: c, min, max }]) => key === price || (c === currency && count('price', (p) => p.price >= min && p.price < max) > 0))
   const discounts = DISCOUNTS.filter((d) => d === discount || count('discount', (p) => p.discount >= d) > 0)
   const chip = (selected: boolean) =>
     `block rounded-full border px-3.5 py-1.5 text-sm whitespace-nowrap ${selected ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:bg-[#f7fafa]'}`
@@ -137,8 +145,8 @@ export default async function DealsPage({ searchParams }: PageProps<'/deals'>) {
 
             {prices.length > 0 && (
               <Facet title="Price" clear={price && href({ price: undefined })}>
-                {prices.map(([key, [label]]) => (
-                  <Option key={key} href={href({ price: key === price ? undefined : key })} active={key === price}>{label}</Option>
+                {prices.map(([key]) => (
+                  <Option key={key} href={href({ price: key === price ? undefined : key })} active={key === price}>{priceText(key)}</Option>
                 ))}
               </Facet>
             )}

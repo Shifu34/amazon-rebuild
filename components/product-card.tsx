@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { isDeal, type Product } from '@/lib/catalog'
-import { deliveryPromise, relativeDay } from '@/lib/delivery'
-import { compactCount, usd } from '@/lib/format'
+import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
+import { compactCount } from '@/lib/format'
+import { formatDollars } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
 import { Stars } from './stars'
 
@@ -19,30 +21,34 @@ export function Badge({ badge }: { badge: Product['badge'] }) {
   return null
 }
 
-// the same date the product page, cart and checkout show (lib/delivery); `compact` for carousels drops the threshold note
-export function DeliveryLine({ product: p, compact = false }: { product: Product; compact?: boolean }) {
+// the same date the product page, cart and checkout show (lib/delivery), for the shopper's delivery country and in their
+// currency; `compact` for carousels drops the threshold note
+export async function DeliveryLine({ product: p, compact = false }: { product: Product; compact?: boolean }) {
   const size = compact ? 'text-xs' : 'text-sm'
   if (p.stock === 0) return <p className={`${size} text-danger`}>Currently unavailable.</p>
-  const { standard, label, note } = deliveryPromise(p)
+  const { country, currency, rate } = await getRegion()
+  const promise = deliveryPromise(p, new Date(), country)
+  const { label, note } = deliveryText(promise, currency, rate)
   return (
     <p className={size}>
-      {label} <b>{relativeDay(standard)}</b>
+      {label} <b>{relativeDay(promise.standard)}</b>
       {note && !compact && <span className="block text-xs text-muted">{note}</span>}
     </p>
   )
 }
 
-// Search-result style card. `children` is the action slot (e.g. an Add to cart form).
+// Search-result style card, priced in the shopper's display currency. `children` is the action slot (e.g. an Add to cart form).
 // Pass `priority` for the first row of a grid so those above-the-fold images load first.
-export function ProductCard({ product: p, priority = false, children }: { product: Product; priority?: boolean; children?: React.ReactNode }) {
+export async function ProductCard({ product: p, priority = false, children }: { product: Product; priority?: boolean; children?: React.ReactNode }) {
   const href = `/dp/${p.id}`
+  const { currency, rate } = await getRegion()
   return (
     <article className="flex h-full flex-col">
       <Link href={href} className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
       </Link>
-      <div className="flex flex-1 flex-col gap-1 pt-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 pt-2">
         {p.badge && <div><Badge badge={p.badge} /></div>}
         <h2 className="text-base leading-6 font-normal">
           <Link href={href} className="line-clamp-2 hover:text-link-hover">{p.title}</Link>
@@ -57,8 +63,8 @@ export function ProductCard({ product: p, priority = false, children }: { produc
           <p><span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span></p>
         )}
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <Link href={href} className="text-[28px] leading-8"><Price value={p.price} /></Link>
-          {p.listPrice && <span className="text-xs text-muted">List: <s>{usd(p.listPrice)}</s></span>}
+          <Link href={href} className="text-[28px] leading-8"><Price value={p.price} currency={currency} rate={rate} /></Link>
+          {p.listPrice && <span className="text-xs text-muted">List: <s>{formatDollars(p.listPrice, currency, rate)}</s></span>}
         </div>
         <DeliveryLine product={p} />
         {p.stock > 0 && p.stock < 10 && <p className="text-sm text-danger">Only {p.stock} left in stock - order soon.</p>}

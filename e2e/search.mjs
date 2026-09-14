@@ -15,8 +15,8 @@ const until = async (fn, message) => {
   }
   throw new Error(message)
 }
-// the first .sr-only in a ProductCard is its spoken price, e.g. "$1,099.99"
-const prices = () => page.locator('main article').evaluateAll((cards) => cards.map((c) => Number(c.querySelector('.sr-only').textContent.replace(/[$,]/g, ''))))
+// the first .sr-only in a ProductCard is its spoken price, e.g. "$1,099.99" or "PKR 304,544.23"
+const prices = () => page.locator('main article').evaluateAll((cards) => cards.map((c) => Number(c.querySelector('.sr-only').textContent.replace(/[^\d.]/g, ''))))
 const cartCount = async () => Number((await page.getByRole('link', { name: /^Cart, / }).getAttribute('aria-label')).match(/\d+/)[0])
 
 try {
@@ -130,6 +130,45 @@ try {
   await show.click()
   await drawer.waitFor({ state: 'hidden' })
   await page.getByRole('button', { name: 'Filters (1)' }).waitFor()
+
+  step('Pakistan (x-vercel-ip-country: PK): rupee prices, the international delivery fee, rupee price bands and typed rupees')
+  await page.close()
+  const pk = await browser.newContext({ viewport: { width: 1280, height: 900 }, extraHTTPHeaders: { 'x-vercel-ip-country': 'PK' } })
+  page = await pk.newPage()
+  await page.goto(`${base}/s?k=phone`)
+  await h1().waitFor()
+  assert.match(await page.locator('main article .sr-only').first().textContent(), /^PKR [\d,]+\.\d{2}$/)
+  await page.locator('main article').first().getByText(/^PKR 4,153\.28 delivery/).waitFor()
+  assert.equal(await page.locator('main').getByText(/FREE delivery|\$/).count(), 0, 'no dollars and no free delivery to Pakistan')
+  const filters = page.getByRole('complementary', { name: 'Filters' })
+  await filters.getByRole('link', { name: /^Up to PKR 5,000/ }).click()
+  await page.waitForURL(/max=18\.046$/)
+  await page.getByRole('link', { name: 'Remove filter: Up to PKR 5,000' }).waitFor()
+  assert.ok((await prices()).every((x) => x <= 5000), 'band keeps prices under PKR 5,000')
+  await filters.getByLabel('Minimum price, in Pakistani Rupees').fill('5000')
+  await filters.getByLabel('Maximum price, in Pakistani Rupees').fill('15000')
+  await filters.getByRole('button', { name: 'Go' }).click()
+  await page.waitForURL(/min=5000&max=15000&cur=PKR/)
+  await page.getByRole('link', { name: 'Remove filter: PKR 5,000 to 15,000' }).waitFor()
+  const typed = await prices()
+  assert.ok(typed.length && typed.every((x) => x >= 5000 && x <= 15000), `typed rupee range: ${typed}`)
+  assert.equal(await filters.getByLabel('Minimum price, in Pakistani Rupees').inputValue(), '5000', 'the box reads back in rupees')
+  await page.getByRole('combobox', { name: 'Search nile' }).fill('iphone')
+  await page.getByRole('option', { name: /PKR [\d,]+\.\d{2}$/ }).first().waitFor()
+
+  step('Pakistan with the currency set to USD: dollar prices, still the $14.99 international fee')
+  await pk.addCookies([{ name: 'currency', value: 'USD', url: base }])
+  await page.goto(`${base}/s?k=phone`)
+  await page.locator('main article').first().getByText(/^\$14\.99 delivery/).waitFor()
+
+  step('Pakistan at 390px: no sideways scroll with rupee prices')
+  await pk.clearCookies()
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const path of ['/s?k=phone', '/s?sort=price-desc']) {
+    await page.goto(base + path)
+    await h1().waitFor()
+    assert.ok((await page.evaluate(() => document.documentElement.scrollWidth)) <= 390, `${path} scrolls sideways`)
+  }
 
   console.log('e2e search ok')
 } catch (e) {
