@@ -150,6 +150,7 @@ export function Flyout({ href, label, toggleLabel, className, panelClassName, ch
 
   const caret = <CaretIcon className={`h-[5px] w-2 shrink-0 self-end text-[#a7acb2] ${href ? 'mb-3' : 'mb-[15px]'}`} />
   const focus = 'cursor-pointer focus-visible:outline-1 focus-visible:outline-white'
+  const outline = `rounded-[2px] border group-hover:border-white ${open ? 'border-white' : 'border-transparent'}`
   const toggleButton = (className: string, content: React.ReactNode) => (
     <button
       ref={toggle}
@@ -168,7 +169,7 @@ export function Flyout({ href, label, toggleLabel, className, panelClassName, ch
   return (
     <div
       ref={root}
-      className={`relative ${className}`}
+      className={`group relative ${className}`}
       onPointerEnter={(e) => {
         if (e.pointerType !== 'mouse') return
         hovering.current = true
@@ -184,14 +185,15 @@ export function Flyout({ href, label, toggleLabel, className, panelClassName, ch
         if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false)
       }}
     >
-      <div className={`flex h-[50px] rounded-[2px] border hover:border-white ${open ? 'border-white' : 'border-transparent'}`}>
+      {/* as on Amazon, the white hover outline wraps the label and the caret hangs just outside it */}
+      <div className="flex h-[50px]">
         {href ? (
           <>
-            <Link href={href} className={`flex flex-col justify-center pl-[9px] ${focus}`}>{label}</Link>
-            {toggleButton('pr-[9px] pl-1', caret)}
+            <Link href={href} className={`flex flex-col justify-center pr-1 pl-[9px] ${outline} ${focus}`}>{label}</Link>
+            {toggleButton('pr-3 pl-0.5', caret)}
           </>
         ) : (
-          toggleButton('items-center gap-0.5 px-[9px]', <>{label}{caret}</>)
+          toggleButton('items-center gap-0.5 pr-[9px]', <><span className={`flex h-full items-center pr-px pl-1 ${outline}`}>{label}</span>{caret}</>)
         )}
       </div>
       {/* the header is a stacking context, so -z-10 dims the page but not the header's own bars */}

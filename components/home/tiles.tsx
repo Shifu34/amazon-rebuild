@@ -29,9 +29,9 @@ export function PictureTiles({ tiles }: { tiles: PictureTile[] }) {
             <Link
               href={href}
               style={{ backgroundColor: bg }}
-              className="flex aspect-[285/455] flex-col overflow-hidden rounded-xl px-3 pt-4 text-ink focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ink"
+              className="flex aspect-[285/457] flex-col overflow-hidden rounded-xl px-3 pt-4 text-ink focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ink"
             >
-              <span className="font-display text-[29px] leading-8 font-extrabold">{title}</span>
+              <span className="font-display text-[29px] leading-[33px] font-black tracking-[-0.01em]">{title}</span>
               {subtitle && <span className="mt-1 text-lg leading-6">{subtitle}</span>}
               {/* product shots on white multiply into the tile colour; the big one sits behind the two smaller ones */}
               <span aria-hidden className="relative -mx-3 mt-2 flex-1">

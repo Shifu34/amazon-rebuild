@@ -4,7 +4,7 @@ import { preconnect } from 'react-dom'
 import './globals.css'
 
 // heavy display face for home headlines, the closest open font to Amazon Ember Display Heavy (Tailwind `font-display`)
-const display = Inter_Tight({ subsets: ['latin'], weight: '800', variable: '--font-inter-tight', display: 'swap' })
+const display = Inter_Tight({ subsets: ['latin'], weight: '900', variable: '--font-inter-tight', display: 'swap' })
 
 export const metadata: Metadata = {
   title: { default: 'nile: shop everything, delivered', template: '%s | nile' },

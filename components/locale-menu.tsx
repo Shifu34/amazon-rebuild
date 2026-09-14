@@ -15,23 +15,24 @@ export function LocaleMenu() {
           <FlagUS className="h-3.5 w-[21px]" /> EN
         </span>
       }
-      panelClassName="-left-2.5 w-60 pt-0.5"
+      panelClassName="-left-2.5 w-[250px] pt-0.5"
     >
-      <div className="rounded-[3px] border border-[#bbb] bg-white px-[15px] pt-2.5 pb-3.5 text-[13px] leading-4 text-ink shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
+      <span aria-hidden className="absolute top-0 left-[62px] size-2.5 rotate-45 bg-white" />
+      <div className="relative rounded-[3px] border border-[#bbb] bg-white px-[15px] pt-2.5 pb-3.5 text-[13px] leading-4 text-ink shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
         <fieldset>
           <legend className="py-1">Change language</legend>
           <label className="mt-2.5 flex cursor-pointer items-center gap-2">
             <input type="radio" name="language" value="en" defaultChecked className={radio} /> English - EN
           </label>
         </fieldset>
-        <hr className="mt-3 mb-1.5 border-[#e7e7e7]" />
+        <hr className="mt-3.5 mb-1.5 border-[#e7e7e7]" />
         <fieldset>
           <legend className="py-1">Change currency</legend>
           <label className="mt-2.5 flex cursor-pointer items-center gap-2">
             <input type="radio" name="currency" value="USD" defaultChecked className={radio} /> $ - USD - US Dollar
           </label>
         </fieldset>
-        <hr className="mt-3 mb-1.5 border-[#e7e7e7]" />
+        <hr className="mt-3.5 mb-1.5 border-[#e7e7e7]" />
         <p className="pt-1">
           <FlagUS className="mr-1.5 inline h-[11px] w-4 align-[-1px]" />
           You are shopping on nile.com

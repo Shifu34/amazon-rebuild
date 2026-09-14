@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Logo } from './icons'
+import { FlagUS, Logo } from './icons'
 
 const REPO = 'https://github.com/Shifu34/amazon-rebuild'
 const focus = 'rounded-[2px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white'
@@ -60,9 +60,10 @@ export function Footer() {
       </a>
 
       <div className="bg-nav-light">
-        <nav aria-label="Footer" className="mx-auto grid max-w-[1040px] grid-cols-2 gap-x-6 px-4 pt-10 pb-8 md:flex md:justify-between md:gap-x-10 md:px-5 md:pb-10">
+        {/* column starts and widths from Amazon's 1023px row at 1536px wide; long links wrap in the narrow last column, as there */}
+        <nav aria-label="Footer" className="mx-auto grid max-w-[1063px] grid-cols-2 gap-x-6 px-4 pt-10 pb-8 md:grid-cols-[249fr_296fr_342fr_136fr] md:gap-x-0 md:px-5 md:pb-10">
           {COLUMNS.map((col) => (
-            <div key={col.title} className="mb-4 md:mb-0">
+            <div key={col.title} className="mb-4 md:mb-0 md:pr-4 md:last:pr-0">
               <h2 className="mt-1.5 mb-3.5 text-base leading-[1.2]">{col.title}</h2>
               <ul className="text-sm leading-[1.2] text-[#ddd]">
                 {col.links.map(([label, href]) => (
@@ -80,20 +81,20 @@ export function Footer() {
             <Logo />
           </Link>
           <ul aria-label="Region settings" className="flex flex-wrap justify-center gap-2 text-sm text-[#ccc]">
-            <li className="flex h-[35px] items-center gap-2.5 rounded-[3px] border border-[#848688] pr-10 pl-3">
-              <svg viewBox="0 0 20 20" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+            <li className="flex h-[35px] w-[138px] items-center gap-[9px] rounded-[3px] border border-[#848688] pl-[17px]">
+              <svg viewBox="0 0 20 20" className="size-[15px]" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
                 <circle cx="10" cy="10" r="8" />
                 <path d="M2 10h16M10 2c2.4 2.2 3.4 5 3.4 8s-1 5.8-3.4 8c-2.4-2.2-3.4-5-3.4-8s1-5.8 3.4-8z" />
               </svg>
               <span><span className="sr-only">Language: </span>English</span>
             </li>
-            <li className="flex h-[35px] items-center gap-2.5 rounded-[3px] border border-[#848688] px-3">
+            <li className="flex h-[35px] items-center gap-[9px] rounded-[3px] border border-[#848688] pr-7 pl-2">
               <span className="sr-only">Currency: </span>
               <span aria-hidden className="font-bold">$</span>
               <span>USD - U.S. Dollar</span>
             </li>
-            <li className="flex h-[35px] items-center gap-2.5 rounded-[3px] border border-[#848688] pr-8 pl-3">
-              <span aria-hidden className="text-lg leading-none">🇺🇸</span>
+            <li className="flex h-[35px] items-center gap-2 rounded-[3px] border border-[#848688] pr-7 pl-2">
+              <FlagUS className="h-[13px] w-[19px]" />
               <span><span className="sr-only">Country: </span>United States</span>
             </li>
           </ul>

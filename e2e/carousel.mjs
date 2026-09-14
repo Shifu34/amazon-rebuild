@@ -44,7 +44,7 @@ async function checkRows(route, rowNames) {
 }
 
 try {
-  await checkRows('/', ['Best Sellers in Home & Kitchen', 'Best Sellers in Electronics'])
+  await checkRows('/', ['Best Sellers in Home & Kitchen', "Today's Deals"])
   await checkRows('/dp/135', ['Customers who viewed this item also viewed'])
   console.log('carousel ok')
 } finally {

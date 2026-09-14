@@ -100,21 +100,22 @@ export async function Header() {
                 <span className={line2}>Account &amp; Lists</span>
               </>
             }
-            panelClassName="-right-[107px] w-[500px] pt-0.5"
+            panelClassName="-right-[102px] w-[523px] pt-0.5"
           >
-            <span aria-hidden className="absolute top-0 right-[108px] size-2.5 rotate-45 bg-white" />
+            {/* the notch points at the caret */}
+            <span aria-hidden className="absolute top-0 right-[113px] size-2.5 rotate-45 bg-white" />
             <div className="relative rounded-[3px] border border-[#d5d9d9] bg-white px-6 pt-3.5 pb-3 text-ink shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
               {!user && (
                 <div className="mb-3 border-b border-[#eee] pb-2 text-center">
-                  <Link href="/ap/signin" className="btn btn-cart min-h-[33px] w-[220px] rounded-lg">Sign in</Link>
+                  <Link href="/ap/signin" className="btn btn-cart min-h-[35px] w-[230px] rounded-lg">Sign in</Link>
                   <p className="mt-1.5 text-xs leading-4">
                     New customer?{' '}
                     <Link href="/ap/register" className="text-[#0066c0] underline hover:text-link-hover">Start here.</Link>
                   </p>
                 </div>
               )}
-              <div className="flex text-[13px] leading-[23px] text-[#444]">
-                <div className="w-[231px] shrink-0 pr-4">
+              <div className="flex text-[13px] leading-[24px] text-[#444]">
+                <div className="w-[242px] shrink-0 pr-4">
                   <h2 className="mb-1 text-base leading-6 text-ink">Your Lists</h2>
                   <ul>
                     <li><Link href="/lists?create=1" className={menuLink}>Create a List</Link></li>
