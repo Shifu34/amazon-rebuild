@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { AddressLines, Thumb } from '@/components/orders/order-card'
+import { AddressLines, Crumbs, Thumb } from '@/components/orders/order-card'
 import { Progress } from '@/components/orders/progress'
 import { requireUser } from '@/lib/auth'
 import { longDate, plural, shortDate } from '@/lib/format'
@@ -46,17 +46,11 @@ export default async function TrackPage({ params }: Props) {
   const latest = events[0]
 
   return (
-    <div className="mx-auto max-w-[1150px] px-4 py-4">
-      <nav aria-label="Breadcrumb" className="text-xs">
-        <Link href="/orders" className="link">Your Orders</Link>
-        <span className="mx-1 text-muted" aria-hidden>›</span>
-        <Link href={back} className="link">Order Details</Link>
-        <span className="mx-1 text-muted" aria-hidden>›</span>
-        <span className="text-[#c45500]" aria-current="page">Track package</span>
-      </nav>
+    <div className="mx-auto max-w-[980px] px-4 py-4">
+      <Crumbs current="Track package" orderId={order.id} />
 
       <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section aria-labelledby="track-headline" className="min-w-0 rounded-lg border border-line p-5">
+        <section aria-labelledby="track-headline" className="min-w-0 self-start rounded-lg border border-line p-5">
           <h1 id="track-headline" className="text-[28px] leading-9 font-bold">{view.headline}</h1>
           <p className="text-sm text-muted">{view.subline}</p>
           <div className="mt-6">

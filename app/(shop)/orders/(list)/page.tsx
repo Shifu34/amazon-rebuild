@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Form from 'next/form'
 import Link from 'next/link'
 import { AddToCartButton } from '@/components/add-to-cart-button'
-import { OrderCard } from '@/components/orders/order-card'
+import { Crumbs, OrderCard } from '@/components/orders/order-card'
 import { RangeSelect } from '@/components/orders/range-select'
 import { Price } from '@/components/price'
 import { Stars } from '@/components/stars'
@@ -17,8 +17,8 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 const TABS = [
   { key: 'orders', label: 'Orders' },
   { key: 'buy-again', label: 'Buy Again' },
-  { key: 'not-shipped', label: 'Not Yet Shipped' },
-  { key: 'cancelled', label: 'Cancelled Orders' },
+  { key: 'not-shipped', label: 'Not Yet Shipped', short: 'Not Shipped' },
+  { key: 'cancelled', label: 'Cancelled Orders', short: 'Cancelled' },
 ]
 const PER_PAGE = 10
 const DAY = 86_400_000
@@ -98,7 +98,8 @@ export default async function OrdersPage({ searchParams }: Props) {
   // ponytail: filters and pages in memory over all of a shopper's orders; move to SQL when accounts have thousands
   const all = orders.map((order) => ({ order, view: orderView(order, now) }))
   const needle = q.toLowerCase()
-  const inTab = (x: (typeof all)[number]) => tab !== 'cancelled' || x.view.status === 'cancelled' || x.order.items.some((i) => i.cancelledAt)
+  // partly cancelled orders are still active, so they stay out of Cancelled Orders
+  const inTab = (x: (typeof all)[number]) => tab !== 'cancelled' || x.view.status === 'cancelled'
   const matches = q
     ? all.filter(({ order }) => order.id.includes(q) || order.items.some((i) => i.title.toLowerCase().includes(needle)))
     : tab === 'not-shipped'
@@ -122,11 +123,7 @@ export default async function OrdersPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-[980px] px-4 py-4">
-      <nav aria-label="Breadcrumb" className="text-xs">
-        <Link href="/account" className="link">Your Account</Link>
-        <span className="mx-1 text-muted" aria-hidden>›</span>
-        <span className="text-[#c45500]" aria-current="page">Your Orders</span>
-      </nav>
+      <Crumbs current="Your Orders" />
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[28px] leading-9 font-normal">Your Orders</h1>
@@ -137,7 +134,7 @@ export default async function OrdersPage({ searchParams }: Props) {
         </Form>
       </div>
 
-      <nav aria-label="Order views" className="mt-3 flex gap-5 overflow-x-auto border-b border-line text-sm">
+      <nav aria-label="Order views" className="mt-3 flex gap-4 overflow-x-auto border-b border-line text-sm sm:gap-5">
         {TABS.map((t) => {
           const active = t.key === tab && !q
           return (
@@ -147,7 +144,14 @@ export default async function OrdersPage({ searchParams }: Props) {
               aria-current={active ? 'page' : undefined}
               className={`-mb-px shrink-0 border-b-2 px-1 pb-2 ${active ? 'border-[#e77600] font-bold' : 'link border-transparent'}`}
             >
-              {t.label}
+              {t.short ? (
+                <>
+                  <span className="sm:hidden">{t.short}</span>
+                  <span className="max-sm:hidden">{t.label}</span>
+                </>
+              ) : (
+                t.label
+              )}
             </Link>
           )
         })}

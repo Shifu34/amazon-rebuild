@@ -114,21 +114,25 @@ try {
   await page.getByText('See all updates').click()
   await page.locator('details li').filter({ hasText: 'Out for delivery' }).waitFor()
   assert.equal(await page.locator('details li').count(), 6, 'all six tracking events are listed once delivered')
+  const times = await page.locator('details li > span:first-child').allTextContents()
+  assert.ok(new Set(times).size >= 4, `tracking events spread over time, not one minute: ${times}`)
 
   step('return: reason and comment are required, pickup fee shows, then the return starts')
   await page.getByRole('link', { name: 'Return or replace items' }).click()
   await page.waitForURL(`${base}/orders/${second}/return`)
   await page.getByRole('button', { name: 'Confirm your return' }).click()
   await page.getByText('Please select a reason for return.').waitFor()
+  assert.equal(await page.getByLabel('Why are you returning this?').getAttribute('aria-invalid'), 'true')
+  assert.equal(await page.evaluate(() => document.activeElement?.id), 'return-reason', 'focus moves to the field that failed')
   await page.getByLabel('Why are you returning this?').selectOption('Item arrived damaged')
   await page.getByRole('button', { name: 'Confirm your return' }).click()
   await page.getByText('Please tell us more about the problem.').waitFor()
   await page.getByLabel('Why are you returning this?').selectOption('No longer needed')
   const refundSummary = page.getByRole('complementary', { name: 'Refund summary' })
-  await page.getByLabel(/UPS Pickup/).check()
+  await page.getByLabel(/Carrier pickup/).check()
   await refundSummary.getByText('−$6.99').waitFor()
   await refundSummary.getByText('$47.12').waitFor()
-  await page.getByLabel(/The UPS Store Drop off/).check()
+  await page.getByLabel(/Drop off at a carrier store/).check()
   await refundSummary.getByText('$54.11').waitFor()
   await page.getByRole('button', { name: 'Confirm your return' }).click()
   await page.waitForURL(new RegExp(`/orders/${second}/return\\?code=RT-[A-Z0-9]{6}$`))
@@ -139,12 +143,15 @@ try {
   step('the order shows the return; the demo refund issues it')
   await page.getByRole('link', { name: 'Back to order' }).click()
   await page.waitForURL(`${base}/orders/${second}`)
-  await page.getByText('Return started', { exact: true }).waitFor()
+  await page.locator('#main').getByText('Return started', { exact: true }).waitFor() // #main: the route announcer can repeat the old h1
   await page.getByRole('button', { name: 'Demo: receive returned item' }).click()
   await page.getByText('Refund issued: $54.11').waitFor()
   await page.getByText('Refund total:').waitFor()
   await page.goto(`${base}/orders/${second}/return`)
   await page.getByText('A return for this item has already started.').waitFor()
+  await page.goto(`${base}/orders/${second}/invoice`)
+  await page.getByRole('heading', { name: `Final Details for Order #${second}` }).waitFor()
+  await page.getByText('Refund total:').waitFor()
 
   step('Buy it again adds to the cart; Buy Again tab and search')
   await page.goto(`${base}/orders`)
@@ -163,7 +170,7 @@ try {
 
   step('390px wide: order pages fit without horizontal scrolling')
   await page.setViewportSize({ width: 390, height: 844 })
-  for (const path of ['/orders', `/orders/${second}`, `/orders/${second}/track`, `/orders/${first}/cancel`, '/orders?tab=buy-again']) {
+  for (const path of ['/orders', `/orders/${second}`, `/orders/${second}/track`, `/orders/${first}/cancel`, `/orders/${second}/invoice`, '/orders?tab=buy-again']) {
     await page.goto(base + path)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path} overflows at 390px`)
   }

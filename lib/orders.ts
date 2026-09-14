@@ -212,15 +212,16 @@ export const RETURN_DAYS = 30
 
 // Lifecycle, derived from timestamps (no background jobs):
 //   ordered → shipped: halfway to out-for-delivery, at most 24h after placing
-//   shipped → out for delivery: 8am UTC on the arrival day (deliver_by minus 12h), or halfway there for orders
-//     delivered sooner (the demo control sets deliver_by to now), so the steps always stay in order
+//   shipped → out for delivery: 8am UTC on the arrival day (at least 1h before delivery, for the demo control's
+//     arbitrary delivery times), or halfway there for orders delivered sooner, so the steps always stay in order
 //   out for delivery → delivered: deliver_by (8pm UTC on the arrival day)
 //   cancelled: cancelled_at is set (only allowed while still 'ordered')
 // Cancel is allowed before it ships; returns are open for 30 days after delivery.
 export function orderStatus(o: Pick<Order, 'placedAt' | 'deliverBy' | 'cancelledAt'>, now = new Date()) {
   const deliveredAt = o.deliverBy
   const placed = o.placedAt.getTime()
-  const outForDeliveryAt = new Date(Math.max(deliveredAt.getTime() - 12 * HOUR, placed + Math.max(0, deliveredAt.getTime() - placed) / 2))
+  const morning = new Date(deliveredAt).setUTCHours(8, 0, 0, 0)
+  const outForDeliveryAt = new Date(Math.max(Math.min(morning, deliveredAt.getTime() - HOUR), placed + Math.max(0, deliveredAt.getTime() - placed) / 2))
   const shippedAt = new Date(placed + Math.min(DAY, (outForDeliveryAt.getTime() - placed) / 2))
   const returnBy = new Date(deliveredAt.getTime() + RETURN_DAYS * DAY)
   const t = now.getTime()
@@ -245,7 +246,7 @@ export function returnDays(productId: number) {
 }
 
 export type ItemState =
-  | { kind: 'cancelled' }
+  | { kind: 'cancelled'; wholeOrder: boolean }
   | { kind: 'in-transit' }
   | { kind: 'non-returnable' }
   | { kind: 'open'; returnBy: Date; daysLeft: number }
@@ -256,7 +257,7 @@ export type ItemState =
 const utcDay = (d: Date) => Math.floor(d.getTime() / DAY)
 
 function itemState(i: OrderItem, status: OrderStatus, deliveredAt: Date, now: Date): ItemState {
-  if (i.cancelledAt || status === 'cancelled') return { kind: 'cancelled' }
+  if (i.cancelledAt || status === 'cancelled') return { kind: 'cancelled', wholeOrder: status === 'cancelled' }
   if (i.returnedAt) return i.refundedAt ? { kind: 'returned' } : { kind: 'return-started', dropOffBy: new Date(i.returnedAt.getTime() + DROP_OFF_DAYS * DAY) }
   if (status !== 'delivered') return { kind: 'in-transit' }
   const days = returnDays(i.productId)
@@ -292,7 +293,7 @@ const SUBLINES: Record<OrderStatus, string> = {
   shipped: 'Shipped',
   'out-for-delivery': 'Out for delivery',
   delivered: 'Package was left near the front door or porch',
-  cancelled: 'Your order was cancelled. You have not been charged.',
+  cancelled: 'You have not been charged for this order.',
 }
 
 // Everything the order pages render: status, headline, per-item states and refunds.
@@ -314,7 +315,10 @@ export function orderView(o: Order, now = new Date()) {
     headline,
     subline: SUBLINES[s.status],
     step: STEPS.indexOf(s.status as (typeof STEPS)[number]), // -1 when cancelled
+    // a free replacement is part of a return, so it can't be cancelled on its own (the shopper would get neither)
+    canCancel: s.canCancel && !o.replacementFor,
     cancelledCents,
+    chargedCents: o.totalCents - cancelledCents,
     refundCents,
     canReturn: items.some((i) => i.state.kind === 'open'),
     returnPending: items.some((i) => i.state.kind === 'return-started'),
@@ -351,14 +355,15 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export const newReturnCode = () => `RT-${Array.from({ length: 6 }, () => CODE_CHARS[randomInt(CODE_CHARS.length)]).join('')}`
 
 // Cancels the chosen items while the order still hasn't shipped (shipsAt comes from orderStatus); the whole order is
-// cancelled once no active items remain. One statement, so the check and the writes can't interleave. Returns the count.
+// cancelled once no active items remain. Replacement orders are never cancelled here (see orderView.canCancel).
+// One statement, so the check and the writes can't interleave. Returns the count.
 export async function cancelOrderItems(userId: string, orderId: string, productIds: number[], reason: string | null, shipsAt: Date) {
   await ensureSchema()
   const [row] = await query<{ n: number }>(
     `with c as (
        update order_items i set cancelled_at = now(), cancel_reason = $4
        from orders o
-       where o.id = i.order_id and o.id = $1 and o.user_id = $2 and o.cancelled_at is null and now() < $5::timestamptz
+       where o.id = i.order_id and o.id = $1 and o.user_id = $2 and o.cancelled_at is null and o.replacement_for is null and now() < $5::timestamptz
          and i.cancelled_at is null and i.product_id in (select value::int from jsonb_array_elements_text($3::jsonb))
        returning i.product_id
      ), whole as (
@@ -405,10 +410,16 @@ export async function createReturn(r: {
   return row?.n ?? 0
 }
 
-// Demo control: the package arrives now. Only moves an undelivered, uncancelled order of this user forward.
+// Demo control: the package arrives now. Only moves an undelivered, uncancelled order of this user forward. A just-placed
+// order is also dated back ~30h, so the derived label, ship, facility and out-for-delivery scans spread over a
+// believable day instead of all landing on the same minute.
 export async function markDelivered(userId: string, orderId: string) {
   await ensureSchema()
-  await query('update orders set deliver_by = now() where id = $1 and user_id = $2 and cancelled_at is null and deliver_by > now()', [orderId, userId])
+  await query(
+    `update orders set deliver_by = now(), placed_at = least(placed_at, now() - interval '30 hours 23 minutes')
+     where id = $1 and user_id = $2 and cancelled_at is null and deliver_by > now()`,
+    [orderId, userId],
+  )
 }
 
 // Demo control: the carrier scans the returned items, so their refunds are issued.

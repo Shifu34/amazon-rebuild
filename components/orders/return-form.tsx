@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useActionState, useState } from 'react'
+import { startTransition, useActionState, useEffect, useRef, useState } from 'react'
 import { startReturn, type OrderFormState } from '@/app/actions/orders'
 import { usdCents } from '@/lib/format'
 import { COMMENT_MAX, PROBLEM_REASONS, RETURN_METHODS, RETURN_REASONS, returnFeeCents, type ReturnMethod } from './rules'
@@ -16,6 +16,8 @@ export type ReturnItem = {
   blocker: string | null
   canReplace: boolean
 }
+
+type Invalid = { field: 'item' | 'reason' | 'comment'; message: string }
 
 function RadioCard({ title, note, ...input }: { title: string; note: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -51,7 +53,13 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
   const [comment, setComment] = useState('')
   const [resolution, setResolution] = useState<'refund' | 'replacement'>('refund')
   const [method, setMethod] = useState<ReturnMethod>('ups-store')
-  const toggle = (id: number) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
+  const [invalid, setInvalid] = useState<Invalid | null>(null)
+  const serverError = useRef<HTMLParagraphElement>(null)
+  useEffect(() => serverError.current?.scrollIntoView({ block: 'nearest' }), [state])
+  const toggle = (id: number) => {
+    setInvalid(null)
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
+  }
 
   const chosen = eligible.filter((i) => picked.includes(i.productId))
   const problem = PROBLEM_REASONS.has(reason)
@@ -63,6 +71,11 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
   const fee = Math.min(subtotal + tax, returnFeeCents(reason, method, replace))
   const total = replace ? 0 : subtotal + tax - fee
 
+  // the error sits under the field that failed; the field gets aria-invalid and points at it
+  const errorFor = (field: Invalid['field']) =>
+    invalid?.field === field && <p id={`return-${field}-error`} role="alert" className="field-error">{invalid.message}</p>
+  const invalidAttrs = (field: Invalid['field']) => (invalid?.field === field ? { 'aria-invalid': true, 'aria-describedby': `return-${field}-error` } : {})
+
   const confirm = (className: string) => (
     <button type="submit" disabled={pending} className={`btn btn-cart btn-lg ${className}`}>{pending ? 'Confirming…' : 'Confirm your return'}</button>
   )
@@ -72,6 +85,19 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
     <form
       onSubmit={(e) => {
         e.preventDefault()
+        // the server repeats these checks; doing them here puts the message next to the field without a round trip
+        const fail: Invalid | null =
+          !chosen.length ? { field: 'item', message: 'Please select at least one item to return.' }
+          : !reason ? { field: 'reason', message: 'Please select a reason for return.' }
+          : problem && !comment.trim() ? { field: 'comment', message: 'Please tell us more about the problem.' }
+          : null
+        setInvalid(fail)
+        if (fail) {
+          const el = document.getElementById(`return-${fail.field}`)
+          el?.scrollIntoView({ block: 'center' })
+          el?.focus({ preventScroll: true })
+          return
+        }
         const data = new FormData(e.currentTarget)
         startTransition(() => action(data))
       }}
@@ -81,6 +107,7 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
       <div className="min-w-0 space-y-6">
         <fieldset>
           <legend className="text-lg font-bold">Choose items to return</legend>
+          {errorFor('item')}
           <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
             {items.map((i) => (
               <li key={i.productId}>
@@ -89,9 +116,11 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
                     type="checkbox"
                     name="item"
                     value={i.productId}
+                    id={i === eligible[0] ? 'return-item' : undefined}
                     disabled={!!i.blocker}
                     checked={picked.includes(i.productId)}
                     onChange={() => toggle(i.productId)}
+                    {...(i.blocker ? {} : invalidAttrs('item'))}
                     className="mt-1 size-4 shrink-0 accent-[#007185]"
                   />
                   <span className={`flex size-16 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1 ${i.blocker ? 'opacity-60' : ''}`}>
@@ -114,12 +143,23 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
 
         <div>
           <label htmlFor="return-reason" className="label">Why are you returning this?</label>
-          <select id="return-reason" name="reason" value={reason} onChange={(e) => setReason(e.target.value)} className="select-pill max-w-full">
+          <select
+            id="return-reason"
+            name="reason"
+            value={reason}
+            onChange={(e) => {
+              setInvalid(null)
+              setReason(e.target.value)
+            }}
+            {...invalidAttrs('reason')}
+            className="select-pill max-w-full aria-invalid:border-[#cc0c39]"
+          >
             <option value="">Choose a response</option>
             {RETURN_REASONS.map((r) => (
               <option key={r}>{r}</option>
             ))}
           </select>
+          {errorFor('reason')}
         </div>
 
         <div>
@@ -130,13 +170,20 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
             rows={3}
             maxLength={COMMENT_MAX}
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
+            onChange={(e) => {
+              setInvalid(null)
+              setComment(e.target.value)
+            }}
             aria-required={problem}
-            aria-describedby="return-comment-count"
+            aria-invalid={invalid?.field === 'comment' || undefined}
+            aria-describedby={invalid?.field === 'comment' ? 'return-comment-error return-comment-count' : 'return-comment-count'}
             placeholder={problem ? 'What went wrong?' : undefined}
             className="input"
           />
-          <p id="return-comment-count" className="mt-1 text-right text-xs text-muted">{comment.length}/{COMMENT_MAX}</p>
+          <div className="flex justify-between gap-2">
+            {errorFor('comment') || <span />}
+            <p id="return-comment-count" className="mt-1 text-xs text-muted">{comment.length}/{COMMENT_MAX}</p>
+          </div>
         </div>
 
         <fieldset>
@@ -169,8 +216,6 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
             })}
           </div>
         </fieldset>
-
-        {state?.error && <p role="alert" className="rounded-lg border border-[#c10015] px-3 py-2 text-sm text-[#c10015]">{state.error}</p>}
       </div>
 
       <aside aria-label="Refund summary" className="self-start rounded-lg border border-line p-4 lg:sticky lg:top-4">
@@ -191,6 +236,11 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
           </div>
         </dl>
         {!chosen.length && <p className="mt-2 text-xs text-muted">Select an item to see your refund.</p>}
+        {state?.error && (
+          <p ref={serverError} role="alert" className="mt-3 scroll-mb-24 rounded-lg border border-[#c10015] px-3 py-2 text-sm text-[#c10015] lg:scroll-mb-0">
+            {state.error}
+          </p>
+        )}
         {confirm('mt-4 hidden w-full lg:flex')}
       </aside>
 

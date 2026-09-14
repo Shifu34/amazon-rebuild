@@ -23,6 +23,7 @@ export async function cancelItems(_prev: OrderFormState, form: FormData): Promis
   if (!order) return { error: "We couldn't find that order." }
   const view = orderView(order)
   if (view.status === 'cancelled') return { error: 'This order has already been cancelled.' }
+  if (order.replacementFor) return { error: "This free replacement is part of your return, so it can't be cancelled on its own." }
   if (!view.canCancel) {
     refresh()
     return { error: SHIPPED }

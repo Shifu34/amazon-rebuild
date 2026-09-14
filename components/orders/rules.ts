@@ -23,9 +23,10 @@ export const RETURN_REASONS = [
 // these need a comment, never pay a return fee, and can be replaced instead of refunded
 export const PROBLEM_REASONS = new Set(RETURN_REASONS.slice(3))
 
+// keys are stored on order_items.return_method, so they keep their old names; labels stay generic (no real carrier)
 export const RETURN_METHODS = {
-  'ups-store': { label: 'The UPS Store Drop off', note: 'No box, no label needed', feeCents: 0 },
-  'ups-pickup': { label: 'UPS Pickup', note: 'Pack the item in any box. The driver brings the label.', feeCents: 699 },
+  'ups-store': { label: 'Drop off at a carrier store', note: 'No box, no label needed', feeCents: 0 },
+  'ups-pickup': { label: 'Carrier pickup', note: 'Pack the item in any box. The driver brings the label.', feeCents: 699 },
 } as const
 export type ReturnMethod = keyof typeof RETURN_METHODS
 

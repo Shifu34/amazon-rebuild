@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CheckCircleIcon } from '@/components/checkout/icons'
-import { Thumb } from '@/components/orders/order-card'
+import { Crumbs, Thumb } from '@/components/orders/order-card'
 import { ReturnForm } from '@/components/orders/return-form'
 import { RETURN_METHODS } from '@/components/orders/rules'
 import { requireUser } from '@/lib/auth'
@@ -15,15 +15,13 @@ export const metadata: Metadata = { title: 'Return or replace items' }
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }
 
-function Breadcrumb({ back }: { back: string }) {
+// same column and breadcrumb as the rest of the orders flow
+function Shell({ orderId, children }: { orderId: string; children: React.ReactNode }) {
   return (
-    <nav aria-label="Breadcrumb" className="text-xs">
-      <Link href="/orders" className="link">Your Orders</Link>
-      <span className="mx-1 text-muted" aria-hidden>›</span>
-      <Link href={back} className="link">Order Details</Link>
-      <span className="mx-1 text-muted" aria-hidden>›</span>
-      <span className="text-[#c45500]" aria-current="page">Return or replace items</span>
-    </nav>
+    <div className="mx-auto max-w-[980px] px-4 py-4">
+      <Crumbs current="Return or replace items" orderId={orderId} />
+      {children}
+    </div>
   )
 }
 
@@ -37,15 +35,14 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
   const startedAt = first.returnedAt ?? new Date()
 
   return (
-    <div className="mx-auto max-w-[700px] px-4 py-4">
-      <Breadcrumb back={back} />
-      <section className="mt-3 flex gap-3 rounded-lg border border-line p-5">
+    <Shell orderId={order.id}>
+      <section className="mt-3 flex max-w-[700px] gap-3 rounded-lg border border-line p-5">
         <CheckCircleIcon className="mt-0.5 size-6 shrink-0 text-[#0b7b3c]" />
         <div className="min-w-0 flex-1 space-y-3 text-sm">
           <h1 className="text-lg font-bold text-[#0b7b3c]">{done ? 'Return complete' : 'Return started'}</h1>
           {!done &&
             (pickup ? (
-              <p className="text-base">UPS pickup on <b>{longDate(addBusinessDays(startedAt, 1))}</b></p>
+              <p className="text-base">Carrier pickup on <b>{longDate(addBusinessDays(startedAt, 1))}</b></p>
             ) : (
               first.state.kind === 'return-started' && <p className="text-base">Drop off by <b>{fullDate(first.state.dropOffBy)}</b></p>
             ))}
@@ -55,7 +52,7 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
           </div>
           {!done && (
             <p>
-              <b>What to bring:</b> {pickup ? `The item. ${RETURN_METHODS['ups-pickup'].note}` : 'Only the item. No box or label needed. Show this code at The UPS Store.'}
+              <b>What to bring:</b> {pickup ? `The item. ${RETURN_METHODS['ups-pickup'].note}` : 'Only the item. No box or label needed. Show this code at the carrier store.'}
             </p>
           )}
           {first.replacementOrderId ? (
@@ -81,7 +78,7 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
           </div>
         </div>
       </section>
-    </div>
+    </Shell>
   )
 }
 
@@ -114,20 +111,18 @@ export default async function ReturnPage({ params, searchParams }: Props) {
   if (!items.some((i) => !i.blocker)) {
     const focus = items.find((i) => i.productId === itemParam) ?? items[0]
     return (
-      <div className="mx-auto max-w-[700px] px-4 py-4">
-        <Breadcrumb back={back} />
+      <Shell orderId={order.id}>
         <h1 className="mt-2 text-[28px] leading-9 font-normal">Return or replace items</h1>
-        <div role="alert" className="mt-4 rounded-lg border border-line p-4 text-sm">
+        <div role="alert" className="mt-4 max-w-[700px] rounded-lg border border-line p-4 text-sm">
           <p className="font-bold">{view.status === 'cancelled' ? 'This order was cancelled, so there is nothing to return.' : focus?.blocker}</p>
           <Link href={back} className="btn btn-plain mt-4">Back to order</Link>
         </div>
-      </div>
+      </Shell>
     )
   }
 
   return (
-    <div className="mx-auto max-w-[1000px] px-4 py-4">
-      <Breadcrumb back={back} />
+    <Shell orderId={order.id}>
       <h1 className="mt-2 text-[28px] leading-9 font-normal">Return or replace items</h1>
       <p className="text-sm text-muted">Order # {order.id} · delivered {fullDate(view.deliveredAt)}</p>
       <div className="mt-4">
@@ -138,6 +133,6 @@ export default async function ReturnPage({ params, searchParams }: Props) {
           payment={`${order.payment.brand} ending in ${order.payment.last4}`}
         />
       </div>
-    </div>
+    </Shell>
   )
 }
