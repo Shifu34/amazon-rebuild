@@ -155,3 +155,10 @@ create table if not exists review_feedback (
   created_at timestamptz not null default now(),
   primary key (review_key, user_id, kind)
 );
+
+-- demo accounts: one per network per minute, enforced in the database so every serverless instance agrees (IPs stored hashed)
+create table if not exists demo_signups (
+  ip_hash text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists demo_signups_ip_created on demo_signups (ip_hash, created_at desc);

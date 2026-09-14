@@ -1,6 +1,6 @@
 'use server'
 
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { CANCEL_REASONS, RETURN_REASONS } from '@/components/orders/rules'
@@ -20,10 +20,9 @@ const TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MIN = 60_000
 const HOUR = 60 * MIN
 const DAY = 24 * HOUR
+const WAIT = 'A demo account was just created from your network. Please wait a minute and try again.'
 
-// ponytail: in-process memory, so the one-per-minute-per-IP limit resets on deploy and isn't shared between serverless
-// instances (a busy network gets one demo per instance per minute); move it to a rate_limits table (§4.15) if it gets abused
-const lastByIp = new Map<string, number>()
+// per-instance guard against a double submit racing itself; the users table covers other instances
 const inflight = new Map<string, Promise<string>>()
 
 // "Explore with a demo account": a fresh shopper with an address, a test card, a Shopping List, browsing history and an order
@@ -41,12 +40,17 @@ export async function startDemo(_prev: DemoState, form: FormData): Promise<DemoS
     redirect('/orders')
   }
 
+  // One new demo per network per minute, in the database so every serverless instance sees it. Only a hash of the IP is kept.
+  // ponytail: two simultaneous first requests from one network can both pass the not-exists check; fine for a demo button
   const h = await headers()
   const ip = h.get('x-forwarded-for')?.split(',')[0].trim() || h.get('x-real-ip') || 'local'
-  const now = Date.now()
-  for (const [key, at] of lastByIp) if (now - at >= MIN) lastByIp.delete(key)
-  if (lastByIp.has(ip)) return { error: 'A demo account was just created from your network. Please wait a minute and try again.' }
-  lastByIp.set(ip, now)
+  const ipHash = createHash('sha256').update(ip).digest('hex')
+  await query("delete from demo_signups where created_at < now() - interval '1 day'")
+  const claimed = await one(
+    "insert into demo_signups (ip_hash) select $1 where not exists (select 1 from demo_signups where ip_hash = $1 and created_at > now() - interval '1 minute') returning 1",
+    [ipHash],
+  )
+  if (!claimed) return { error: WAIT }
 
   const work = createDemoShopper(email)
   inflight.set(token, work)
@@ -54,7 +58,7 @@ export async function startDemo(_prev: DemoState, form: FormData): Promise<DemoS
   try {
     userId = await work
   } catch {
-    lastByIp.delete(ip)
+    await query("delete from demo_signups where ip_hash = $1 and created_at > now() - interval '1 minute'", [ipHash])
     return { error: "We couldn't set up the demo account. Please try again." }
   } finally {
     inflight.delete(token)

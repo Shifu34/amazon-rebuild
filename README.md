@@ -18,7 +18,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 | Flow | What's in it |
 |---|---|
-| **Home & browse** | Hero carousel, department cards, Today's Deals and Best Sellers rows, and "Keep shopping for" / "Inspired by your browsing history" rows once you've viewed products. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
+| **Home & browse** | Hero carousel, department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
 | **Search** | Header search with instant suggestions and a department scope. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
 | **Product page** | Image gallery with zoom and full-screen view. The buy box shows the delivery date with an order-by countdown, stock messages and quantity, plus Add to Cart (with an "Added to cart" sheet), Buy Now and Add to List. Below: frequently bought together, related products, reviews with a rating histogram and filters, a full reviews page, and writing a review with "Verified Purchase". |
 | **Cart** | Guest cart that merges on sign-in, quantity stepper, save for later, free-shipping progress, and an empty state for guests and for signed-in shoppers. |
