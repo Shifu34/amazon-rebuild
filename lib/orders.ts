@@ -278,6 +278,12 @@ export function returnBlocker(s: ItemState) {
   return null
 }
 
+// a gated page's own URL, query included, for requireUser's return_to (array values are dropped)
+export function pathWithQuery(path: string, sp: Record<string, string | string[] | undefined>) {
+  const q = String(new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === 'string')))
+  return q ? `${path}?${q}` : path
+}
+
 // what a return or cancellation gives back for one line: its price plus its share of the tax
 export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>) => i.priceCents * i.quantity + Math.round(i.priceCents * i.quantity * TAX_RATE)
 

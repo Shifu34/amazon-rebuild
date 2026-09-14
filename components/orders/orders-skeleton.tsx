@@ -1,7 +1,7 @@
 const bar = 'rounded bg-[#f0f2f2]'
 
-// Lives in the (list) group so it only wraps /orders: order pages below must 404 before anything streams.
-export default function Loading() {
+// Your Orders placeholder while orders load; the list page's own Suspense fallback (not loading.tsx, so the sign-in gate redirects before streaming)
+export function OrdersSkeleton() {
   return (
     <div aria-busy="true" className="mx-auto max-w-[980px] animate-pulse px-4 py-4 motion-reduce:animate-none">
       <p role="status" className="sr-only">Loading your orders…</p>

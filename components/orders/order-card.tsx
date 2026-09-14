@@ -110,7 +110,7 @@ function ItemStatus({ item, orderId }: { item: ViewItem; orderId: string }) {
   if (s.kind === 'non-returnable') return <p className="text-xs text-muted">This item is non-returnable</p>
   if (s.kind === 'closed') return <p className="text-xs text-muted">Return window closed on {fullDate(s.returnBy)}</p>
   if (s.kind === 'open') {
-    const urgent = s.daysLeft < 7
+    const urgent = s.daysLeft <= 7
     return (
       <p className="text-xs">
         Return or replace items: Eligible through {fullDate(s.returnBy)}{' '}

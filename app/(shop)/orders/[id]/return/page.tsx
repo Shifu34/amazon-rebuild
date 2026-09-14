@@ -9,7 +9,7 @@ import { requireUser } from '@/lib/auth'
 import { getProduct } from '@/lib/catalog'
 import { addBusinessDays } from '@/lib/delivery'
 import { fullDate, longDate, usdCents } from '@/lib/format'
-import { getOrder, itemRefundCents, type Order, type OrderView, orderView, returnBlocker, type ViewItem } from '@/lib/orders'
+import { getOrder, itemRefundCents, type Order, type OrderView, orderView, pathWithQuery, returnBlocker, type ViewItem } from '@/lib/orders'
 
 export const metadata: Metadata = { title: 'Return or replace items' }
 
@@ -84,10 +84,11 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
 
 export default async function ReturnPage({ params, searchParams }: Props) {
   const { id } = await params
-  const user = await requireUser(`/orders/${encodeURIComponent(id)}/return`)
+  const sp = await searchParams
+  // keeps ?code= and ?item= through sign-in, so a "View return code" link still lands on the code
+  const user = await requireUser(pathWithQuery(`/orders/${encodeURIComponent(id)}/return`, sp))
   const order = await getOrder(user.id, id)
   if (!order) notFound()
-  const sp = await searchParams
   const code = typeof sp.code === 'string' ? sp.code : ''
   const itemParam = Number(typeof sp.item === 'string' ? sp.item : NaN)
   const view = orderView(order)
@@ -109,12 +110,13 @@ export default async function ReturnPage({ params, searchParams }: Props) {
   }))
 
   if (!items.some((i) => !i.blocker)) {
-    const focus = items.find((i) => i.productId === itemParam) ?? items[0]
+    // without ?item=, explain with an item still on the order; a cancelled one sorted first reads as if everything was cancelled
+    const focus = view.items.find((i) => i.productId === itemParam) ?? view.items.find((i) => i.state.kind !== 'cancelled') ?? view.items[0]
     return (
       <Shell orderId={order.id}>
         <h1 className="mt-2 text-[28px] leading-9 font-normal">Return or replace items</h1>
         <div role="alert" className="mt-4 max-w-[700px] rounded-lg border border-line p-4 text-sm">
-          <p className="font-bold">{view.status === 'cancelled' ? 'This order was cancelled, so there is nothing to return.' : focus?.blocker}</p>
+          <p className="font-bold">{view.status === 'cancelled' ? 'This order was cancelled, so there is nothing to return.' : focus && returnBlocker(focus.state)}</p>
           <Link href={back} className="btn btn-plain mt-4">Back to order</Link>
         </div>
       </Shell>

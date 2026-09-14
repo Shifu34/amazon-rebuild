@@ -38,11 +38,20 @@ async function placeOrder() {
 }
 
 try {
-  step('signed out: /orders asks to sign in; create an account and land on the empty state')
+  step('signed out: /orders asks to sign in, and return_to keeps tab, range, search and return code queries')
   await page.goto(`${base}/orders`)
   await page.waitForURL(`${base}/ap/signin?return_to=%2Forders`)
+  for (const path of ['/orders?tab=not-shipped&range=last30', '/orders?q=lamp', '/orders/113-0000000-0000000/return?code=RT-ABC123']) {
+    await page.goto(base + path)
+    await page.waitForURL(/\/ap\/signin\?/)
+    assert.equal(new URL(page.url()).searchParams.get('return_to'), path, `return_to keeps the query of ${path}`)
+  }
+
+  step('create an account from the Cancelled tab and land back on it, on the empty state')
+  await page.goto(`${base}/orders?tab=cancelled`)
+  await page.waitForURL(`${base}/ap/signin?return_to=%2Forders%3Ftab%3Dcancelled`)
   await register(page, `orders-${Date.now()}@example.com`)
-  await page.waitForURL(`${base}/orders`)
+  await page.waitForURL(`${base}/orders?tab=cancelled`)
   await page.getByText('You have not placed any orders yet.').waitFor()
   await page.getByRole('link', { name: 'Buy Again' }).click()
   await page.getByText('There are no items to buy again.').waitFor()
@@ -167,6 +176,23 @@ try {
   await card(first).waitFor()
   await page.goto(`${base}/orders?q=zzzz`)
   await page.getByText('No orders matched').waitFor()
+
+  step('partly cancelled before delivery: the return page says returns open on delivery; "7 days left" is amber')
+  await addToCart(48, 2) // Bamboo Spatula sorts before the other items (the CK One from Buy it again is still in the cart)
+  await addToCart(13, 3) // Bedside Table African Cherry has a 7-day return policy
+  await page.goto(`${base}/checkout`)
+  const third = await placeOrder()
+  await page.goto(`${base}/orders/${third}/cancel`)
+  await page.getByRole('checkbox', { name: /Bamboo Spatula/ }).check()
+  await page.getByRole('button', { name: 'Request cancellation' }).click()
+  await page.waitForURL((u) => u.pathname === `/orders/${third}`)
+  await page.goto(`${base}/orders/${third}/return`)
+  assert.equal((await page.locator('#main [role="alert"] p').first().textContent()).trim(), 'Returns open once your order is delivered.')
+  await page.goto(`${base}/orders/${third}`)
+  await page.getByRole('button', { name: 'Demo: mark as delivered' }).click()
+  await page.getByRole('heading', { name: 'Delivered today' }).waitFor()
+  const chip = page.locator('#main').getByText('7 days left', { exact: true })
+  assert.equal(await chip.evaluate((el) => getComputedStyle(el).color), 'rgb(196, 85, 0)', '"7 days left" is amber (≤ 7 days)')
 
   step('390px wide: order pages fit without horizontal scrolling')
   await page.setViewportSize({ width: 390, height: 844 })

@@ -1,19 +1,22 @@
 import type { Metadata } from 'next'
 import Form from 'next/form'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { Crumbs, OrderCard } from '@/components/orders/order-card'
+import { OrdersSkeleton } from '@/components/orders/orders-skeleton'
 import { RangeSelect } from '@/components/orders/range-select'
 import { Price } from '@/components/price'
 import { Stars } from '@/components/stars'
-import { requireUser } from '@/lib/auth'
+import { requireUser, type User } from '@/lib/auth'
 import { cartQuantities } from '@/lib/cart'
 import { fullDate, plural } from '@/lib/format'
-import { getOrders, type Order, orderView, purchasedProducts, reviewedProductIds } from '@/lib/orders'
+import { getOrders, type Order, orderView, pathWithQuery, purchasedProducts, reviewedProductIds } from '@/lib/orders'
 
 export const metadata: Metadata = { title: 'Your Orders' }
 
-type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> }
+type SearchParams = Record<string, string | string[] | undefined>
+type Props = { searchParams: Promise<SearchParams> }
 
 const TABS = [
   { key: 'orders', label: 'Orders' },
@@ -68,15 +71,25 @@ function BuyAgain({ orders, inCart }: { orders: Order[]; inCart: Map<number, num
   )
 }
 
+// Sign-in gate before anything suspends: signed-out visitors get a real redirect, and return_to keeps the tab, range and search.
 export default async function OrdersPage({ searchParams }: Props) {
   const sp = await searchParams
+  const returnTo = pathWithQuery('/orders', sp)
+  const user = await requireUser(returnTo)
+  return (
+    <Suspense key={returnTo} fallback={<OrdersSkeleton />}>
+      <YourOrders user={user} sp={sp} />
+    </Suspense>
+  )
+}
+
+async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
   const param = (k: string) => {
     const v = sp[k]
     return (Array.isArray(v) ? v[0] : v) ?? ''
   }
   const tab = TABS.find((t) => t.key === param('tab'))?.key ?? 'orders'
   const q = param('q').trim().slice(0, 100)
-  const user = await requireUser(tab === 'orders' ? '/orders' : `/orders?tab=${tab}`)
   const [orders, reviewed, inCart] = await Promise.all([getOrders(user.id), reviewedProductIds(user.id), cartQuantities()])
   const now = new Date()
 
