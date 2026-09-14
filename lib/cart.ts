@@ -23,3 +23,13 @@ export const getCart = cache(async (): Promise<CartLine[]> => {
 export async function cartCount() {
   return (await getCart()).filter((l) => !l.savedForLater).reduce((n, l) => n + l.quantity, 0)
 }
+
+// subtotal in cents over lines that will be checked out (not saved for later, in stock)
+export async function cartSummary() {
+  const active = (await getCart()).filter((l) => !l.savedForLater && l.product.stock > 0)
+  return {
+    lines: active,
+    count: active.reduce((n, l) => n + l.quantity, 0),
+    subtotalCents: active.reduce((sum, l) => sum + Math.round(l.product.price * 100) * l.quantity, 0),
+  }
+}
