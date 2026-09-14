@@ -5,8 +5,10 @@ import { useEffect, useId, useRef } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { CloseIcon } from '@/components/icons'
 import { Price } from '@/components/price'
-import { FREE_SHIPPING_MIN } from '@/lib/delivery'
-import { plural, toCents, usdCents } from '@/lib/format'
+import { useRegion } from '@/components/region-provider'
+import { shippingRates } from '@/lib/delivery'
+import { plural, toCents } from '@/lib/format'
+import { formatMoney } from '@/lib/region'
 
 export type CartTotals = { count: number; subtotalCents: number }
 type Item = { id: number; title: string; thumbnail: string; quantity?: number }
@@ -32,8 +34,10 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
     if (!open && d?.open) d.close()
   }, [open])
 
+  const { currency, rate, country } = useRegion()
   const count = plural(cart.count, 'item')
-  const toFree = toCents(FREE_SHIPPING_MIN) - cart.subtotalCents
+  const freeMin = shippingRates(country).freeMin // null: international shipping is never free, so no progress bar
+  const toFree = freeMin === null ? 0 : toCents(freeMin) - cart.subtotalCents
   return (
     <dialog
       ref={ref}
@@ -66,25 +70,27 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
         </ul>
         {note && <p className="mt-3 text-[13px] text-[#c10015]">{note}</p>}
 
-        <div className="mt-4 text-[13px]">
-          {toFree > 0 ? (
-            <>
-              <progress
-                value={cart.subtotalCents}
-                max={toCents(FREE_SHIPPING_MIN)}
-                aria-label="Progress toward FREE Shipping"
-                className="mb-1.5 block h-2 w-full appearance-none overflow-hidden rounded-full [&::-moz-progress-bar]:bg-success [&::-webkit-progress-bar]:bg-[#e3e6e6] [&::-webkit-progress-value]:bg-success"
-              />
-              Add <b className="text-danger">{usdCents(toFree)}</b> of eligible items to your order to qualify for FREE Shipping.
-            </>
-          ) : (
-            <p>
-              <span className="text-success">Your order qualifies for FREE Shipping.</span> Choose this option at checkout.
-            </p>
-          )}
-        </div>
+        {freeMin !== null && (
+          <div className="mt-4 text-[13px]">
+            {toFree > 0 ? (
+              <>
+                <progress
+                  value={cart.subtotalCents}
+                  max={toCents(freeMin)}
+                  aria-label="Progress toward FREE Shipping"
+                  className="mb-1.5 block h-2 w-full appearance-none overflow-hidden rounded-full [&::-moz-progress-bar]:bg-success [&::-webkit-progress-bar]:bg-[#e3e6e6] [&::-webkit-progress-value]:bg-success"
+                />
+                Add <b className="whitespace-nowrap text-danger">{formatMoney(toFree, currency, rate)}</b> of eligible items to your order to qualify for FREE Shipping.
+              </>
+            ) : (
+              <p>
+                <span className="text-success">Your order qualifies for FREE Shipping.</span> Choose this option at checkout.
+              </p>
+            )}
+          </div>
+        )}
         <p className="mt-3 text-lg">
-          Cart subtotal <span className="text-sm text-muted">({count})</span>: <b>{usdCents(cart.subtotalCents)}</b>
+          Cart subtotal <span className="text-sm text-muted">({count})</span>: <b className="whitespace-nowrap">{formatMoney(cart.subtotalCents, currency, rate)}</b>
         </p>
         <Link href="/checkout" className="btn btn-cart btn-lg mt-3 w-full">Proceed to checkout ({count})</Link>
         <Link href="/cart" className="btn btn-plain btn-lg mt-2 w-full">Go to Cart</Link>
@@ -100,7 +106,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
                     <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
                   </Link>
                   <Link href={`/dp/${p.id}`} className="mt-1.5 line-clamp-2 hover:text-link-hover hover:underline">{p.title}</Link>
-                  <span className="text-lg leading-6"><Price value={p.price} /></span>
+                  <span className="text-lg leading-6"><Price value={p.price} currency={currency} rate={rate} /></span>
                   <div className="mt-auto pt-2">
                     <AddToCartButton productId={p.id} className="w-full" />
                   </div>

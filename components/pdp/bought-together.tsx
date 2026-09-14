@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { Fragment, useActionState, useRef, useState } from 'react'
 import { addBundle, type BundleState } from '@/app/actions/bundle'
 import { Price } from '@/components/price'
-import { usd, usdCents } from '@/lib/format'
+import { useRegion } from '@/components/region-provider'
+import { toCents } from '@/lib/format'
+import { formatDollars, summarize } from '@/lib/region'
 import { AddedSheet, type CartTotals } from './added-sheet'
 
 type Item = { id: number; title: string; thumbnail: string; price: number }
@@ -16,8 +18,12 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
   const [dismissed, setDismissed] = useState<BundleState>(null)
   const submit = useRef<HTMLButtonElement>(null)
 
+  const { currency, rate } = useRegion()
   const chosen = items.filter((_, i) => checked[i])
-  const totalCents = chosen.reduce((sum, p) => sum + Math.round(p.price * 100), 0)
+  // the sum of the prices as listed, so the total adds up in PKR too
+  const { total } = summarize(chosen.map((p) => ({ label: p.title, usdCents: toCents(p.price) })), currency, rate)
+  // <Price> converts US dollars itself: this rate makes it render exactly total.minor
+  const totalRate = total.usdCents ? total.minor / total.usdCents : rate
   const label = chosen.length === 3 ? 'Add all 3 to Cart' : chosen.length === 2 ? 'Add both to Cart' : chosen.length > 3 ? `Add all ${chosen.length} to Cart` : 'Add to Cart'
 
   return (
@@ -38,9 +44,9 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
 
         <div className="lg:order-last lg:w-56">
           <p className="text-base">
-            Total price: <span className="text-xl font-bold"><Price value={totalCents / 100} /></span>
+            Total price: <span className="text-xl font-bold"><Price value={total.usdCents / 100} currency={currency} rate={totalRate} /></span>
           </p>
-          <span className="sr-only" aria-live="polite">Total price {usdCents(totalCents)} for {chosen.length} items</span>
+          <span className="sr-only" aria-live="polite">Total price {total.text} for {chosen.length} items</span>
           <button ref={submit} type="submit" disabled={pending || !chosen.length} className="btn btn-cart mt-2 w-full">
             {pending ? 'Adding…' : label}
           </button>
@@ -61,7 +67,7 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
               />
               <label htmlFor={`fbt-${p.id}`} className="cursor-pointer">
                 {i === 0 ? <b>This item: </b> : null}
-                {i === 0 ? p.title : <Link href={`/dp/${p.id}`} className="link">{p.title}</Link>} <b className="text-danger">{usd(p.price)}</b>
+                {i === 0 ? p.title : <Link href={`/dp/${p.id}`} className="link">{p.title}</Link>} <b className="whitespace-nowrap text-danger">{formatDollars(p.price, currency, rate)}</b>
               </label>
             </li>
           ))}

@@ -16,6 +16,9 @@ const headline = `Heats evenly ${stamp}`
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage() // a context, so a second tab can share the cart
 const step = (name) => console.log(`- ${name}`)
+// lib/region.ts's display format: US cents × 277.07 rounded half away from zero, "PKR 1,234.56"
+const pkr = (usd) => `PKR ${(Math.round(Number((Math.round(usd * 100) * 277.07).toFixed(4))) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const paisa = (text) => Number(text.replace(/\D/g, ''))
 const cartLink = (n) => page.getByRole('link', { name: `Cart, ${n} ${n === 1 ? 'item' : 'items'}` })
 const sheet = () => page.getByRole('dialog', { name: 'Added to cart' })
 
@@ -33,6 +36,9 @@ try {
   const pcts = await page.getByRole('link', { name: /stars represent \d+% of rating/ }).evaluateAll((els) => els.map((e) => Number(e.getAttribute('aria-label').match(/(\d+)%/)[1])))
   assert.equal(pcts.length, 5)
   assert.equal(pcts.reduce((a, b) => a + b, 0), 100)
+  const usBox = await page.getByRole('complementary', { name: 'Buy box' }).innerText()
+  assert.match(usBox, /Deliver to United States/)
+  assert.doesNotMatch(usBox, /PKR|Ships to Pakistan/)
 
   step('thumbnail switches the main image; viewer opens, pages with arrows, closes on Escape')
   const main = page.getByRole('button', { name: 'Open full-screen image viewer' })
@@ -190,6 +196,42 @@ try {
   await buyBox.getByRole('button', { name: 'Add to Cart', exact: true }).click()
   await tall(sheet().getByRole('link', { name: /Proceed to checkout/ }), 'Proceed to checkout')
   await tall(sheet().getByRole('link', { name: 'Go to Cart' }), 'Go to Cart')
+  await page.keyboard.press('Escape')
+
+  step('PKR display currency: list prices in PKR, 390px still fits')
+  await page.context().addCookies([{ name: 'currency', value: 'PKR', url: base }])
+  await page.goto(`${base}/lists`)
+  assert.ok((await page.locator('main').innerText()).includes(pkr(product.price)), 'list row price in PKR')
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), '/lists overflows at 390px in PKR')
+
+  step('guest in Pakistan (IP country PK) shopping in PKR: buy box, bundle total adds up, sheet subtotal')
+  const pk = await browser.newContext({ viewport: { width: 1280, height: 900 }, extraHTTPHeaders: { 'x-vercel-ip-country': 'PK' } })
+  await pk.addCookies([{ name: 'currency', value: 'PKR', url: base }])
+  const pkPage = await pk.newPage()
+  await pkPage.goto(`${base}/dp/${product.id}`)
+  const pkBox = pkPage.getByRole('complementary', { name: 'Buy box' })
+  const pkText = await pkBox.innerText()
+  assert.ok(pkText.includes(pkr(product.price)), 'buy box price in PKR')
+  assert.ok(pkText.includes(`${pkr(14.99)} delivery`), 'PK standard delivery fee')
+  assert.match(pkText, new RegExp(`Or fastest delivery .+ for ${pkr(29.99)}`))
+  assert.match(pkText, /Ships to Pakistan/)
+  assert.doesNotMatch(pkText, /\$|Order within|FREE delivery/)
+  await pkBox.getByRole('button', { name: 'Deliver to Pakistan' }).waitFor()
+  const pkFbt = pkPage.getByRole('region', { name: 'Frequently bought together' })
+  const listed = (await pkFbt.locator('label b').filter({ hasText: 'PKR' }).allInnerTexts()).map(paisa)
+  const pkTotal = await pkFbt.locator('[aria-live="polite"]').textContent()
+  assert.equal(paisa(pkTotal.match(/PKR [\d,.]+/)[0]), listed.reduce((a, b) => a + b, 0), `bundle total ${pkTotal} is the sum of ${listed}`)
+  await pkBox.getByRole('button', { name: 'Add to Cart', exact: true }).click()
+  const pkSheet = pkPage.getByRole('dialog', { name: 'Added to cart' })
+  await pkSheet.getByRole('link', { name: /Proceed to checkout/ }).waitFor()
+  const sheetText = await pkSheet.innerText()
+  assert.ok(sheetText.includes(`Cart subtotal (1 item): ${pkr(product.price)}`), sheetText)
+  assert.doesNotMatch(sheetText, /FREE Shipping|\$/)
+  await pkPage.keyboard.press('Escape')
+  await pkPage.setViewportSize({ width: 390, height: 844 })
+  await pkPage.reload()
+  assert.ok(await pkPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'PK product page overflows at 390px')
+  await pk.close()
 
   console.log('pdp e2e ok')
 } catch (e) {

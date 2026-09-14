@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { after } from 'next/server'
 import { AddToList } from '@/components/add-to-list'
 import { PinIcon } from '@/components/icons'
+import { LocationPicker } from '@/components/nav-drawer'
 import { BoughtTogether } from '@/components/pdp/bought-together'
 import { PurchaseControls } from '@/components/pdp/buy-box'
 import { Gallery } from '@/components/pdp/gallery'
@@ -17,10 +19,12 @@ import { getUser } from '@/lib/auth'
 import { cartSummary, MAX_QTY } from '@/lib/cart'
 import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, isDeal, popularity, products, related, type Product } from '@/lib/catalog'
 import { one } from '@/lib/db'
-import { deliveryPromise, EXPEDITED_SHIPPING, relativeDay } from '@/lib/delivery'
-import { compactCount, fullDate, longDate, plural, usd } from '@/lib/format'
+import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
+import { compactCount, fullDate, longDate, plural } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
+import { formatDollars, IMPORT_FEES_NOTE } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
 import { productReviews, sortReviews } from '@/lib/reviews'
 
 type Props = { params: Promise<{ id: string }> }
@@ -91,7 +95,7 @@ export default async function ProductPage({ params }: Props) {
   if (!p) notFound()
 
   const user = await getUser()
-  const [cart, address, lists, { reviews, summary, mine }, history] = await Promise.all([
+  const [cart, address, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName }, jar] = await Promise.all([
     cartSummary(),
     user
       ? one<{ full_name: string; city: string; zip: string }>('select full_name, city, zip from addresses where user_id = $1 order by is_default desc, created_at desc limit 1', [user.id])
@@ -99,13 +103,27 @@ export default async function ProductPage({ params }: Props) {
     user ? getLists(user.id) : [],
     productReviews(p, user?.id),
     user ? getHistory(user.id, 21) : [],
+    getRegion(),
+    cookies(),
   ])
   if (user) after(() => recordView(user.id, p.id))
 
   const dept = DEPARTMENTS.find((d) => d.categories.includes(p.category))
   const category = categoryName(p.category)
   const inStock = p.stock > 0
-  const { standard, fastest, within, label, note } = deliveryPromise(p)
+  const promise = deliveryPromise(p, new Date(), country)
+  const { standard, fastest, within } = promise
+  const { label, note } = deliveryText(promise, currency, rate)
+  const zip = jar.get('zip')?.value
+  const deliverTo = address
+    ? `Deliver to ${address.full_name.split(' ')[0]} - ${address.city} ${address.zip}`
+    : `Deliver to ${country === 'US' && zip && /^\d{5}$/.test(zip) ? zip : countryName}`
+  const pin = (
+    <>
+      <PinIcon className="size-4 shrink-0" />
+      {deliverTo}
+    </>
+  )
   const countdown = within && (
     <>
       . Order within <span className="whitespace-nowrap text-success">{within}</span>
@@ -182,11 +200,11 @@ export default async function ProductPage({ params }: Props) {
             {isDeal(p) && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span>}
             <div className="mt-1 flex items-start gap-2">
               {p.discount > 0 && <span className="text-[28px] leading-8 font-light text-deal">-{p.discount}%</span>}
-              <span className="text-[28px] leading-8"><Price value={p.price} /></span>
+              <span className="text-[28px] leading-8"><Price value={p.price} currency={currency} rate={rate} /></span>
             </div>
             {p.listPrice && (
               <p className="mt-1 text-xs text-muted">
-                List Price: <s>{usd(p.listPrice)}</s>
+                List Price: <s>{formatDollars(p.listPrice, currency, rate)}</s>
                 <InfoPopover id="list-price-info" label="About List Price">
                   The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller.
                 </InfoPopover>
@@ -199,7 +217,7 @@ export default async function ProductPage({ params }: Props) {
         <aside aria-label="Buy box" className="rounded-lg border border-line p-4 md:col-start-2 md:row-start-3 lg:sticky lg:top-3 lg:z-30 lg:col-start-3 lg:row-span-3 lg:row-start-1 lg:self-start">
           {inStock ? (
             <>
-              <div className="mb-2 hidden text-[28px] leading-8 lg:block"><Price value={p.price} /></div>
+              <div className="mb-2 hidden text-[28px] leading-8 lg:block"><Price value={p.price} currency={currency} rate={rate} /></div>
               <div className="space-y-2 text-sm">
                 <p>
                   {label} <b>{dayLabel(standard)}</b>
@@ -208,15 +226,23 @@ export default async function ProductPage({ params }: Props) {
                 {note && <p className="text-xs text-muted">{note}</p>}
                 {fastest && (
                   <p>
-                    Or fastest delivery <b>{dayLabel(fastest)}</b> for <b>{usd(EXPEDITED_SHIPPING)}</b>
+                    Or fastest delivery <b>{dayLabel(fastest)}</b> for <b className="whitespace-nowrap">{formatDollars(promise.expeditedFeeUsd, currency, rate)}</b>
                     {countdown}
                   </p>
                 )}
+                {country === 'PK' && (
+                  <p>
+                    <b>Ships to {countryName}</b>
+                    <span className="block text-xs text-muted">{IMPORT_FEES_NOTE}</span>
+                  </p>
+                )}
               </div>
-              <Link href={user ? '/account/addresses' : signInHere} className="link mt-3 flex items-center gap-1 text-xs">
-                <PinIcon className="size-4 shrink-0" />
-                {!user ? 'Sign in to see your addresses' : address ? `Deliver to ${address.full_name.split(' ')[0]} - ${address.city} ${address.zip}` : 'Add a delivery address'}
-              </Link>
+              {/* signed in: the address book; guests: the header's location dialog (sign in or pick a place) */}
+              {user ? (
+                <Link href="/account/addresses" className="link mt-3 flex items-center gap-1 text-xs">{pin}</Link>
+              ) : (
+                <LocationPicker className="link mt-3 flex cursor-pointer items-center gap-1 text-left text-xs">{pin}</LocationPicker>
+              )}
               <p className={`mt-3 text-lg ${p.stock < 10 ? 'text-[#c10015]' : 'text-success'}`}>
                 {p.stock < 10 ? `Only ${p.stock} left in stock - order soon.` : 'In Stock'}
               </p>

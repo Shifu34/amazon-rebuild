@@ -6,9 +6,11 @@ import { moveListItem, removeListItem, restoreListItem } from '@/app/actions/lis
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { CaretIcon } from '@/components/icons'
 import { Price } from '@/components/price'
+import { useRegion } from '@/components/region-provider'
 import { Stars } from '@/components/stars'
 import type { Product } from '@/lib/catalog'
-import { fullDate, usd } from '@/lib/format'
+import { fullDate } from '@/lib/format'
+import { formatDollars } from '@/lib/region'
 
 export type ListRowItem = Pick<Product, 'id' | 'title' | 'brand' | 'thumbnail' | 'price' | 'listPrice' | 'rating' | 'ratingCount' | 'stock'> & { addedAt: string; inCart?: number }
 type ListRef = { id: string; name: string }
@@ -57,6 +59,7 @@ export function ListItems({ listId, items, otherLists, empty }: { listId: string
 function Row({ item: p, listId, otherLists, onGone }: { item: ListRowItem; listId: string; otherLists: ListRef[]; onGone: (g: Ghost) => void }) {
   const [pending, start] = useTransition()
   const [error, setError] = useState('')
+  const { currency, rate } = useRegion()
   const href = `/dp/${p.id}`
 
   const remove = () =>
@@ -88,10 +91,10 @@ function Row({ item: p, listId, otherLists, onGone }: { item: ListRowItem; listI
             <span className="text-link">{p.ratingCount.toLocaleString('en-US')}</span>
           </p>
           <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-xl"><Price value={p.price} /></span>
+            <span className="text-xl"><Price value={p.price} currency={currency} rate={rate} /></span>
             {p.listPrice && (
               <span className="text-xs text-muted">
-                List: <s>{usd(p.listPrice)}</s>
+                List: <s>{formatDollars(p.listPrice, currency, rate)}</s>
               </span>
             )}
           </p>
