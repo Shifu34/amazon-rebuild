@@ -69,6 +69,7 @@ try {
   await page.getByLabel('Phone number').fill('(206) 555-0100')
   await page.getByLabel('Address', { exact: true }).fill('410 Terry Ave N')
   await page.getByLabel('City').fill('Seattle')
+  await page.getByLabel('Country/Region').selectOption('US') // new addresses start in the visitor's country (Pakistan when run from there)
   await page.getByLabel('State', { exact: true }).selectOption('WA')
   await page.getByLabel('ZIP Code').fill('98109')
   await page.getByRole('button', { name: 'Use this address' }).click()

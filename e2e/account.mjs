@@ -37,6 +37,7 @@ async function addAddress(fullName, city, state, zip) {
   await page.getByLabel('Phone number').fill('206-555-0123')
   await page.getByLabel('Address', { exact: true }).fill('123 Pine St')
   await page.getByLabel('City').fill(city)
+  await page.getByLabel('Country/Region').selectOption('US') // new addresses start in the visitor's country
   await page.getByLabel('State').selectOption(state)
   await page.getByLabel('ZIP Code').fill(zip)
   await page.getByRole('button', { name: 'Add address' }).click()
