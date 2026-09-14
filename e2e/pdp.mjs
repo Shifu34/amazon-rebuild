@@ -14,7 +14,7 @@ const email = `pdp-${stamp}@example.com`
 const headline = `Heats evenly ${stamp}`
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage() // a context, so a second tab can share the cart
 const step = (name) => console.log(`- ${name}`)
 const cartLink = (n) => page.getByRole('link', { name: `Cart, ${n} ${n === 1 ? 'item' : 'items'}` })
 const sheet = () => page.getByRole('dialog', { name: 'Added to cart' })
@@ -123,12 +123,68 @@ try {
   await page.getByText('FILTERED BY').waitFor()
   assert.equal(await page.getByText(headline).count(), 0)
 
-  step('390px wide: no horizontal page scroll')
+  step('1280x800: the list menu paints above the sticky "On this page" bar and a mouse click on the second list saves')
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto(`${base}/dp/12`) // short centre column, so the bar sits right under the buy box
+  const giftRow = page.getByRole('button', { name: 'Gift ideas' })
+  for (let i = 0; i < 5 && !(await giftRow.isVisible()); i++) {
+    await page.getByRole('button', { name: 'Choose a list' }).click() // retried in case the click beat hydration
+    await giftRow.waitFor({ timeout: 2000 }).catch(() => {})
+  }
+  const covered = await page.locator('button[name="listId"]').evaluateAll((els) =>
+    els.filter((el) => {
+      const r = el.getBoundingClientRect()
+      return !el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2))
+    }).map((el) => el.textContent),
+  )
+  assert.deepEqual(covered, [], 'list rows painted over')
+  const row = await giftRow.boundingBox()
+  await page.mouse.click(row.x + row.width / 2, row.y + row.height / 2)
+  await page.getByText('added to Gift ideas').waitFor()
+
+  step('the deal tag reads "Deal": nothing expires, so no "Limited time deal"')
+  await page.getByText('Deal', { exact: true }).first().waitFor()
+  assert.doesNotMatch(await page.locator('body').innerText(), /limited time deal/i)
+
+  step('a stale second tab adding past the 30 cap: the sheet reports what actually went in')
+  const addQty = async (tab, n) => {
+    const box = tab.getByRole('complementary', { name: 'Buy box' })
+    await box.getByLabel('Quantity').selectOption(String(n))
+    await box.getByRole('button', { name: 'Add to Cart', exact: true }).click()
+    const added = tab.getByRole('dialog', { name: 'Added to cart' })
+    await added.waitFor()
+    const text = await added.innerText()
+    await tab.keyboard.press('Escape')
+    await added.waitFor({ state: 'hidden' })
+    return text
+  }
+  await page.goto(`${base}/dp/3`)
+  await addQty(page, 20)
+  const stale = await page.context().newPage()
+  await stale.goto(`${base}/dp/3`) // renders with 20 in the cart
+  await addQty(page, 7) // 27 now, but the stale tab still offers 1-10
+  const staleText = await addQty(stale, 8)
+  await stale.close()
+  assert.match(staleText, /Qty: 3\b/)
+  assert.match(staleText, /Only 3 added/)
+
+  step('390px wide: no horizontal page scroll; buy box and sheet buttons are 44px touch targets')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(`${base}/dp/${product.id}`)
   await page.getByRole('heading', { level: 1, name: product.title }).waitFor()
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   assert.ok(overflow <= 0, `page overflows by ${overflow}px`)
+  const tall = async (loc, name) => {
+    await loc.waitFor()
+    const { height } = await loc.boundingBox()
+    assert.ok(height >= 44, `${name} is ${height}px tall`)
+  }
+  const buyBox = page.getByRole('complementary', { name: 'Buy box' })
+  await tall(buyBox.getByRole('link', { name: 'Buy Now' }), 'Buy Now')
+  await tall(buyBox.getByRole('button', { name: 'Add to Cart', exact: true }), 'Add to Cart')
+  await buyBox.getByRole('button', { name: 'Add to Cart', exact: true }).click()
+  await tall(sheet().getByRole('link', { name: /Proceed to checkout/ }), 'Proceed to checkout')
+  await tall(sheet().getByRole('link', { name: 'Go to Cart' }), 'Go to Cart')
 
   console.log('pdp e2e ok')
 } catch (e) {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useActionState, useRef, useState } from 'react'
-import { addToCart } from '@/app/actions/cart'
+import { addFromBuyBox } from '@/app/actions/bundle'
 import { CaretIcon } from '@/components/icons'
 import { AddedSheet, type CartTotals } from './added-sheet'
 
@@ -19,12 +19,8 @@ export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, 
   const [dismissed, setDismissed] = useState<State>(null)
   const limit = max === stock ? `only ${max} available` : `limit ${max} per customer`
   const [state, action, pending] = useActionState<State, FormData>(async (_prev, form) => {
-    const result = await addToCart(null, form)
-    if (!result?.ok) return result
-    // addToCart clamps to the stock/quantity cap, so compare with what the cart held when the form was rendered
-    const added = result.inCart - Number(form.get('inCart'))
-    if (added <= 0) return { ok: false, error: `You already have ${result.inCart} in your cart (${limit}).` }
-    return { ok: true, added, requested: Number(form.get('quantity')) }
+    const result = await addFromBuyBox(form)
+    return result?.ok ? { ok: true, added: result.added, requested: Number(form.get('quantity')) } : result
   }, null)
 
   const room = max - inCart
@@ -40,7 +36,6 @@ export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, 
     <>
       <form action={action} className="space-y-2.5">
         <input type="hidden" name="productId" value={product.id} />
-        <input type="hidden" name="inCart" value={inCart} />
         {room > 0 ? (
           <>
             <div className="select-pill relative inline-flex items-center gap-1 pr-2 has-[:focus-visible]:border-focus has-[:focus-visible]:shadow-[0_0_0_3px_#c8f3fa]">
@@ -58,7 +53,7 @@ export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, 
               </select>
               <CaretIcon className="pointer-events-none absolute right-2 h-1.5 w-2 text-muted" />
             </div>
-            <button ref={addButton} type="submit" disabled={pending} className="btn btn-cart btn-lg w-full">
+            <button ref={addButton} type="submit" disabled={pending} className="btn btn-cart btn-lg w-full max-md:min-h-11">
               {pending ? 'Adding…' : 'Add to Cart'}
             </button>
           </>
@@ -67,10 +62,10 @@ export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, 
             <p className="text-sm">
               <b className="text-success">{inCart} in your cart</b> <span className="text-muted">({limit})</span>
             </p>
-            <Link ref={cartLink} href="/cart" className="btn btn-cart btn-lg w-full">Go to Cart</Link>
+            <Link ref={cartLink} href="/cart" className="btn btn-cart btn-lg w-full max-md:min-h-11">Go to Cart</Link>
           </>
         )}
-        <Link href={buyNow} className="btn btn-buy btn-lg w-full">Buy Now</Link>
+        <Link href={buyNow} className="btn btn-buy btn-lg w-full max-md:min-h-11">Buy Now</Link>
         {state && !state.ok && <p role="alert" className="field-error">{state.error}</p>}
         {inCart > 0 && room > 0 && (
           <p className="text-[13px] text-success">

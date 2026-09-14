@@ -179,7 +179,7 @@ export default async function ProductPage({ params }: Props) {
 
         {inStock && (
           <div className="border-t border-line pt-3 md:col-start-2 md:row-start-2">
-            {p.discount >= 10 && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Limited time deal</span>}
+            {p.discount >= 10 && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span>}
             <div className="mt-1 flex items-start gap-2">
               {p.discount > 0 && <span className="text-[28px] leading-8 font-light text-deal">-{p.discount}%</span>}
               <span className="text-[28px] leading-8"><Price value={p.price} /></span>
@@ -195,7 +195,8 @@ export default async function ProductPage({ params }: Props) {
           </div>
         )}
 
-        <aside aria-label="Buy box" className="rounded-lg border border-line p-4 md:col-start-2 md:row-start-3 lg:sticky lg:top-3 lg:col-start-3 lg:row-span-3 lg:row-start-1 lg:self-start">
+        {/* lg:z-30: sticky makes the aside a stacking context, so without it the Add to List menu would sit under the sticky nav below */}
+        <aside aria-label="Buy box" className="rounded-lg border border-line p-4 md:col-start-2 md:row-start-3 lg:sticky lg:top-3 lg:z-30 lg:col-start-3 lg:row-span-3 lg:row-start-1 lg:self-start">
           {inStock ? (
             <>
               <div className="mb-2 hidden text-[28px] leading-8 lg:block"><Price value={p.price} /></div>
