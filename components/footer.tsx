@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { FlagUS, Logo } from './icons'
+import { CURRENCIES } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
+import { FlagPK, FlagUS, Logo } from './icons'
 
 const REPO = 'https://github.com/Shifu34/amazon-rebuild'
 const focus = 'rounded-[2px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white'
@@ -52,7 +54,9 @@ function A({ href, className, children }: { href: string; className: string; chi
   return href.startsWith('/') ? <Link href={href} className={cls}>{children}</Link> : <a href={href} className={cls}>{children}</a>
 }
 
-export function Footer() {
+export async function Footer() {
+  const { currency, country, countryName } = await getRegion()
+  const c = CURRENCIES[currency]
   return (
     <footer className="mt-10 text-white">
       <a href="#top" className="block bg-nav-lighter py-[15px] text-center text-[13px] leading-5 hover:bg-[#485769] focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white">
@@ -90,12 +94,12 @@ export function Footer() {
             </li>
             <li className="flex h-[35px] items-center gap-[9px] rounded-[3px] border border-[#848688] pr-7 pl-2">
               <span className="sr-only">Currency: </span>
-              <span aria-hidden className="font-bold">$</span>
-              <span>USD - U.S. Dollar</span>
+              {c.prefix !== c.code && <span aria-hidden className="font-bold">{c.prefix}</span>}
+              <span>{c.code} - {c.label}</span>
             </li>
             <li className="flex h-[35px] items-center gap-2 rounded-[3px] border border-[#848688] pr-7 pl-2">
-              <FlagUS className="h-[13px] w-[19px]" />
-              <span><span className="sr-only">Country: </span>United States</span>
+              {country === 'PK' ? <FlagPK className="h-[13px] w-[19px]" /> : <FlagUS className="h-[13px] w-[19px]" />}
+              <span><span className="sr-only">Country: </span>{countryName}</span>
             </li>
           </ul>
         </div>

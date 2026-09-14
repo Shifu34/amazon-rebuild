@@ -20,7 +20,7 @@ async function linksOn(path, selector) {
     const toggles = drawer.locator('button[aria-expanded]')
     for (let i = 0; i < (await toggles.count()); i++) {
       await toggles.nth(i).click()
-      found.push(...(await hrefs('[role="dialog"] a[href]')))
+      found.push(...(await hrefs('dialog[open] a[href]')))
     }
   }
   return found
@@ -48,17 +48,44 @@ try {
   step('signed out: Customer Service')
   await check('help', await linksOn('/help', 'main a[href]'))
 
+  step('guest location: Pakistan brings rupees (no currency chosen yet), a US ZIP brings dollars back')
+  const footer = page.locator('footer')
+  const where = page.getByRole('dialog', { name: 'Choose your location' })
+  await page.getByRole('button', { name: /^Deliver(?:ing)? to / }).click()
+  await where.getByLabel('Ship outside the US').selectOption('PK')
+  await where.getByRole('button', { name: 'Done' }).click()
+  await page.getByRole('button', { name: 'Deliver to Pakistan' }).click()
+  await footer.getByText('PKR - Pakistani Rupee').waitFor()
+  await footer.getByText('Country: Pakistan').waitFor()
+  await where.getByLabel('US zip code').fill('98109')
+  await where.getByRole('button', { name: 'Apply' }).click()
+  await page.getByRole('button', { name: /^Delivering to 98109/ }).waitFor()
+  await footer.getByText('USD - US Dollar').waitFor()
+  await footer.getByText('Country: United States').waitFor()
+
   step('the EN menu works from the keyboard: Enter opens it, Escape closes it and keeps focus')
   const en = page.getByRole('button', { name: 'EN: language and currency' })
   await en.focus()
   await page.keyboard.press('Enter')
   const locale = page.locator(`[id="${await en.getAttribute('aria-controls')}"]`)
-  assert.ok(await locale.getByRole('radio', { name: 'English - EN' }).isChecked())
-  assert.ok(await locale.getByRole('radio', { name: '$ - USD - US Dollar' }).isChecked())
+  const radio = (name) => locale.getByRole('radio', { name })
+  assert.ok(await radio('English - EN').isChecked())
+  assert.ok(await radio('$ - USD - US Dollar').isChecked())
+  assert.ok(!(await radio('PKR - Pakistani Rupee').isChecked()))
+  await locale.getByText('Conversion rate: 1 USD = PKR 277.07').waitFor()
   await locale.getByText('You are shopping on nile.com').waitFor()
   await page.keyboard.press('Escape')
   await locale.waitFor({ state: 'hidden' })
   assert.ok(await en.evaluate((el) => el === document.activeElement), 'focus stays on EN')
+
+  step('the EN menu switches the page to PKR and back to USD')
+  await en.click()
+  await radio('PKR - Pakistani Rupee').click()
+  await footer.getByText('PKR - Pakistani Rupee').waitFor()
+  await en.click()
+  assert.ok(await radio('PKR - Pakistani Rupee').isChecked())
+  await radio('$ - USD - US Dollar').click()
+  await footer.getByText('USD - US Dollar').waitFor()
 
   step('signed out: an unknown URL is a real 404 with a way home')
   const res = await page.goto(`${base}/no-such-page`)
@@ -79,6 +106,13 @@ try {
   step('signed in: header, drawer and footer')
   await check('signed in', await linksOn('/', 'header a[href], footer a[href]'))
   assert.deepEqual(await shortcuts(), ["Today's Deals", 'Buy Again', 'Best Sellers', 'New Releases', 'Customer Service', 'Browsing History'])
+
+  step('signed in: the EN menu says the delivery country comes from the address book')
+  await page.goto(`${base}/`)
+  await en.click()
+  const signedIn = page.locator(`[id="${await en.getAttribute('aria-controls')}"]`)
+  await signedIn.getByText(/Add a default address to set your delivery country/).waitFor()
+  await signedIn.getByRole('link', { name: 'Your Addresses' }).waitFor()
 
   step('signed in: account pages')
   const found = []

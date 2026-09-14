@@ -24,6 +24,18 @@ export function FlagUS({ className }: P) {
   )
 }
 
+export function FlagPK({ className }: P) {
+  return (
+    <svg viewBox="0 0 39 26" className={className} aria-hidden>
+      <rect width="39" height="26" fill="#01411c" />
+      <rect width="9.75" height="26" fill="#fff" />
+      <circle cx="24.4" cy="13.4" r="7.2" fill="#fff" />
+      <circle cx="26.4" cy="11.6" r="6.4" fill="#01411c" />
+      <path d="M27.5 7.1L29.3 7.6L30.4 6.1L30.4 8.0L32.2 8.6L30.4 9.2L30.4 11.1L29.3 9.6L27.5 10.1L28.6 8.6z" fill="#fff" />
+    </svg>
+  )
+}
+
 export function CartIcon({ className }: P) {
   // Amazon's cart: a handle on the left, a basket open at the top (the count sits in the opening), two solid wheels
   return (

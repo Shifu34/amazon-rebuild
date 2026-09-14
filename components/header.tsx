@@ -6,32 +6,32 @@ import { getUser } from '@/lib/auth'
 import { cartCount } from '@/lib/cart'
 import { CATEGORY_NAMES, DEPARTMENTS } from '@/lib/catalog'
 import { one } from '@/lib/db'
+import { getRegion } from '@/lib/region-server'
 import { CartIcon, Logo, PinIcon } from './icons'
 import { LocaleMenu } from './locale-menu'
 import { Flyout, LocationPicker, NavDrawer } from './nav-drawer'
 import { SearchBar } from './search-bar'
 
 const departments = DEPARTMENTS.map((d) => ({ ...d, categories: d.categories.map((slug) => ({ slug, name: CATEGORY_NAMES[slug] })) }))
-const regionName = new Intl.DisplayNames(['en'], { type: 'region' })
 
-async function deliverTo(userId: string | undefined): Promise<{ label: string; place: string; zip?: string }> {
+// the same order as getRegion(): the default address, then the guest's choice (Pakistan or a US ZIP), then the IP
+async function deliverTo(userId: string | undefined): Promise<{ label: string; place: string; zip?: string; fromAddress?: boolean }> {
   if (userId) {
     const a = await one<{ full_name: string; city: string; zip: string }>(
       'select full_name, city, zip from addresses where user_id = $1 order by is_default desc, created_at desc limit 1',
       [userId],
     )
-    if (a) return { label: `Deliver to ${a.full_name.split(' ')[0]}`, place: `${a.city} ${a.zip}` }
+    if (a) return { label: `Deliver to ${a.full_name.split(' ')[0]}`, place: `${a.city} ${a.zip}`, fromAddress: true }
   }
-  // set by the location dialog; the browser writes this cookie, so check it here
-  const zip = (await cookies()).get('zip')?.value
-  if (zip && /^\d{5}$/.test(zip)) return { label: 'Delivering to', place: zip, zip }
-  const h = await headers()
-  const country = h.get('x-vercel-ip-country')?.toUpperCase()
-  if (country && country !== 'US' && /^[A-Z]{2}$/.test(country)) return { label: 'Deliver to', place: regionName.of(country) ?? country }
-  const city = h.get('x-vercel-ip-city')
+  const [region, jar, h] = await Promise.all([getRegion(), cookies(), headers()])
+  const zip = /^\d{5}$/.exec(jar.get('zip')?.value ?? '')?.[0]
+  if (region.country !== 'US') return { label: 'Deliver to', place: region.countryName, zip }
+  if (zip) return { label: 'Delivering to', place: zip, zip }
+  // ponytail: other countries' visitors get US delivery (US and PK only), so only a US IP names a city
+  const city = h.get('x-vercel-ip-country')?.toUpperCase() === 'US' && h.get('x-vercel-ip-city')
   return city
     ? { label: 'Delivering to', place: `${decodeURIComponent(city)} ${h.get('x-vercel-ip-postal-code') ?? ''}`.trim() }
-    : { label: 'Deliver to', place: 'United States' }
+    : { label: 'Deliver to', place: region.countryName }
 }
 
 // two-line items in the top bar ("Hello, sign in / Account & Lists"): 50px tall boxes that outline white on hover
@@ -43,6 +43,7 @@ export async function Header() {
   const user = await getUser()
   const [count, location] = await Promise.all([cartCount(), deliverTo(user?.id)])
   const firstName = user ? user.name.split(' ')[0] : null
+  const account = user ? { hasAddress: Boolean(location.fromAddress) } : null
   // signed in: the address book; guests: a dialog to sign in or enter a ZIP
   const deliver = (className: string, children: React.ReactNode) =>
     user ? (
@@ -64,7 +65,7 @@ export async function Header() {
     // a stacking context, so the flyouts' dimmer sits under both bars and over the page
     <header className="relative z-50 text-white">
       <div className="flex flex-wrap items-center gap-x-1 gap-y-2 bg-nav px-2 py-2 md:h-[60px] md:flex-nowrap md:gap-x-0 md:py-0">
-        <NavDrawer departments={departments} userName={firstName} variant="icon" />
+        <NavDrawer departments={departments} userName={firstName} account={account} variant="icon" />
         <Link href="/" aria-label="nile home" className="nav-item px-2 pt-2 pb-1 md:flex md:h-[50px] md:items-center md:px-[9px] md:pt-1 md:pb-0">
           <Logo className="text-[26px] md:text-[31px]" />
         </Link>
@@ -88,7 +89,7 @@ export async function Header() {
             {firstName ? `${firstName} ›` : 'Sign in ›'}
           </Link>
 
-          <LocaleMenu />
+          <LocaleMenu account={account} />
 
           <Flyout
             href={user ? '/account' : '/ap/signin'}
@@ -161,7 +162,7 @@ export async function Header() {
       </div>
 
       <nav aria-label="Shortcuts" className="flex h-[39px] items-center gap-0.5 overflow-x-auto bg-nav-light px-2 text-sm whitespace-nowrap">
-        <NavDrawer departments={departments} userName={firstName} variant="all" />
+        <NavDrawer departments={departments} userName={firstName} account={account} variant="all" />
         {shortcuts.map(([label, href]) => (
           <Link key={href} href={href} className="nav-item px-2 py-1.5">{label}</Link>
         ))}

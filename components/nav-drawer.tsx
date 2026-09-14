@@ -1,16 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
 import { signOut } from '@/app/actions/auth'
-import { CaretIcon, ChevronIcon, CloseIcon, MenuIcon, UserIcon } from './icons'
+import { setCurrency, setShipCountry } from '@/app/actions/region'
+import { COUNTRIES, CURRENCIES, formatMoney } from '@/lib/region'
+import { CaretIcon, ChevronIcon, CloseIcon, FlagUS, MenuIcon, UserIcon } from './icons'
+import { useRegion } from './region-provider'
 
-// The header's client pieces: the All drawer, the Account & Lists menu and the guest location dialog.
+// The header's client pieces: the All drawer, the Account & Lists and EN menus, and the guest location dialog.
 
 type Department = { slug: string; name: string; categories: { slug: string; name: string }[] }
+// signed in: whether the delivery country comes from a saved address
+export type Account = { hasAddress: boolean } | null
 
-export function NavDrawer({ departments, userName, variant }: { departments: Department[]; userName: string | null; variant: 'icon' | 'all' }) {
+export function NavDrawer({ departments, userName, account, variant }: { departments: Department[]; userName: string | null; account: Account; variant: 'icon' | 'all' }) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -104,6 +108,10 @@ export function NavDrawer({ departments, userName, variant }: { departments: Dep
             ) : (
               <Link href="/ap/signin" className={item}>Sign in</Link>
             )}
+            {/* the EN menu is desktop-only, so phones change currency here */}
+            <div className="mt-2 border-t border-line px-8 pt-5 text-sm">
+              <RegionSettings account={account} />
+            </div>
           </nav>
         </dialog>
       )}
@@ -202,7 +210,11 @@ export function Flyout({ href, label, toggleLabel, className, panelClassName, ch
         id={id}
         hidden={!open}
         onClick={(e) => (e.target as HTMLElement).closest('a') && setOpen(false)}
-        onSubmit={() => setOpen(false)}
+        onSubmit={() => {
+          setOpen(false)
+          // the chosen radio or button is about to be hidden: keep keyboard focus on the menu
+          if (root.current?.contains(document.activeElement)) toggle.current?.focus()
+        }}
         className={`absolute top-full ${panelClassName}`}
       >
         {children}
@@ -211,12 +223,63 @@ export function Flyout({ href, label, toggleLabel, className, panelClassName, ch
   )
 }
 
-const ZIP = /^\d{5}$/
+const radio =
+  'size-4 shrink-0 cursor-pointer appearance-none rounded-full border border-[#888c8c] bg-white checked:bg-[#e77600] checked:shadow-[inset_0_0_0_3px_#fff] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus'
+const option = 'mt-2.5 flex cursor-pointer items-center gap-2'
 
-// "Choose your location" for guests: sign in for saved addresses, or set a ZIP that the header reads from a cookie.
-// Applies in place (router.refresh) instead of reloading the page like Amazon.
+// EN menu and All drawer: English only; a currency radio applies on change (setCurrency re-renders the page).
+// One form per copy, so the two copies' radios are separate groups; keyed by currency so they re-check after the refresh.
+export function RegionSettings({ account }: { account: Account }) {
+  const { currency, country } = useRegion()
+  return (
+    <form key={currency} action={setCurrency}>
+      <fieldset>
+        <legend className="py-1">Change language</legend>
+        <label className={option}>
+          <input type="radio" name="language" value="en" defaultChecked className={radio} /> English - EN
+        </label>
+      </fieldset>
+      <hr className="mt-3.5 mb-1.5 border-[#e7e7e7]" />
+      <fieldset>
+        <legend className="py-1">Change currency</legend>
+        {Object.values(CURRENCIES).map((c) => (
+          <label key={c.code} className={option}>
+            <input
+              type="radio"
+              name="currency"
+              value={c.code}
+              defaultChecked={c.code === currency}
+              onChange={(e) => e.currentTarget.form?.requestSubmit()}
+              className={radio}
+            />
+            {c.prefix === c.code ? '' : `${c.prefix} - `}{c.code} - {c.label}
+          </label>
+        ))}
+      </fieldset>
+      <p className="mt-2.5 text-xs text-muted">Conversion rate: 1 USD = {formatMoney(100, 'PKR')}</p>
+      <hr className="mt-3.5 mb-1.5 border-[#e7e7e7]" />
+      <p className="pt-1">
+        <FlagUS className="mr-1.5 inline h-[11px] w-4 align-[-1px]" />
+        You are shopping on nile.com
+      </p>
+      {account && (
+        <p className="mt-2 text-xs text-muted">
+          {account.hasAddress
+            ? `Delivering to ${COUNTRIES[country].name}, the country of your default address. `
+            : `Delivering to ${COUNTRIES[country].name}. Add a default address to set your delivery country. `}
+          <Link href="/account/addresses" className="link underline">Your Addresses</Link>
+        </p>
+      )}
+    </form>
+  )
+}
+
+const ZIP = /^\d{5}$/
+const divider = 'my-4 flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line'
+
+// "Choose your location" for guests: sign in for saved addresses, set a US ZIP, or ship to Pakistan. Both forms go through
+// setShipCountry, which sets the cookies and refreshes the page in place (Amazon reloads it).
 export function LocationPicker({ zip, className, children }: { zip?: string; className: string; children: React.ReactNode }) {
-  const router = useRouter()
   const dialog = useRef<HTMLDialogElement>(null)
   const [invalid, setInvalid] = useState(false)
   const id = useId()
@@ -249,21 +312,19 @@ export function LocationPicker({ zip, className, children }: { zip?: string; cla
         </div>
         <div className="p-5">
           <Link href="/ap/signin?return_to=/account/addresses" onClick={close} className="btn btn-cart btn-lg w-full">Sign in to see your addresses</Link>
-          <p className="my-4 flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-            or enter a US zip code
-          </p>
+          <p className={divider}>or enter a US zip code</p>
           <form
             noValidate
+            action={setShipCountry}
             className="flex gap-2"
+            // a prevented submit skips the action
             onSubmit={(e) => {
+              if (ZIP.test(String(new FormData(e.currentTarget).get('zip') ?? '').trim())) return close()
               e.preventDefault()
-              const value = String(new FormData(e.currentTarget).get('zip') ?? '').trim()
-              if (!ZIP.test(value)) return setInvalid(true)
-              document.cookie = `zip=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
-              close()
-              router.refresh()
+              setInvalid(true)
             }}
           >
+            <input type="hidden" name="country" value="US" />
             <input
               name="zip"
               defaultValue={zip}
@@ -278,6 +339,17 @@ export function LocationPicker({ zip, className, children }: { zip?: string; cla
             <button type="submit" className="btn btn-plain btn-lg">Apply</button>
           </form>
           {invalid && <p id={`${id}-error`} role="alert" className="field-error">Please enter a valid US zip code</p>}
+          <p className={divider}>or ship outside the US</p>
+          <form action={setShipCountry} onSubmit={close} className="flex gap-2">
+            <select name="country" aria-label="Ship outside the US" className="input h-9">
+              {Object.values(COUNTRIES)
+                .filter((c) => c.code !== 'US')
+                .map((c) => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+            </select>
+            <button type="submit" className="btn btn-plain btn-lg">Done</button>
+          </form>
         </div>
       </dialog>
     </>
