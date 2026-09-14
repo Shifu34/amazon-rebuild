@@ -1,20 +1,21 @@
-import Form from 'next/form'
 import Link from 'next/link'
 import { Fragment } from 'react'
 import { Stars } from '@/components/stars'
 import { DEPARTMENTS, categoryName, search, type SearchParams } from '@/lib/catalog'
+import { LinkPending, PriceForm } from './controls'
 import { PRICE_RANGES, departmentOf, priceLabel, toHref, type Query } from './params'
 
 type Facets = ReturnType<typeof search>['facets']
 type Department = (typeof DEPARTMENTS)[number]
 
-const row = 'flex items-center gap-2 py-2 text-sm hover:text-link-hover lg:py-1'
+// dense on desktop like Amazon's rail (about 22px rows), roomy touch targets in the mobile drawer
+const row = 'flex items-center gap-2 py-2 text-sm hover:text-link-hover lg:py-px'
 
 function Section({ title, clear, children }: { title: string; clear?: string; children: React.ReactNode }) {
   return (
-    <section aria-label={title} className="border-b border-line py-4 last:border-0 lg:border-0 lg:py-3">
+    <section aria-label={title} className="border-b border-line py-4 last:border-0 lg:border-0 lg:py-2.5">
       <h3 className="text-sm">{title}</h3>
-      {clear && <Link href={clear} className="link text-xs">Clear</Link>}
+      {clear && <Link href={clear} className="link text-xs">Clear<LinkPending /></Link>}
       <ul className="mt-1">{children}</ul>
     </section>
   )
@@ -39,6 +40,7 @@ function Item({ href, on = false, checkbox = false, className = '', children }: 
           </span>
         )}
         {children}
+        <LinkPending />
       </Link>
     </li>
   )
@@ -48,7 +50,7 @@ function SeeMore({ label, open, children }: { label: string; open: boolean; chil
   return (
     <li>
       <details open={open} className="group">
-        <summary className="link cursor-pointer list-none py-2 text-sm lg:py-1 [&::-webkit-details-marker]:hidden">
+        <summary className="link cursor-pointer list-none py-2 text-sm lg:py-px [&::-webkit-details-marker]:hidden">
           <span className="group-open:hidden">▾ {label}</span>
           <span className="hidden group-open:inline">▴ See less</span>
         </summary>
@@ -64,7 +66,7 @@ function Departments({ q, facets }: { q: Query; facets: Facets }) {
   const total = (d: Department) => d.categories.reduce((n, c) => n + (counts.get(c) ?? 0), 0)
   const child = (c: string) =>
     c === q.i ? (
-      <li key={c} className="py-2 pl-4 text-sm font-bold lg:py-1">{categoryName(c)}</li>
+      <li key={c} className="py-2 pl-4 text-sm font-bold lg:py-px">{categoryName(c)}</li>
     ) : (
       <Item key={c} href={toHref(q, { i: c })} className="pl-4">{categoryName(c)} <Count n={counts.get(c) ?? 0} /></Item>
     )
@@ -75,7 +77,7 @@ function Departments({ q, facets }: { q: Query; facets: Facets }) {
       <Section title="Department">
         <Item href={toHref(q, { i: '' })}>‹ Any Department</Item>
         {q.i === current.slug ? (
-          <li className="py-2 text-sm font-bold lg:py-1">{current.name}</li>
+          <li className="py-2 text-sm font-bold lg:py-px">{current.name}</li>
         ) : (
           <Item href={toHref(q, { i: current.slug })}>‹ {current.name}</Item>
         )}
@@ -119,30 +121,31 @@ export function Filters({ q, base, facets }: { q: Query; base: SearchParams; fac
     )
   }
 
-  const keep = new URLSearchParams(toHref(q, { min: undefined, max: undefined }).split('?')[1] ?? '')
-
   return (
     <div>
       <Departments q={q} facets={facets} />
 
-      <Section title="Customer Reviews" clear={q.rating ? toHref(q, { rating: undefined }) : undefined}>
-        {[4, 3, 2, 1].map((r, idx) => {
-          const on = q.rating === r
-          if (!on && !ratingCounts[idx]) return null
-          return (
-            <li key={r}>
-              <Link
-                href={toHref(q, { rating: on ? undefined : r })}
-                aria-label={`${r} Stars & Up, ${ratingCounts[idx]} results`}
-                aria-current={on ? 'true' : undefined}
-                className={`${row} ${on ? 'font-bold' : ''}`}
-              >
-                <Stars rating={r} className="h-[18px]" /> <span>&amp; Up</span> <Count n={ratingCounts[idx]} />
-              </Link>
-            </li>
-          )
-        })}
-      </Section>
+      {(q.rating || ratingCounts.some(Boolean)) && (
+        <Section title="Customer Reviews" clear={q.rating ? toHref(q, { rating: undefined }) : undefined}>
+          {[4, 3, 2, 1].map((r, idx) => {
+            const on = q.rating === r
+            if (!on && !ratingCounts[idx]) return null
+            return (
+              <li key={r}>
+                <Link
+                  href={toHref(q, { rating: on ? undefined : r })}
+                  aria-label={`${r} Stars & Up, ${ratingCounts[idx]} results`}
+                  aria-current={on ? 'true' : undefined}
+                  className={`${row} ${on ? 'font-bold' : ''}`}
+                >
+                  <Stars rating={r} className="h-[18px]" /> <span>&amp; Up</span> <Count n={ratingCounts[idx]} />
+                  <LinkPending />
+                </Link>
+              </li>
+            )
+          })}
+        </Section>
+      )}
 
       {brands.length > 0 && (
         <Section title="Brands" clear={q.brand.length ? toHref(q, { brand: [] }) : undefined}>
@@ -164,14 +167,7 @@ export function Filters({ q, base, facets }: { q: Query; base: SearchParams; fac
           )
         })}
         <li>
-          <Form action="/s" key={`${q.min}-${q.max}`} className="mt-2 flex items-center gap-2">
-            {[...keep].map(([name, value], idx) => (
-              <input key={idx} type="hidden" name={name} value={value} />
-            ))}
-            <input name="min" type="number" min={0} step="any" inputMode="decimal" placeholder="$ Min" aria-label="Minimum price, in dollars" defaultValue={q.min} className="input w-20 text-base lg:text-sm" />
-            <input name="max" type="number" min={0} step="any" inputMode="decimal" placeholder="$ Max" aria-label="Maximum price, in dollars" defaultValue={q.max} className="input w-20 text-base lg:text-sm" />
-            <button type="submit" className="btn btn-plain">Go</button>
-          </Form>
+          <PriceForm key={`${q.min}-${q.max}`} keep={toHref(q, { min: undefined, max: undefined }).split('?')[1] ?? ''} min={q.min} max={q.max} />
         </li>
       </Section>
 
@@ -181,9 +177,9 @@ export function Filters({ q, base, facets }: { q: Query; base: SearchParams; fac
         </Section>
       )}
 
-      {(outOfStock > 0 || q.instock) && (
+      {(outOfStock > 0 || q.oos) && (
         <Section title="Availability">
-          <Item checkbox on={!q.instock} href={toHref(q, { instock: !q.instock })}>Include Out of Stock</Item>
+          <Item checkbox on={q.oos} href={toHref(q, { oos: !q.oos })}>Include Out of Stock</Item>
         </Section>
       )}
     </div>

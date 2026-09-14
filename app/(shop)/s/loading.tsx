@@ -17,13 +17,15 @@ export default function Loading() {
             <div key={i} className={`h-4 ${bar}`} style={{ width: `${w}%` }} />
           ))}
         </div>
-        <ul className="grid flex-1 grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 xl:grid-cols-4">
+        <ul className="grid flex-1 gap-x-4 gap-y-6 sm:grid-cols-2 sm:gap-y-8 md:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }, (_, i) => (
-            <li key={i}>
-              <div className="aspect-square rounded-lg bg-[#f0f2f2]" />
-              <div className={`mt-3 h-4 ${bar}`} />
-              <div className={`mt-2 h-4 w-3/4 ${bar}`} />
-              <div className={`mt-3 h-7 w-2/5 ${bar}`} />
+            <li key={i} className="flex gap-3 sm:block">
+              <div className="aspect-square w-2/5 shrink-0 rounded-lg bg-[#f0f2f2] sm:w-auto" />
+              <div className="flex-1">
+                <div className={`h-4 sm:mt-3 ${bar}`} />
+                <div className={`mt-2 h-4 w-3/4 ${bar}`} />
+                <div className={`mt-3 h-7 w-2/5 ${bar}`} />
+              </div>
             </li>
           ))}
         </ul>

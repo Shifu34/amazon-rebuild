@@ -11,7 +11,7 @@ export type Query = {
   max?: number
   rating?: number
   deals: boolean
-  instock: boolean
+  oos: boolean
   sort: SortKey
   page: number
   nfpr: boolean
@@ -41,14 +41,14 @@ export function parseQuery(sp: RawParams): Query {
   const sort = first(sp.sort)
   const page = Number(first(sp.page))
   return {
-    k: first(sp.k).slice(0, 200),
+    k: first(sp.k).slice(0, 200).trim(),
     i: isScope(i) ? i : '',
     brand: [...new Set([sp.brand ?? []].flat().map((b) => b.trim().slice(0, 80)).filter(Boolean))].slice(0, 30),
     min,
     max,
     rating: [1, 2, 3, 4].includes(rating) ? rating : undefined,
     deals: first(sp.deals) === '1',
-    instock: first(sp.instock) === '1',
+    oos: first(sp.oos) === '1',
     sort: SORTS.some((s) => s.key === sort) ? (sort as SortKey) : 'featured',
     page: Number.isInteger(page) && page > 1 ? page : 1,
     nfpr: first(sp.nfpr) === '1',
@@ -66,7 +66,7 @@ export function toHref(q: Query, patch: Partial<Query> = {}) {
   if (n.max !== undefined) sp.set('max', String(n.max))
   if (n.rating) sp.set('rating', String(n.rating))
   if (n.deals) sp.set('deals', '1')
-  if (n.instock) sp.set('instock', '1')
+  if (n.oos) sp.set('oos', '1')
   if (n.sort !== 'featured') sp.set('sort', n.sort)
   if (n.nfpr) sp.set('nfpr', '1')
   if (n.page > 1) sp.set('page', String(n.page))
@@ -82,7 +82,7 @@ export const toSearch = (q: Query, k = q.k): SearchParams => ({
   max: q.max,
   rating: q.rating,
   deals: q.deals,
-  inStock: q.instock,
+  inStock: !q.oos, // like Amazon, out-of-stock items are hidden unless "Include Out of Stock" is on
   sort: q.sort,
   page: q.page,
   perPage: PER_PAGE,
@@ -97,19 +97,22 @@ export function priceLabel(min?: number, max?: number) {
   return max === undefined ? `${dollarLabel(min)} & above` : `${dollarLabel(min)} to ${dollarLabel(max)}`
 }
 
-export type Chip = { label: string; href: string }
+// `without` is the query with this one filter removed
+export type Chip = { label: string; href: string; without: Query }
 
 export function appliedFilters(q: Query): Chip[] {
+  const chip = (label: string, patch: Partial<Query>): Chip => ({ label, href: toHref(q, patch), without: { ...q, page: 1, ...patch } })
   const chips: Chip[] = []
-  if (q.i) chips.push({ label: scopeName(q.i) ?? q.i, href: toHref(q, { i: '' }) })
-  for (const b of q.brand) chips.push({ label: b, href: toHref(q, { brand: q.brand.filter((x) => x !== b) }) })
-  if (q.rating) chips.push({ label: `${q.rating} Stars & Up`, href: toHref(q, { rating: undefined }) })
-  if (q.min !== undefined || q.max !== undefined) chips.push({ label: priceLabel(q.min, q.max), href: toHref(q, { min: undefined, max: undefined }) })
-  if (q.deals) chips.push({ label: "Today's Deals", href: toHref(q, { deals: false }) })
-  if (q.instock) chips.push({ label: 'In stock only', href: toHref(q, { instock: false }) })
+  if (q.i) chips.push(chip(scopeName(q.i) ?? q.i, { i: '' }))
+  for (const b of q.brand) chips.push(chip(b, { brand: q.brand.filter((x) => x !== b) }))
+  if (q.rating) chips.push(chip(`${q.rating} Stars & Up`, { rating: undefined }))
+  if (q.min !== undefined || q.max !== undefined) chips.push(chip(priceLabel(q.min, q.max), { min: undefined, max: undefined }))
+  if (q.deals) chips.push(chip("Today's Deals", { deals: false }))
+  if (q.oos) chips.push(chip('Include Out of Stock', { oos: false }))
   return chips
 }
 
+const CLEARED: Partial<Query> = { i: '', brand: [], min: undefined, max: undefined, rating: undefined, deals: false, oos: false, page: 1 }
+export const withoutFilters = (q: Query): Query => ({ ...q, ...CLEARED })
 // keeps the query and sort
-export const clearFilters = (q: Query) =>
-  toHref(q, { i: '', brand: [], min: undefined, max: undefined, rating: undefined, deals: false, instock: false })
+export const clearFilters = (q: Query) => toHref(q, CLEARED)
