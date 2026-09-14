@@ -18,13 +18,13 @@ assert.equal(toHref(q, { page: 2, sort: 'price-asc' }), '/s?k=phone&brand=Apple&
 assert.deepEqual(appliedFilters(q).map((c) => c.label), ['Apple', '$20 to $80'])
 assert.equal(toHref(parseQuery({})), '/s')
 
-// PKR: bands and typed amounts are rupees, the URL keeps 4-decimal dollars that read back as the same rupees
+// PKR: bands and typed amounts are rupees, the URL keeps 6-decimal dollars that read back as the same rupees and paisa
 const pk = parseQuery({ min: '5000', max: '15000', cur: 'PKR' })
-assert.deepEqual([pk.min, pk.max], [18.046, 54.1379])
+assert.deepEqual([pk.min, pk.max], [18.045981, 54.137943])
 assert.deepEqual(priceRanges('PKR')[1], [pk.min, pk.max], 'a typed band matches the band link')
-assert.equal(toHref(pk), '/s?min=18.046&max=54.1379', 'cur is not kept')
+assert.equal(toHref(pk), '/s?min=18.045981&max=54.137943', 'cur is not kept')
 assert.deepEqual(appliedFilters(pk, 'PKR').map((c) => c.label), ['PKR 5,000 to 15,000'])
-assert.equal(priceLabel(undefined, 25, 'PKR'), 'Up to PKR 6,927', 'a dollar link reads in rupees')
+assert.equal(priceLabel(undefined, 25, 'PKR'), 'Up to PKR 6,926.75', 'a dollar link reads in rupees, to the paisa')
 assert.equal(priceLabel(60000 / 277.07, undefined, 'PKR'), 'PKR 60,000 & above')
 assert.equal(priceLabel(18.046, undefined), '$18.05 & above')
 assert.equal(displayAmount(19.99), '$19.99')

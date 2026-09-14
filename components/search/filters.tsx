@@ -4,7 +4,7 @@ import { Stars } from '@/components/stars'
 import { DEPARTMENTS, categoryName, search, type SearchParams } from '@/lib/catalog'
 import type { CurrencyCode } from '@/lib/region'
 import { LinkPending, PriceForm } from './controls'
-import { departmentOf, displayNumber, priceLabel, priceRanges, toHref, type Query } from './params'
+import { departmentOf, displayNumber, priceBounds, priceLabel, priceRanges, toHref, type Query } from './params'
 
 type Facets = ReturnType<typeof search>['facets']
 type Department = (typeof DEPARTMENTS)[number]
@@ -109,7 +109,7 @@ export function Filters({ q, base, facets, currency }: { q: Query; base: SearchP
   const count = (patch: Partial<SearchParams>) => search({ ...base, ...patch, page: 1, perPage: 1 }).total
   const ratingCounts = [4, 3, 2, 1].map((rating) => count({ rating }))
   const ranges = priceRanges(currency)
-  const priceCounts = ranges.map(([min, max]) => count({ min, max }))
+  const priceCounts = ranges.map(([min, max]) => count(priceBounds(min, max, currency)))
   const dealCount = count({ deals: true })
   const outOfStock = count({ inStock: false }) - count({ inStock: true })
   const hasPrice = q.min !== undefined || q.max !== undefined

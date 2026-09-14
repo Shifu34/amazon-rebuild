@@ -8,9 +8,10 @@ import { Price } from '@/components/price'
 import { useRegion } from '@/components/region-provider'
 import { shippingRates } from '@/lib/delivery'
 import { plural, toCents } from '@/lib/format'
-import { formatMoney } from '@/lib/region'
+import { convertCents, formatMinor } from '@/lib/region'
 
-export type CartTotals = { count: number; subtotalCents: number }
+// subtotalMinor: the display currency's unit prices × quantities (itemsTotal), the subtotal the cart page shows
+export type CartTotals = { count: number; subtotalCents: number; subtotalMinor: number }
 type Item = { id: number; title: string; thumbnail: string; quantity?: number }
 type Pick = { id: number; title: string; thumbnail: string; price: number }
 
@@ -80,7 +81,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
                   aria-label="Progress toward FREE Shipping"
                   className="mb-1.5 block h-2 w-full appearance-none overflow-hidden rounded-full [&::-moz-progress-bar]:bg-success [&::-webkit-progress-bar]:bg-[#e3e6e6] [&::-webkit-progress-value]:bg-success"
                 />
-                Add <b className="whitespace-nowrap text-danger">{formatMoney(toFree, currency, rate)}</b> of eligible items to your order to qualify for FREE Shipping.
+                Add <b className="whitespace-nowrap text-danger">{formatMinor(convertCents(toCents(freeMin), currency, rate) - cart.subtotalMinor, currency)}</b> of eligible items to your order to qualify for FREE Shipping.
               </>
             ) : (
               <p>
@@ -90,7 +91,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
           </div>
         )}
         <p className="mt-3 text-lg">
-          Cart subtotal <span className="text-sm text-muted">({count})</span>: <b className="whitespace-nowrap">{formatMoney(cart.subtotalCents, currency, rate)}</b>
+          Cart subtotal <span className="text-sm text-muted">({count})</span>: <b className="whitespace-nowrap">{formatMinor(cart.subtotalMinor, currency)}</b>
         </p>
         <Link href="/checkout" className="btn btn-cart btn-lg mt-3 w-full">Proceed to checkout ({count})</Link>
         <Link href="/cart" className="btn btn-plain btn-lg mt-2 w-full">Go to Cart</Link>

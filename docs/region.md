@@ -52,7 +52,11 @@ convertCents(usdCents, currency, rate?): number        // minor units (cents/pai
 formatMoney(usdCents, currency = 'USD', rate?): string // "$1,234.56" | "-$6.99" | "PKR 342,059.54"
 formatDollars(usd, currency = 'USD', rate?): string
 moneyParts(usdCents, currency = 'USD', rate?): { prefix, whole, fraction }
-summarize(parts: { label; usdCents; ...extra }[], currency = 'USD', rate?)
+formatMinor(minor, currency): string                   // an amount already in minor units (a summarize() row or total)
+minorParts(minor, currency): { prefix, whole, fraction }
+itemsTotal(items: { priceCents; quantity }[], currency = 'USD', rate?): { usdCents, minor } // converted unit price × quantity
+lineMinor(item, fullCents, usdCents, currency = 'USD', rate?): number // a line's refund (or all of it) adding up with its unit price
+summarize(parts: { label; usdCents; minor?; ...extra }[], currency = 'USD', rate?) // a part's minor (itemsTotal) is used as is
   → { rows: { label, usdCents, ...extra, minor, text }[], total: { usdCents, minor, text } }
 fromDisplayAmount(amount, currency = 'USD'): number   // US dollars, unrounded
 ```
@@ -83,10 +87,10 @@ const c = COUNTRIES[code]; c.regionLabel; c.postalLabel; c.regions.map((r) => <o
 ## Server: `lib/region-server.ts` and `app/actions/region.ts`
 
 ```ts
-getRegion(): Promise<{ currency; country; countryName; rate; guestCountryChoice: CountryCode | null }>
+getRegion(): Promise<{ currency; country; countryName; rate; guestCountryChoice: CountryCode | null; address: { fullName; city; zip } | null }>
 ```
 
-`getRegion` is wrapped in React `cache`, so it runs once per request. It reads cookies, headers and the default address. `guestCountryChoice` is what the location dialog has picked: the `ship_country` cookie, or `'US'` when a ZIP cookie is set, otherwise `null`.
+`getRegion` is wrapped in React `cache`, so it runs once per request. It reads cookies, headers and the default address (returned as `address`, for "Deliver to Ayesha - Lahore 54000"). `guestCountryChoice` is what the location dialog has picked: the `ship_country` cookie, or `'US'` when a ZIP cookie is set, otherwise `null`.
 
 ```tsx
 const { currency, rate, country } = await getRegion()
@@ -96,7 +100,7 @@ const { currency, rate, country } = await getRegion()
 Server Actions. Both validate their input, set a 1-year cookie and call `refresh()`:
 
 - `setCurrency(form)`: field `currency` = `USD` | `PKR`.
-- `setShipCountry(form)`: field `country` = `US` | `PK`. `US` clears `ship_country`, and saves an optional 5-digit `zip` field as the `zip` cookie. When a guest enters a ZIP, send it through this action: if you only write `document.cookie`, a stale `ship_country=PK` still wins.
+- `setShipCountry(form)`: field `country` = `US` | `PK`, saved as `ship_country` (so choosing the US beats a Pakistan IP). For `US` an optional 5-digit `zip` field is saved as the `zip` cookie. When a guest enters a ZIP, send it through this action: if you only write `document.cookie`, a stale `ship_country=PK` still wins.
 
 ```tsx
 <form action={setCurrency}><button name="currency" value="PKR">PKR - Pakistani Rupee</button></form>
@@ -115,6 +119,7 @@ const { currency, rate, country } = useRegion()   // { 'USD', 1, 'US' } outside 
 
 ```tsx
 <Price value={usdDollars} currency?: CurrencyCode rate?: number className? />
+<Price minor={total.minor} currency={currency} />   // an already-converted amount, e.g. a summarize() total
 ```
 
 It renders a small "$" or "PKR" prefix, the whole amount and superscript decimals, plus an sr-only `formatDollars` text. It defaults to USD, and it is not a client component, so it can't read the context itself. Pass the currency and rate from `getRegion()` or `useRegion()`.
@@ -160,12 +165,13 @@ Order.currency: CurrencyCode; Order.fxRate: number; Order.shipTo.country: 'Unite
 - US rules are unchanged.
 - `formatAddress(a)` gives "12 Mall Road, Lahore, Punjab 54000" for Pakistan (the province written out) and "410 Terry Ave N, Seattle, WA 98109" for the US.
 
-## Migration notes for adopters
+## Notes
 
-- `usd`, `usdCents` and `priceParts` in `lib/format.ts` are deprecated. Replace them with `formatDollars`, `formatMoney` and `moneyParts`, passing the currency and rate.
-- The checkout page still calls `quote(lines, speed, now)`, which means US rules. Pass the selected address's country, or the placed order's shipping and tax won't match what the page showed.
-- Callers of `itemRefundCents(i)` still get the US tax share: `app/actions/orders.ts`, `app/actions/demo.ts`, `app/(shop)/orders/[id]/return/page.tsx` and `lib/email-templates.ts`. Pass the order's country.
-- `trackingEvents` shows `City, ST` using the stored region code (`Lahore, PB`).
-- The address form still offers only the United States (it sends `country=United States`). Add Pakistan with `COUNTRIES` there.
+- `lib/format.ts` no longer formats money (`usd`, `usdCents` and `priceParts` are gone): use `formatDollars`, `formatMoney` and `moneyParts` with the currency and rate.
+- Checkout quotes both countries and follows the selected address; `itemRefundCents` callers pass the order's country.
+- `trackingEvents` writes Pakistan scans as an international trip ending in `Lahore, Pakistan`; US scans end in `City, ST`.
+- Order summaries: `orderSummary(order)` in `components/checkout/summary.ts` (checkout, thank-you, emails) and `orderMoney(order, view)` in `components/orders/order-card.tsx` (Your Orders, details, invoice, with cancellations and refunds). Both sum converted components, so they agree. Items are always converted per unit and multiplied (`itemsTotal`, `lineMinor`), so the prices listed × quantities add up to Items / Item(s) Subtotal, email line totals and refund subtotals in PKR.
+- Search price filters (`components/search/params.ts`): the URL keeps 6-decimal US dollars, the chip and boxes show the bound to the paisa, and `toSearch(q, k, currency)` turns it into whole-cent bounds that keep exactly the prices shown inside it.
+- End-to-end Pakistan journey: `node e2e/region.mjs`.
 
 Checks: `npx tsx lib/region.check.ts`

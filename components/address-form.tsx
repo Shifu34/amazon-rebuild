@@ -76,6 +76,7 @@ const PHONE: Record<CountryCode, { placeholder: string; hint: string }> = {
   US: { placeholder: '(206) 555-0100', hint: 'May be used to assist delivery' },
   PK: { placeholder: '0300 1234567', hint: 'Mobile (03XX XXXXXXX or +92 3XX XXXXXXX) or landline. May be used to assist delivery' },
 }
+const COUNTRY_FIELDS = ['phone', 'state', 'zip'] // validated against the country
 
 export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel = address ? 'Save changes' : 'Add address', openInstructions = false, defaultName }: Props) {
   const { state, pending, ref, onSubmit } = useFormAction<AddressState>(async (prev, form) => {
@@ -83,12 +84,16 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
     if (next?.id) onSaved?.(next.id)
     return next
   }, null)
-  const e = state?.errors ?? {}
   // a new address starts in the shopper's delivery country, like Amazon's form
   const region = useRegion()
   const saved = address ? countryCodeFromName(address.country) : null
   const [code, setCode] = useState<CountryCode>(saved ?? region.country)
   const country = COUNTRIES[code]
+  // Switching country outdates the phone, region and postal code errors of the last submit (checked for the old country),
+  // so they and the banner's count go until the next submit; the other fields' errors stay.
+  const [outdated, setOutdated] = useState<AddressState>(null)
+  const errors = state?.errors ?? {}
+  const e: typeof errors = state === outdated ? Object.fromEntries(Object.entries(errors).filter(([k]) => !COUNTRY_FIELDS.includes(k))) : errors
 
   return (
     <form ref={ref} onSubmit={onSubmit} noValidate className="space-y-3.5">
@@ -98,7 +103,10 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
 
       <Field label="Country/Region">
         {(a) => (
-          <select {...a} name="country" className="input" autoComplete="country" value={code} onChange={(ev) => setCode(ev.target.value as CountryCode)}>
+          <select {...a} name="country" className="input" autoComplete="country" value={code} onChange={(ev) => {
+            setCode(ev.target.value as CountryCode)
+            setOutdated(state)
+          }}>
             {Object.values(COUNTRIES).map((c) => (
               <option key={c.code} value={c.code}>{c.name}</option>
             ))}

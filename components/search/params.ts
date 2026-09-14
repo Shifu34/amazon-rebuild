@@ -1,6 +1,6 @@
 // URL state for /s: parse untrusted params into a clean query, and build links that change one thing at a time.
 import { CATEGORY_NAMES, DEPARTMENTS, SORTS, scopeName, type SearchParams, type SortKey } from '@/lib/catalog'
-import { CURRENCIES, fromDisplayAmount, isCurrencyCode, rateFor, type CurrencyCode } from '@/lib/region'
+import { convertCents, CURRENCIES, fromDisplayAmount, isCurrencyCode, rateFor, type CurrencyCode } from '@/lib/region'
 
 export const PER_PAGE = 24
 
@@ -22,8 +22,8 @@ type RawParams = Record<string, string | string[] | undefined>
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? ''
 
-// An amount in `currency` -> US dollars as the URL keeps them. 4 decimals, so a whole-rupee amount reads back as the same rupees.
-export const toUrlDollars = (amount: number, currency: CurrencyCode = 'USD') => Math.round(fromDisplayAmount(amount, currency) * 1e4) / 1e4
+// An amount in `currency` -> US dollars as the URL keeps them. 6 decimals, so an amount typed to the paisa reads back as typed.
+export const toUrlDollars = (amount: number, currency: CurrencyCode = 'USD') => Math.round(fromDisplayAmount(amount, currency) * 1e6) / 1e6
 
 // `cur` is set only by the no-JS price form, which submits the amounts as typed in the shopper's currency
 function dollars(v: string | string[] | undefined, currency: CurrencyCode) {
@@ -80,12 +80,12 @@ export function toHref(q: Query, patch: Partial<Query> = {}) {
   return s ? `/s?${s}` : '/s'
 }
 
-export const toSearch = (q: Query, k = q.k): SearchParams => ({
+// `currency` is the display currency: the price bounds keep exactly the prices shown inside the bounds shown
+export const toSearch = (q: Query, k = q.k, currency: CurrencyCode = 'USD'): SearchParams => ({
   q: k,
   category: q.i || undefined,
   brands: q.brand,
-  min: q.min,
-  max: q.max,
+  ...priceBounds(q.min, q.max, currency),
   rating: q.rating,
   deals: q.deals,
   inStock: !q.oos, // like Amazon, out-of-stock items are hidden unless "Include Out of Stock" is on
@@ -104,9 +104,30 @@ export const PRICE_BANDS: Record<CurrencyCode, Band[]> = {
 export const priceRanges = (currency: CurrencyCode = 'USD') =>
   PRICE_BANDS[currency].map((band) => band.map((n) => (n === undefined ? undefined : toUrlDollars(n, currency))) as Band)
 
-// US dollars -> the amount a filter shows: dollars to the cent, whole rupees
-export const displayNumber = (usd: number, currency: CurrencyCode = 'USD') =>
-  currency === 'USD' ? Math.round(usd * 100) / 100 : Math.round(usd * rateFor(currency))
+// US dollars -> the amount a filter shows, to the cent or paisa (the precision prices are shown in)
+export const displayNumber = (usd: number, currency: CurrencyCode = 'USD') => Math.round(usd * rateFor(currency) * 100) / 100
+
+// A price bound in US dollars -> the whole-cent bound that keeps exactly the prices whose shown amount is inside the bound
+// shown (displayNumber). Prices are whole cents and convertCents only rounds, so `min` is the first cent shown at or above
+// it and `max` the last cent shown at or below it: no product shown at PKR 2,767.93 passes "up to PKR 2,767.92".
+function shownBound(usd: number | undefined, currency: CurrencyCode, side: 'min' | 'max') {
+  if (usd === undefined) return undefined
+  const shown = Math.round(usd * rateFor(currency) * 100)
+  const at = (c: number) => convertCents(c, currency)
+  let c = Math.round(shown / rateFor(currency))
+  if (side === 'min') {
+    while (c > 0 && at(c - 1) >= shown) c--
+    while (at(c) < shown) c++
+  } else {
+    while (at(c + 1) <= shown) c++
+    while (c > 0 && at(c) > shown) c--
+  }
+  return c / 100
+}
+export const priceBounds = (min: number | undefined, max: number | undefined, currency: CurrencyCode = 'USD') => ({
+  min: shownBound(min, currency, 'min'),
+  max: shownBound(max, currency, 'max'),
+})
 
 // "$25", "$19.99", "PKR 5,000"; `prefix` false leaves the currency off
 export function displayAmount(usd: number, currency: CurrencyCode = 'USD', prefix = true) {

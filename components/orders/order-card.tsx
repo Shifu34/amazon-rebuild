@@ -4,8 +4,8 @@ import { CaretIcon, ChevronIcon } from '@/components/icons'
 import { getProduct } from '@/lib/catalog'
 import { formatAddress } from '@/lib/addresses'
 import { fullDate, plural } from '@/lib/format'
-import { itemRefundCents, type Order, type OrderView, type ShipTo, type ViewItem } from '@/lib/orders'
-import { countryCodeFromName, formatMoney, IMPORT_FEES_NOTE, summarize } from '@/lib/region'
+import { itemRefundCents, type Order, type OrderItem, type OrderView, type ShipTo, type ViewItem } from '@/lib/orders'
+import { convertCents, countryCodeFromName, formatMinor, formatMoney, IMPORT_FEES_NOTE, itemsTotal, lineMinor } from '@/lib/region'
 import { BuyAgainButton } from './buy-again-button'
 
 const small = 'btn min-h-[29px] px-3 text-xs'
@@ -68,23 +68,34 @@ function ShipToDisclosure({ shipTo }: { shipTo: ShipTo }) {
   )
 }
 
+// One item's `usdCents` (default: all of it, price and tax share) in the order's currency, adding up with its unit price
+const lineOf = (order: OrderRef, i: OrderItem, usdCents?: number) => {
+  const full = itemRefundCents(i, countryCodeFromName(order.shipTo.country))
+  return lineMinor(i, full, usdCents ?? full, order.currency, order.fxRate)
+}
+
 // An order's amounts, always in the order's own currency and rate (never the shopper's current one). Each component is
-// converted on its own and every total is the sum of converted components, so the Order Summary adds up in that currency.
+// converted on its own (items as unit price × quantity) and every total is the sum of converted components, so the Order
+// Summary adds up in that currency and with the prices listed.
 export function orderMoney(order: Order, view: OrderView) {
   const { currency, fxRate } = order
-  const country = countryCodeFromName(order.shipTo.country)
-  const sum = (cents: number[]) => summarize(cents.map((usdCents) => ({ label: '', usdCents })), currency, fxRate).total.text
-  const parts = [order.itemsCents, order.shippingCents, order.taxCents]
+  const show = (minor: number) => formatMinor(minor, currency)
+  const items = itemsTotal(order.items, currency, fxRate).minor
+  const [shipping, tax] = [order.shippingCents, order.taxCents].map((c) => convertCents(c, currency, fxRate))
   // what came off: the whole order, or each cancelled item's price and tax share (as orderView counts cancelledCents)
-  const cancelled = view.status === 'cancelled' ? parts : view.items.filter((i) => i.cancelledAt).map((i) => itemRefundCents(i, country))
+  const cancelled = view.status === 'cancelled' ? items + shipping + tax : view.items.reduce((s, i) => s + (i.cancelledAt ? lineOf(order, i) : 0), 0)
+  const refunds = (list: OrderItem[]) => list.reduce((s, i) => s + lineOf(order, i, i.refundCents ?? 0), 0)
   return {
-    country,
+    country: countryCodeFromName(order.shipTo.country),
     text: (cents: number) => formatMoney(cents, currency, fxRate),
-    sum,
-    beforeTax: sum(parts.slice(0, 2)),
-    cancelled: sum(cancelled),
-    charged: sum([...parts, ...cancelled.map((c) => -c)]),
-    refunded: sum(view.items.map((i) => (i.refundedAt ? (i.refundCents ?? 0) : 0))),
+    items: show(items),
+    shipping: show(shipping),
+    tax: show(tax),
+    beforeTax: show(items + shipping),
+    cancelled: show(cancelled),
+    charged: show(items + shipping + tax - cancelled),
+    refunded: show(refunds(view.items.filter((i) => i.refundedAt))),
+    refund: (list: OrderItem[]) => show(refunds(list)), // the refunds stored on these items
   }
 }
 
@@ -103,8 +114,8 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
   const m = orderMoney(order, view)
   return (
     <dl className="space-y-0.5">
-      <Row label="Item(s) Subtotal:" value={m.text(order.itemsCents)} />
-      <Row label="Shipping & Handling:" value={m.text(order.shippingCents)} />
+      <Row label="Item(s) Subtotal:" value={m.items} />
+      <Row label="Shipping & Handling:" value={m.shipping} />
       {m.country === 'PK' ? (
         <div>
           <dt className="sr-only">Import fees:</dt>
@@ -113,7 +124,7 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
       ) : (
         <>
           <Row label="Total before tax:" value={m.beforeTax} />
-          <Row label="Estimated tax to be collected:" value={m.text(order.taxCents)} />
+          <Row label="Estimated tax to be collected:" value={m.tax} />
         </>
       )}
       {view.cancelledCents > 0 && <Row label={view.status === 'cancelled' ? 'Cancelled:' : 'Cancelled items:'} value={`−${m.cancelled}`} />}
@@ -123,7 +134,7 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
   )
 }
 
-type OrderRef = Pick<Order, 'id' | 'currency' | 'fxRate'>
+type OrderRef = Pick<Order, 'id' | 'currency' | 'fxRate' | 'shipTo'>
 
 function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
   const s = item.state
@@ -162,7 +173,7 @@ function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
     return (
       <p className="text-xs">
         <span className={`${chip} border-[#0b7b3c] font-bold ${green}`}>
-          {item.refundCents ? `Refund issued: ${formatMoney(item.refundCents, order.currency, order.fxRate)}` : 'Return complete'}
+          {item.refundCents ? `Refund issued: ${formatMinor(lineOf(order, item, item.refundCents), order.currency)}` : 'Return complete'}
         </span>
         {replacement}
       </p>

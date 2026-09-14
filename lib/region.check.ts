@@ -1,12 +1,14 @@
 // Run: npx tsx lib/region.check.ts   (nothing here touches the database)
 import assert from 'node:assert/strict'
+import { summaryRows } from '@/components/checkout/summary'
+import { appliedFilters, displayNumber, parseQuery, toSearch } from '@/components/search/params'
 import { formatAddress, validateAddress } from './addresses'
 import { deliveryPromise, deliveryText } from './delivery'
-import { getProduct } from './catalog'
-import { itemRefundCents, quote, taxRateFor, type OrderLine } from './orders'
+import { getProduct, products, search } from './catalog'
+import { itemRefundCents, quote, taxRateFor, trackingEvents, type Order, type OrderLine } from './orders'
 import {
-  COUNTRIES, convertCents, countryCodeFromName, CURRENCIES, formatDollars, formatMoney, fromDisplayAmount, IMPORT_FEES_NOTE, moneyParts,
-  rateFor, summarize, USD_TO_PKR,
+  COUNTRIES, convertCents, countryCodeFromName, CURRENCIES, formatDollars, formatMinor, formatMoney, fromDisplayAmount, IMPORT_FEES_NOTE,
+  itemsTotal, lineMinor, minorParts, moneyParts, rateFor, summarize, USD_TO_PKR,
 } from './region'
 
 // rates and conversion
@@ -35,6 +37,9 @@ assert.equal(formatDollars(19.99), '$19.99')
 assert.equal(formatDollars(1234.5, 'USD'), (1234.5).toLocaleString('en-US', { style: 'currency', currency: 'USD' }), 'same as the old usd()')
 assert.deepEqual(moneyParts(10066, 'PKR'), { prefix: 'PKR', whole: '27,889', fraction: '87' })
 assert.deepEqual(moneyParts(123456), { prefix: '$', whole: '1,234', fraction: '56' })
+assert.equal(formatMinor(2788964, 'PKR'), 'PKR 27,889.64', 'already-converted paisa are not converted again')
+assert.equal(formatMinor(-699, 'USD'), '-$6.99')
+assert.deepEqual(minorParts(2788964, 'PKR'), { prefix: 'PKR', whole: '27,889', fraction: '64' })
 
 // summaries add up in the shown currency
 const parts = [
@@ -149,5 +154,55 @@ assert.deepEqual([usExp.shippingCents, usExp.freeShippingCents, usExp.taxCents],
 assert.equal(quote([lines[1]], 'standard', MON, 'US').freeShippingCents, 0, 'under $35 pays shipping')
 assert.deepEqual([taxRateFor('US'), taxRateFor('PK')], [0.0825, 0])
 assert.deepEqual([itemRefundCents({ priceCents: 1000, quantity: 2 }), itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK')], [2165, 2000])
+
+// tracking: Pakistan orders read as an international trip to "City, Pakistan"; US orders keep "City, ST"
+const shipped = (country: string, state: string): Order => ({
+  id: '113-1234567-1234567', currency: 'USD', fxRate: 1, deliverySpeed: 'standard', itemsCents: 0, shippingCents: 0, taxCents: 0, totalCents: 0,
+  shipTo: { fullName: 'A', phone: '', line1: '', line2: '', city: 'Lahore', state, zip: '54000', country, instructions: '' },
+  payment: { brand: 'Visa', last4: '4242', nameOnCard: 'A' }, placedAt: new Date(MON.getTime() - 20 * 86_400_000), deliverBy: new Date(MON.getTime() - 86_400_000),
+  cancelledAt: null, replacementFor: null, items: [],
+})
+const pkScans = trackingEvents(shipped('Pakistan', 'PB'), MON)
+assert.deepEqual([pkScans[0].place, pkScans.map((e) => e.label).includes('Departed the US for Pakistan')], ['Lahore, Pakistan', true])
+assert.equal(pkScans.find((e) => e.label.startsWith('Cleared customs'))?.place, 'Lahore, Pakistan')
+const usScans = trackingEvents(shipped('United States', 'WA'), MON)
+assert.deepEqual([usScans[0].place, usScans.map((e) => e.label).includes('Shipped')], ['Lahore, WA', true])
+
+// line items add up in PKR: unit prices shown × quantities are the Items row (cart, checkout, invoice, emails) and refunds
+const lemon = { priceCents: 79, quantity: 2 } // Lemon, PKR 218.89 each
+assert.equal(formatMinor(itemsTotal([lemon], 'PKR').minor, 'PKR'), 'PKR 437.78', '2 × 218.89, not $1.58 converted (437.77)')
+assert.deepEqual(itemsTotal([lemon, { priceCents: 99, quantity: 1 }], 'USD'), { usdCents: 257, minor: 257 })
+const rolex = { priceCents: 1599999, quantity: 30 } // PKR 4,433,117.23 each
+assert.equal(formatMinor(itemsTotal([rolex], 'PKR').minor, 'PKR'), 'PKR 132,993,516.90')
+const lemonWater = summaryRows({ items: [{ priceCents: 79, quantity: 1 }, { priceCents: 99, quantity: 1 }], shippingCents: 1499, freeShippingCents: 0, taxCents: null }, 'PKR')
+assert.deepEqual([lemonWater.rows.map((r) => `${r.label} ${r.text}`), lemonWater.total], [['Items (2): PKR 493.19', 'Shipping & handling: PKR 4,153.28'], 'PKR 4,646.47'])
+assert.equal(summarize([{ label: 'items', usdCents: 158, minor: 43778 }], 'PKR').total.text, 'PKR 437.78', 'a part’s minor is used as is')
+// a line's refund: all of it (cancel), less a return fee, or nothing left once the fee took it all
+assert.equal(lineMinor(rolex, 47999970, 47999970, 'PKR'), 13299351690)
+assert.equal(lineMinor(rolex, 47999970, 47999970 - 699, 'PKR'), 13299351690 - convertCents(699, 'PKR'), 'the fee row is exactly PKR 1,936.72')
+assert.equal(lineMinor(lemon, 158, 0, 'PKR'), 0)
+const usLemon = itemRefundCents(lemon) // 158 + 13 tax
+assert.equal(lineMinor(lemon, usLemon, usLemon, 'PKR'), 43778 + convertCents(13, 'PKR'))
+assert.equal(lineMinor(lemon, usLemon, usLemon - 50, 'USD'), usLemon - 50, 'USD is the stored cents')
+
+// typed rupee price filters keep exactly the products whose shown price is inside the bound shown ($9.99 shows PKR 2,767.93)
+const typed = parseQuery({ i: 'beauty-personal-care', min: '2767.5', max: '5000', cur: 'PKR' })
+assert.deepEqual(appliedFilters(typed, 'PKR').map((c) => c.label), ['Beauty & Personal Care', 'PKR 2,767.50 to 5,000'])
+assert.deepEqual([displayNumber(typed.min!, 'PKR'), displayNumber(typed.max!, 'PKR')], [2767.5, 5000], 'the boxes read back as typed')
+const shownPaisa = (usd: number) => convertCents(Math.round(usd * 100), 'PKR')
+const inStock = products.filter((p) => p.stock > 0)
+const filtered = (min?: number, max?: number) => {
+  const q = parseQuery({ min: min === undefined ? undefined : String(min), max: max === undefined ? undefined : String(max), cur: 'PKR' })
+  const got = search({ ...toSearch(q, '', 'PKR'), perPage: 1 }).total
+  const want = inStock.filter((p) => (min === undefined || shownPaisa(p.price) >= Math.round(min * 100)) && (max === undefined || shownPaisa(p.price) <= Math.round(max * 100))).length
+  assert.equal(got, want, `PKR ${min} to ${max}: ${got} results, ${want} shown inside`)
+}
+for (const paisa of new Set(inStock.map((p) => shownPaisa(p.price)))) {
+  const pkr = paisa / 100
+  filtered(pkr, pkr) // a bound equal to the shown price keeps it
+  filtered(undefined, Math.round(paisa - 1) / 100) // a paisa under excludes it
+  filtered(Math.round(paisa + 1) / 100)
+  filtered(Math.round(paisa - 50) / 100, Math.round(paisa + 49.5) / 100) // half-rupee decimals
+}
 
 console.log('region ok')

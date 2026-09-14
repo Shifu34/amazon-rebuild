@@ -25,7 +25,7 @@ export type Country = {
   regionLabel: string
   regions: Region[]
   postalLabel: string
-  flag: string // emoji; components/icons.tsx has an SVG FlagUS for places where emoji flags don't render
+  flag: string // emoji; components/icons.tsx has SVG FlagUS and FlagPK for places where emoji flags don't render
 }
 
 export const COUNTRIES: Record<CountryCode, Country> = {
@@ -91,35 +91,52 @@ export function convertCents(usdCents: number, currency: CurrencyCode, rate = ra
   return usdCents < 0 ? -minor : minor
 }
 
-const partsOf = (minor: number, currency: CurrencyCode) => ({
+// minor units already in `currency` (a converted amount, such as a summarize() row or total) → { prefix, whole, fraction }
+export const minorParts = (minor: number, currency: CurrencyCode) => ({
   prefix: CURRENCIES[currency].prefix,
   whole: `${minor < 0 ? '-' : ''}${Math.floor(Math.abs(minor) / 100).toLocaleString('en-US')}`,
   fraction: String(Math.abs(minor) % 100).padStart(2, '0'),
 })
 
 // minor units already in `currency` → "$1,234.56" | "-$6.99" | "PKR 342,011.25"
-function show(minor: number, currency: CurrencyCode) {
-  const { prefix, whole, fraction } = partsOf(Math.abs(minor), currency)
+export function formatMinor(minor: number, currency: CurrencyCode) {
+  const { prefix, whole, fraction } = minorParts(Math.abs(minor), currency)
   return `${minor < 0 ? '-' : ''}${prefix}${prefix.length > 1 ? ' ' : ''}${whole}.${fraction}`
 }
 
-export const formatMoney = (usdCents: number, currency: CurrencyCode = 'USD', rate?: number) => show(convertCents(usdCents, currency, rate), currency)
+export const formatMoney = (usdCents: number, currency: CurrencyCode = 'USD', rate?: number) => formatMinor(convertCents(usdCents, currency, rate), currency)
 
 export const formatDollars = (usd: number, currency: CurrencyCode = 'USD', rate?: number) => formatMoney(toCents(usd), currency, rate)
 
 // for <Price>: { prefix: 'PKR', whole: '27,889', fraction: '64' }
-export const moneyParts = (usdCents: number, currency: CurrencyCode = 'USD', rate?: number) => partsOf(convertCents(usdCents, currency, rate), currency)
+export const moneyParts = (usdCents: number, currency: CurrencyCode = 'USD', rate?: number) => minorParts(convertCents(usdCents, currency, rate), currency)
+
+// Line items (unit price in US cents × quantity) → { usdCents, minor }. Each unit price is converted, then multiplied, so
+// the prices shown × quantities add up to the row (converting the whole sum can be a paisa off). Spread into a summarize() part.
+export type Units = { priceCents: number; quantity: number }
+export const itemsTotal = (items: Units[], currency: CurrencyCode = 'USD', rate?: number) => ({
+  usdCents: items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0),
+  minor: items.reduce((sum, i) => sum + convertCents(i.priceCents, currency, rate) * i.quantity, 0),
+})
+
+// `usdCents` of one line out of `fullCents` (its price × quantity plus tax: itemRefundCents) in minor units that add up with
+// the prices shown: the converted unit price × quantity, plus the converted tax, less the converted part held back (a return
+// fee). A cancelled line passes fullCents twice. Nothing refunded stays 0; USD gives usdCents back.
+export function lineMinor(i: Units, fullCents: number, usdCents: number, currency: CurrencyCode = 'USD', rate?: number) {
+  if (!usdCents) return 0
+  return itemsTotal([i], currency, rate).minor + convertCents(fullCents - i.priceCents * i.quantity, currency, rate) - convertCents(fullCents - usdCents, currency, rate)
+}
 
 // Order summaries: each component converted on its own, the total is the sum of the converted rows (so the column adds
 // up in the shown currency). Pass components only (items, shipping, -free shipping, tax, -refund), never subtotals:
-// a subtotal is summarize() of its subset. Extra fields on the parts are kept on the rows.
-export function summarize<T extends { label: string; usdCents: number }>(parts: T[], currency: CurrencyCode = 'USD', rate?: number) {
+// a subtotal is summarize() of its subset. A part's `minor` (from itemsTotal) is used as is. Extra fields are kept on the rows.
+export function summarize<T extends { label: string; usdCents: number; minor?: number }>(parts: T[], currency: CurrencyCode = 'USD', rate?: number) {
   const rows = parts.map((p) => {
-    const minor = convertCents(p.usdCents, currency, rate)
-    return { ...p, minor, text: show(minor, currency) }
+    const minor = p.minor ?? convertCents(p.usdCents, currency, rate)
+    return { ...p, minor, text: formatMinor(minor, currency) }
   })
   const minor = rows.reduce((sum, r) => sum + r.minor, 0)
-  return { rows, total: { usdCents: parts.reduce((sum, p) => sum + p.usdCents, 0), minor, text: show(minor, currency) } }
+  return { rows, total: { usdCents: parts.reduce((sum, p) => sum + p.usdCents, 0), minor, text: formatMinor(minor, currency) } }
 }
 
 // an amount typed in the display currency (price filters) → US dollars, unrounded so comparisons stay exact

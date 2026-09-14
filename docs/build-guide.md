@@ -36,7 +36,7 @@ Read this, `docs/product-map.md` (the spec) and `docs/next16-notes.md` (Next.js 
 | `app/api/suggest/route.ts` | Search autocomplete JSON |
 | `components/header.tsx` | Nav bar, deliver-to, search with suggestions (`search-bar.tsx`), account flyout, orders, cart count; sub-nav with All drawer (`nav-drawer.tsx`) |
 | `components/footer.tsx`, `components/icons.tsx` | Footer; Logo (`tone="dark"` on white), Cart/Pin/Search/Menu/Close/User/Caret/Chevron icons |
-| `components/price.tsx` | `<Price value={dollars} />`, the Amazon-style superscript price; size from parent font-size |
+| `components/price.tsx` | `<Price value={dollars} currency={currency} rate={rate} />`, the Amazon-style superscript price; size from parent font-size |
 | `components/stars.tsx` | `<Stars rating={4.3} className="h-4" />` partial stars with aria-label |
 | `components/product-card.tsx` | `ProductCard` (search/grid card with an action slot as children), `Badge`, `DeliveryLine` |
 | `components/add-to-cart-button.tsx` | Compact add-to-cart for cards/carousels |
@@ -47,7 +47,8 @@ Read this, `docs/product-map.md` (the spec) and `docs/next16-notes.md` (Next.js 
 | `lib/auth.ts` | `getUser()` (cached per request), `requireUser(returnTo)`, `cartOwner(create?)`, `safeReturnTo`, `startSession`, `endSession` |
 | `lib/cart.ts` | `getCart()` lines `{product, quantity, savedForLater, addedAt}`, `cartCount()`, `cartSummary()` → `{lines, count, subtotalCents}`, `MAX_QTY` |
 | `lib/delivery.ts` | `FREE_SHIPPING_MIN` ($35), `STANDARD_SHIPPING`, `EXPEDITED_SHIPPING`, `shipDays(p)`, `addBusinessDays`, `standardDelivery(p)`, `fastestDelivery(p)`, `relativeDay(date)` |
-| `lib/format.ts` | `usd`, `usdCents`, `toCents`, `priceParts`, `compactCount`, `plural`, `longDate`, `shortDate`, `fullDate` (UTC) |
+| `lib/format.ts` | `toCents`, `compactCount`, `plural`, `longDate`, `shortDate`, `fullDate` (UTC). Money formatting lives in `lib/region.ts` |
+| `lib/region.ts`, `lib/region-server.ts` | USD/PKR and US/Pakistan: `formatMoney`, `formatDollars`, `summarize`, `COUNTRIES`, `getRegion()`. Read `docs/region.md` |
 | `app/globals.css` | Tailwind 4 tokens: `bg-nav`, `bg-nav-light`, `bg-nav-lighter`, `bg-page`, `text-ink`, `text-muted`, `border-line`, `text-link`/`hover:text-link-hover`, `bg-cart`, `bg-buy`, `text-deal`/`bg-deal`, `text-star`, `text-success`, `text-danger`, `ring-focus`, `bg-brand`. Classes: `.link`, `.btn` + `.btn-cart` (yellow) / `.btn-buy` (orange) / `.btn-plain`, `.btn-lg`, `.input` (+ `aria-invalid`), `.select-pill`, `.label`, `.field-error`, `.nav-item` |
 
 Images: plain `<img>` with `{/* eslint-disable-next-line @next/next/no-img-element */}`, `loading="lazy"` below the fold, `object-contain` + `mix-blend-multiply` on the light grey `#f7f7f7` tile.

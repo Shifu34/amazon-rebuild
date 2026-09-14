@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { deliveryName } from '@/components/checkout/summary'
 import { AddressLines, orderMoney, OrderTotals } from '@/components/orders/order-card'
 import { PrintButton } from '@/components/orders/print-button'
 import { requireUser } from '@/lib/auth'
@@ -23,7 +24,8 @@ export default async function InvoicePage({ params }: Props) {
   const view = orderView(order)
   const m = orderMoney(order, view)
   const back = `/orders/${order.id}`
-  const speed = order.deliverySpeed === 'expedited' ? 'Expedited' : order.shippingCents ? 'Standard' : 'FREE Standard'
+  // the same name checkout, the thank-you page and emails use; only US shipping is ever free
+  const speed = `${order.deliverySpeed === 'standard' && !order.shippingCents && m.country === 'US' ? 'FREE ' : ''}${deliveryName(order.deliverySpeed, m.country)}`
   const shipment = view.status === 'cancelled' ? 'Cancelled' : view.step >= 1 ? `Shipped on ${fullDate(view.shippedAt)}` : 'Not Yet Shipped'
 
   return (

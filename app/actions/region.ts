@@ -15,18 +15,14 @@ export async function setCurrency(form: FormData) {
   refresh()
 }
 
-// Guest location dialog. Field `country`: US | PK. US clears the choice (the ZIP cookie and IP fallbacks apply again) and
-// saves an optional 5-digit `zip` field as the ZIP cookie.
+// Guest location dialog. Field `country`: US | PK, kept as the choice (so a US pick beats a Pakistan IP), and for US an
+// optional 5-digit `zip` field saved as the ZIP cookie.
 export async function setShipCountry(form: FormData) {
   const country = form.get('country')
   if (!isCountryCode(country)) return
   const jar = await cookies()
-  if (country === 'US') {
-    jar.delete('ship_country')
-    const zip = String(form.get('zip') ?? '').trim()
-    if (/^\d{5}$/.test(zip)) jar.set('zip', zip, YEAR)
-  } else {
-    jar.set('ship_country', country, YEAR)
-  }
+  jar.set('ship_country', country, YEAR)
+  const zip = String(form.get('zip') ?? '').trim()
+  if (country === 'US' && /^\d{5}$/.test(zip)) jar.set('zip', zip, YEAR)
   refresh()
 }

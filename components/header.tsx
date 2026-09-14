@@ -5,7 +5,6 @@ import { signOut } from '@/app/actions/auth'
 import { getUser } from '@/lib/auth'
 import { cartCount } from '@/lib/cart'
 import { CATEGORY_NAMES, DEPARTMENTS } from '@/lib/catalog'
-import { one } from '@/lib/db'
 import { getRegion } from '@/lib/region-server'
 import { CartIcon, Logo, PinIcon } from './icons'
 import { LocaleMenu } from './locale-menu'
@@ -15,15 +14,10 @@ import { SearchBar } from './search-bar'
 const departments = DEPARTMENTS.map((d) => ({ ...d, categories: d.categories.map((slug) => ({ slug, name: CATEGORY_NAMES[slug] })) }))
 
 // the same order as getRegion(): the default address, then the guest's choice (Pakistan or a US ZIP), then the IP
-async function deliverTo(userId: string | undefined): Promise<{ label: string; place: string; zip?: string; fromAddress?: boolean }> {
-  if (userId) {
-    const a = await one<{ full_name: string; city: string; zip: string }>(
-      'select full_name, city, zip from addresses where user_id = $1 order by is_default desc, created_at desc limit 1',
-      [userId],
-    )
-    if (a) return { label: `Deliver to ${a.full_name.split(' ')[0]}`, place: `${a.city} ${a.zip}`, fromAddress: true }
-  }
+async function deliverTo(): Promise<{ label: string; place: string; zip?: string; fromAddress?: boolean }> {
   const [region, jar, h] = await Promise.all([getRegion(), cookies(), headers()])
+  const a = region.address
+  if (a) return { label: `Deliver to ${a.fullName.split(' ')[0]}`, place: `${a.city} ${a.zip}`, fromAddress: true }
   const zip = /^\d{5}$/.exec(jar.get('zip')?.value ?? '')?.[0]
   if (region.country !== 'US') return { label: 'Deliver to', place: region.countryName, zip }
   if (zip) return { label: 'Delivering to', place: zip, zip }
@@ -41,7 +35,7 @@ const line2 = 'block text-sm leading-[15px] font-bold whitespace-nowrap'
 
 export async function Header() {
   const user = await getUser()
-  const [count, location] = await Promise.all([cartCount(), deliverTo(user?.id)])
+  const [count, location] = await Promise.all([cartCount(), deliverTo()])
   const firstName = user ? user.name.split(' ')[0] : null
   const account = user ? { hasAddress: Boolean(location.fromAddress) } : null
   // signed in: the address book; guests: a dialog to sign in or enter a ZIP

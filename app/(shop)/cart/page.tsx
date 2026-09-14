@@ -13,7 +13,7 @@ import { deliveryPromise, relativeDay, shippingRates } from '@/lib/delivery'
 import { plural, toCents } from '@/lib/format'
 import { getHistory } from '@/lib/history'
 import { cartLines, quote } from '@/lib/orders'
-import { COUNTRIES, formatDollars, formatMoney, summarize } from '@/lib/region'
+import { COUNTRIES, formatDollars, formatMinor, itemsTotal, summarize } from '@/lib/region'
 import { getRegion, type RequestRegion } from '@/lib/region-server'
 
 export const metadata: Metadata = { title: 'Shopping Cart' }
@@ -25,9 +25,11 @@ export default async function CartPage() {
   const saved = lines.filter((l) => l.savedForLater)
   const unavailable = active.filter((l) => l.product.stock <= 0)
   const { itemCount, itemsCents } = quote(buyable, 'standard', undefined, country)
+  // unit prices as shown × quantities, so the lines add up to the subtotal in PKR too
+  const items = itemsTotal(buyable.map((l) => ({ priceCents: toCents(l.product.price), quantity: l.quantity })), currency, rate)
   const subtotal = (
     <>
-      Subtotal ({plural(itemCount, 'item')}): <b className="whitespace-nowrap">{formatMoney(itemsCents, currency, rate)}</b>
+      Subtotal ({plural(itemCount, 'item')}): <b className="whitespace-nowrap">{formatMinor(items.minor, currency)}</b>
     </>
   )
   const inCart = new Set(lines.map((l) => l.product.id))
@@ -35,7 +37,7 @@ export default async function CartPage() {
   // null: this country never ships free (Pakistan). The amount left is the converted threshold minus the converted subtotal,
   // so it adds up with the subtotal shown
   const freeMin = shippingRates(country).freeMin
-  const toFree = freeMin === null ? null : summarize([{ label: 'free', usdCents: toCents(freeMin) }, { label: 'subtotal', usdCents: -itemsCents }], currency, rate).total
+  const toFree = freeMin === null ? null : summarize([{ label: 'free', usdCents: toCents(freeMin) }, { label: 'subtotal', usdCents: -itemsCents, minor: -items.minor }], currency, rate).total
   // an empty cart fills its rail with what the shopper looked at recently, like Amazon
   const viewed = user && !active.length ? (await getHistory(user.id, 12)).map((h) => h.product).filter((p) => p.stock > 0 && !inCart.has(p.id)).slice(0, 4) : []
 

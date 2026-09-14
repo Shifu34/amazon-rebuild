@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState } from 'react'
 import { startReturn, type OrderFormState } from '@/app/actions/orders'
-import { convertCents, formatMoney, summarize, type CountryCode, type CurrencyCode } from '@/lib/region'
+import { convertCents, formatMinor, formatMoney, itemsTotal, lineMinor, type CountryCode, type CurrencyCode } from '@/lib/region'
 import { COMMENT_MAX, PROBLEM_REASONS, RETURN_METHODS, RETURN_REASONS, returnFeeCents, type ReturnMethod } from './rules'
 
 export type ReturnItem = {
@@ -72,21 +72,21 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
   const subtotal = chosen.reduce((s, i) => s + i.priceCents * i.quantity, 0)
   const tax = chosen.reduce((s, i) => s + i.refundCents - i.priceCents * i.quantity, 0)
   const fee = Math.min(subtotal + tax, returnFeeCents(reason, method, replace))
-  // The total is what startReturn stores: each item's refund less its share of the fee, converted item by item (Order
-  // Details sums issued refunds the same way). The tax and fee rows are converted as they are; the subtotal row takes
-  // the rounding, so the column adds up in the shown currency. USD never rounds.
+  // The total is what startReturn stores: each item's refund less its share of the fee, converted item by item as
+  // lineMinor (Order Details sums issued refunds the same way). The subtotal row is the unit prices shown × quantities and
+  // the tax row the converted tax shares; the fee row is what the refunds leave, so the column adds up. USD never rounds.
   let left = fee
   const refunds = replace ? [] : chosen.map((i) => {
     const kept = Math.min(left, i.refundCents)
     left -= kept
     return i.refundCents - kept
   })
-  const sum = (cents: number[]) => summarize(cents.map((usdCents) => ({ label: '', usdCents })), currency, rate).total
   const money = (cents: number) => formatMoney(cents, currency, rate)
-  const minorText = (minor: number) => formatMoney(minor, currency, 1) // already in the currency's minor units
-  const total = sum(refunds)
-  const taxMinor = sum(chosen.map((i) => i.refundCents - i.priceCents * i.quantity)).minor
-  const feeMinor = convertCents(fee, currency, rate)
+  const minorText = (minor: number) => formatMinor(minor, currency)
+  const totalMinor = refunds.reduce((s, r, idx) => s + lineMinor(chosen[idx], chosen[idx].refundCents, r, currency, rate), 0)
+  const subtotalMinor = itemsTotal(chosen, currency, rate).minor
+  const taxMinor = chosen.reduce((s, i) => s + convertCents(i.refundCents - i.priceCents * i.quantity, currency, rate), 0)
+  const feeMinor = subtotalMinor + taxMinor - totalMinor
 
   // the error sits under the field that failed; the field gets aria-invalid and points at it
   const errorFor = (field: Invalid['field']) =>
@@ -242,14 +242,14 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
             <Row label="Replacement order" value={money(0)} />
           ) : (
             <>
-              <Row label="Refund subtotal" value={minorText(total.minor + feeMinor - taxMinor)} />
+              <Row label="Refund subtotal" value={minorText(subtotalMinor)} />
               {country === 'US' && <Row label="Tax refund" value={minorText(taxMinor)} />}
               <Row label="Return shipping" value={fee ? `−${minorText(feeMinor)}` : money(0)} />
             </>
           )}
           <div className="flex justify-between gap-2 border-t border-line pt-2 text-base font-bold">
             <dt>Total estimated refund</dt>
-            <dd className="whitespace-nowrap">{total.text}</dd>
+            <dd className="whitespace-nowrap">{minorText(totalMinor)}</dd>
           </div>
         </dl>
         {!chosen.length && <p className="mt-2 text-xs text-muted">Select an item to see your refund.</p>}
@@ -263,7 +263,7 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
 
       <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-white px-4 py-3 shadow-[0_-1px_2px_rgba(15,17,17,0.08)] lg:hidden">
         <p className="text-sm">
-          Estimated refund <b className="block text-base whitespace-nowrap">{total.text}</b>
+          Estimated refund <b className="block text-base whitespace-nowrap">{minorText(totalMinor)}</b>
         </p>
         {confirm('')}
       </div>

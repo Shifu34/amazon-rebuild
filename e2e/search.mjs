@@ -142,7 +142,7 @@ try {
   assert.equal(await page.locator('main').getByText(/FREE delivery|\$/).count(), 0, 'no dollars and no free delivery to Pakistan')
   const filters = page.getByRole('complementary', { name: 'Filters' })
   await filters.getByRole('link', { name: /^Up to PKR 5,000/ }).click()
-  await page.waitForURL(/max=18\.046$/)
+  await page.waitForURL(/max=18\.045981$/)
   await page.getByRole('link', { name: 'Remove filter: Up to PKR 5,000' }).waitFor()
   assert.ok((await prices()).every((x) => x <= 5000), 'band keeps prices under PKR 5,000')
   await filters.getByLabel('Minimum price, in Pakistani Rupees').fill('5000')

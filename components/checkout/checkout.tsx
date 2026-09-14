@@ -9,7 +9,7 @@ import { AddressForm } from '@/components/address-form'
 import { CardForm } from '@/components/card-form'
 import { useRegion } from '@/components/region-provider'
 import type { Address } from '@/lib/addresses'
-import { longDate, plural } from '@/lib/format'
+import { longDate, plural, toCents } from '@/lib/format'
 import type { Quote, Speed } from '@/lib/orders'
 import type { Card } from '@/lib/payments'
 import { countryCodeFromName, formatDollars, formatMoney, type CountryCode } from '@/lib/region'
@@ -85,7 +85,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
   // before an address is saved, quote for the shopper's delivery country
   const country = address ? countryCodeFromName(address.country) : regionCountry
   const q = quotes[country][speed]
-  const summary = summaryRows({ ...q, taxCents: q.taxLabel ? q.taxCents : null }, currency, rate)
+  const summary = summaryRows({ ...q, items: lines.map((l) => ({ priceCents: toCents(l.price), quantity: l.quantity })), taxCents: q.taxLabel ? q.taxCents : null }, currency, rate)
   const groups = shipments(lines, (l) => l.arrives[country][speed])
   const blocker = !address ? 'Add a delivery address to continue.' : !card ? 'Add a payment method to continue.' : null
   const error = editError || state?.error

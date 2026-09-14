@@ -18,12 +18,11 @@ import { Stars } from '@/components/stars'
 import { getUser } from '@/lib/auth'
 import { cartSummary, MAX_QTY } from '@/lib/cart'
 import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, isDeal, popularity, products, related, type Product } from '@/lib/catalog'
-import { one } from '@/lib/db'
 import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
-import { compactCount, fullDate, longDate, plural } from '@/lib/format'
+import { compactCount, fullDate, longDate, plural, toCents } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
-import { formatDollars, IMPORT_FEES_NOTE } from '@/lib/region'
+import { formatDollars, IMPORT_FEES_NOTE, itemsTotal } from '@/lib/region'
 import { getRegion } from '@/lib/region-server'
 import { productReviews, sortReviews } from '@/lib/reviews'
 
@@ -95,11 +94,8 @@ export default async function ProductPage({ params }: Props) {
   if (!p) notFound()
 
   const user = await getUser()
-  const [cart, address, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName }, jar] = await Promise.all([
+  const [cart, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName, address }, jar] = await Promise.all([
     cartSummary(),
-    user
-      ? one<{ full_name: string; city: string; zip: string }>('select full_name, city, zip from addresses where user_id = $1 order by is_default desc, created_at desc limit 1', [user.id])
-      : undefined,
     user ? getLists(user.id) : [],
     productReviews(p, user?.id),
     user ? getHistory(user.id, 21) : [],
@@ -116,7 +112,7 @@ export default async function ProductPage({ params }: Props) {
   const { label, note } = deliveryText(promise, currency, rate)
   const zip = jar.get('zip')?.value
   const deliverTo = address
-    ? `Deliver to ${address.full_name.split(' ')[0]} - ${address.city} ${address.zip}`
+    ? `Deliver to ${address.fullName.split(' ')[0]} - ${address.city} ${address.zip}`
     : `Deliver to ${country === 'US' && zip && /^\d{5}$/.test(zip) ? zip : countryName}`
   const pin = (
     <>
@@ -130,7 +126,11 @@ export default async function ProductPage({ params }: Props) {
     </>
   )
   const returnDays = Number(p.returnPolicy.match(/\d+/)?.[0] ?? 0)
-  const cartTotals = { count: cart.count, subtotalCents: cart.subtotalCents }
+  const cartTotals = {
+    count: cart.count,
+    subtotalCents: cart.subtotalCents,
+    subtotalMinor: itemsTotal(cart.lines.map((l) => ({ priceCents: toCents(l.product.price), quantity: l.quantity })), currency, rate).minor,
+  }
   const inCart = cart.lines.find((l) => l.product.id === p.id)?.quantity ?? 0
   const rank = inCategory(p.category).sort((a, b) => b.boughtPastMonth - a.boughtPastMonth || b.ratingCount - a.ratingCount).findIndex((x) => x.id === p.id) + 1
   const pairs = inStock ? boughtTogether(p) : []

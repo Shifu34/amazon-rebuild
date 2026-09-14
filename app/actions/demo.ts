@@ -13,6 +13,7 @@ import {
   buyNowLine, cancelOrderItems, createOrder, createReturn, getOrder, itemRefundCents, newReturnCode, orderStatus, type Order, type OrderLine, type Speed,
 } from '@/lib/orders'
 import { getCard } from '@/lib/payments'
+import { countryCodeFromName } from '@/lib/region'
 
 export type DemoState = { error: string } | null
 
@@ -101,7 +102,7 @@ async function createDemoShopper(email: string) {
     {
       key: 'return-started', items: [[6, 1]], placedAt: at(t - 9 * DAY), deliverBy: at(t - 6 * DAY),
       then: (o) => createReturn({
-        userId, orderId: o.id, items: o.items.map((i) => ({ productId: i.productId, refundCents: itemRefundCents(i) })), // drop-off returns are free
+        userId, orderId: o.id, items: o.items.map((i) => ({ productId: i.productId, refundCents: itemRefundCents(i, countryCodeFromName(o.shipTo.country)) })), // drop-off returns are free
         reason: RETURN_REASONS[0], comment: '', method: 'ups-store', replacement: null, code: newReturnCode(),
       }),
     },

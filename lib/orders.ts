@@ -314,7 +314,6 @@ export function pathWithQuery(path: string, sp: Record<string, string | string[]
 // pass countryCodeFromName(order.shipTo.country))
 export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>, country: CountryCode = 'US') =>
   i.priceCents * i.quantity + Math.round(i.priceCents * i.quantity * taxRateFor(country))
-
 const monthDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
 
 function arrivingDay(d: Date, now: Date) {
@@ -370,19 +369,21 @@ export const trackingId = (orderId: string) => `NL${orderId.replace(/\D/g, '').s
 export type TrackingEvent = { at: Date; label: string; place: string }
 const ORIGIN = 'Reno, NV'
 
-// simulated carrier scans along the same timeline as orderStatus, newest first, only those that have happened
+// simulated carrier scans along the same timeline as orderStatus, newest first, only those that have happened.
+// Pakistan orders read as an international trip ending in "Lahore, Pakistan"; US ones end in "Seattle, WA".
 export function trackingEvents(o: Order, now = new Date()): TrackingEvent[] {
   const s = orderStatus(o, now)
-  const dest = `${o.shipTo.city}, ${o.shipTo.state}`
+  const intl = countryCodeFromName(o.shipTo.country) === 'PK'
+  const dest = `${o.shipTo.city}, ${intl ? o.shipTo.country : o.shipTo.state}`
   const between = (a: Date, b: Date) => new Date((a.getTime() + b.getTime()) / 2)
   const events: TrackingEvent[] = o.cancelledAt
     ? [{ at: o.placedAt, label: 'Order received', place: '' }, { at: o.cancelledAt, label: 'Order cancelled', place: '' }]
     : [
         { at: o.placedAt, label: 'Order received', place: '' },
         { at: between(o.placedAt, s.shippedAt), label: 'Shipping label created, package is being prepared', place: ORIGIN },
-        { at: s.shippedAt, label: 'Shipped', place: ORIGIN },
-        { at: between(s.shippedAt, s.outForDeliveryAt), label: 'Package arrived at a carrier facility', place: dest },
-        { at: s.outForDeliveryAt, label: 'Out for delivery', place: dest },
+        { at: s.shippedAt, label: intl ? 'Departed the US for Pakistan' : 'Shipped', place: ORIGIN },
+        { at: between(s.shippedAt, s.outForDeliveryAt), label: intl ? 'Cleared customs, arrived at a carrier facility in Pakistan' : 'Package arrived at a carrier facility', place: dest },
+        { at: s.outForDeliveryAt, label: intl ? 'Out for delivery with the local carrier' : 'Out for delivery', place: dest },
         { at: s.deliveredAt, label: 'Delivered', place: dest },
       ]
   return events.filter((e) => e.at.getTime() <= now.getTime()).reverse()

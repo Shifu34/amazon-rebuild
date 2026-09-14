@@ -31,7 +31,7 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
   const first = items[0]
   const done = first.state.kind === 'returned'
   const pickup = first.returnMethod === 'ups-pickup'
-  const refund = orderMoney(order, view).sum(items.map((i) => i.refundCents ?? 0)) // in the order's currency
+  const refund = orderMoney(order, view).refund(items) // in the order's currency
   const payment = `${order.payment.brand} ending in ${order.payment.last4}`
   const startedAt = first.returnedAt ?? new Date()
 

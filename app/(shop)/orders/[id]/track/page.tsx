@@ -15,13 +15,6 @@ type Props = { params: Promise<{ id: string }> }
 const time = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
 const stamp = (d: Date) => `${shortDate(d)}, ${time(d)}`
 
-// trackingEvents reads like a US domestic trip; Pakistan orders get the international legs, ending in the city in Pakistan
-const INTL_LABELS: Record<string, string> = {
-  Shipped: 'Departed the US for Pakistan',
-  'Package arrived at a carrier facility': 'Cleared customs, arrived at a carrier facility in Pakistan',
-  'Out for delivery': 'Out for delivery with the local carrier',
-}
-
 export default async function TrackPage({ params }: Props) {
   const { id } = await params
   const user = await requireUser(`/orders/${encodeURIComponent(id)}/track`)
@@ -42,10 +35,7 @@ export default async function TrackPage({ params }: Props) {
   }
 
   const intl = countryCodeFromName(order.shipTo.country) === 'PK'
-  const local = `${order.shipTo.city}, ${order.shipTo.state}`
-  const events = trackingEvents(order, now).map((e) =>
-    intl ? { ...e, label: INTL_LABELS[e.label] ?? e.label, place: e.place === local ? `${order.shipTo.city}, Pakistan` : e.place } : e,
-  )
+  const events = trackingEvents(order, now)
   const days = new Map<string, TrackingEvent[]>()
   for (const e of events) days.set(longDate(e.at), [...(days.get(longDate(e.at)) ?? []), e])
   const notes = [

@@ -22,8 +22,6 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
   const chosen = items.filter((_, i) => checked[i])
   // the sum of the prices as listed, so the total adds up in PKR too
   const { total } = summarize(chosen.map((p) => ({ label: p.title, usdCents: toCents(p.price) })), currency, rate)
-  // <Price> converts US dollars itself: this rate makes it render exactly total.minor
-  const totalRate = total.usdCents ? total.minor / total.usdCents : rate
   const label = chosen.length === 3 ? 'Add all 3 to Cart' : chosen.length === 2 ? 'Add both to Cart' : chosen.length > 3 ? `Add all ${chosen.length} to Cart` : 'Add to Cart'
 
   return (
@@ -44,7 +42,7 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
 
         <div className="lg:order-last lg:w-56">
           <p className="text-base">
-            Total price: <span className="text-xl font-bold"><Price value={total.usdCents / 100} currency={currency} rate={totalRate} /></span>
+            Total price: <span className="text-xl font-bold"><Price minor={total.minor} currency={currency} /></span>
           </p>
           <span className="sr-only" aria-live="polite">Total price {total.text} for {chosen.length} items</span>
           <button ref={submit} type="submit" disabled={pending || !chosen.length} className="btn btn-cart mt-2 w-full">

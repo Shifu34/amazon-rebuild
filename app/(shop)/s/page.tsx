@@ -12,6 +12,7 @@ import { SortSelect } from '@/components/search/sort-select'
 import { correctSpelling } from '@/components/search/spelling'
 import { cartQuantities } from '@/lib/cart'
 import { DEPARTMENTS, SORTS, bestSellers, scopeName, search } from '@/lib/catalog'
+import type { CurrencyCode } from '@/lib/region'
 import { getRegion } from '@/lib/region-server'
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> }
@@ -28,14 +29,14 @@ const plural = (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'result'
 
 export default async function SearchPage({ searchParams }: Props) {
   const q = parseQuery(await searchParams)
+  const { currency } = await getRegion()
   let k = q.k
-  let r = search(toSearch(q))
+  let r = search(toSearch(q, k, currency))
   const fix = !r.total && q.k && !q.nfpr ? correctSpelling(q.k) : null
-  const fixed = fix ? search(toSearch(q, fix)) : null
+  const fixed = fix ? search(toSearch(q, fix, currency)) : null
   if (fix && fixed?.total) [k, r] = [fix, fixed]
 
-  const base = toSearch(q, k)
-  const { currency } = await getRegion()
+  const base = toSearch(q, k, currency)
   const chips = appliedFilters(q, currency)
   const showFilters = r.total > 0 || chips.length > 0
   const dept = q.i ? departmentOf(q.i) : undefined
@@ -136,7 +137,7 @@ export default async function SearchPage({ searchParams }: Props) {
               <Pagination q={q} page={r.page} pages={r.pages} />
             </>
           ) : (
-            <NoResults q={q} k={fix ?? q.k} chips={chips} />
+            <NoResults q={q} k={fix ?? q.k} chips={chips} currency={currency} />
           )}
         </div>
       </div>
@@ -223,8 +224,8 @@ function Pagination({ q, page, pages }: { q: Query; page: number; pages: number 
 }
 
 // `k` is the query after any spelling fix
-function NoResults({ q, k, chips }: { q: Query; k: string; chips: Chip[] }) {
-  const count = (x: Query) => search({ ...toSearch(x, k), perPage: 1 }).total
+function NoResults({ q, k, chips, currency }: { q: Query; k: string; chips: Chip[]; currency: CurrencyCode }) {
+  const count = (x: Query) => search({ ...toSearch(x, k, currency), perPage: 1 }).total
   // when the query has results and only the filters emptied the page, blame the filters and offer one-click ways back
   const all = chips.length ? count(withoutFilters(q)) : 0
   const ways = all ? chips.map((c) => ({ ...c, n: count(c.without) })).filter((c) => c.n > 0).sort((a, b) => b.n - a.n) : []

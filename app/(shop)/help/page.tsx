@@ -3,11 +3,15 @@ import Link from 'next/link'
 import { ChevronIcon } from '@/components/icons'
 import { PK_EXPEDITED_SHIPPING, PK_STANDARD_SHIPPING } from '@/lib/delivery'
 import { formatDollars, formatMoney, IMPORT_FEES_NOTE } from '@/lib/region'
+import { getRegion } from '@/lib/region-server'
 
 export const metadata: Metadata = { title: 'Customer Service' }
 
-// a fee in both currencies, so the answer reads the same whichever one is shown
-const both = (usd: number) => `${formatDollars(usd)} (${formatDollars(usd, 'PKR')})`
+// a fee in the shopper's display currency, like every other price on the site
+async function Fee({ usd }: { usd: number }) {
+  const { currency } = await getRegion()
+  return formatDollars(usd, currency)
+}
 
 // Every tile opens a real page; the account pages send signed-out visitors through sign-in and back.
 const TILES: { href: string; title: string; text: string; icon: string }[] = [
@@ -56,8 +60,8 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
       <>
         Yes. Add a Pakistani address in <Link href="/account/addresses" className="link underline">Your Addresses</Link> and make it your default,
         or, without signing in, choose <b>Deliver to</b> at the top of the page and pick Pakistan under &quot;or ship outside the US&quot;. Standard
-        delivery to Pakistan arrives about 8 business days later than in the US for a flat {both(PK_STANDARD_SHIPPING)}, and Expedited about 4
-        business days later than US Expedited for {both(PK_EXPEDITED_SHIPPING)}. There is no free shipping and no US sales tax on these
+        delivery to Pakistan arrives about 8 business days later than in the US for a flat <Fee usd={PK_STANDARD_SHIPPING} />, and Expedited about 4
+        business days later than US Expedited for <Fee usd={PK_EXPEDITED_SHIPPING} />. There is no free shipping and no US sales tax on these
         orders. {IMPORT_FEES_NOTE} Prices show in rupees while you deliver to Pakistan; to switch between PKR and US dollars, open the <b>EN</b> menu
         (on a phone, the menu under <b>All</b>). Rupee prices use a fixed rate of 1 USD = {formatMoney(100, 'PKR')}, and every order keeps the
         currency it was placed in.
