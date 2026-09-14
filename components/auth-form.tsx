@@ -39,17 +39,18 @@ function Flow({ returnTo, start, email: initialEmail, restart }: Props & { email
     startTransition(() => action(data))
   }
 
+  // keys: the fields swap places between steps, and an unkeyed swap would reuse the email <input> (and its value) for the name
   const emailField = emailEditable ? (
-    <Field label="Email" name="email" type="email" autoComplete="email" inputMode="email" defaultValue={email} error={errors.email} autoFocus={step === 'email'} />
+    <Field key="email" label="Email" name="email" type="email" autoComplete="email" inputMode="email" defaultValue={email} error={errors.email} autoFocus={step === 'email'} />
   ) : (
-    <p className="text-sm">
+    <p key="email" className="text-sm">
       <input type="hidden" name="email" value={email} />
       <span className="break-all">{email}</span>{' '}
       <button type="button" onClick={() => restart(email)} className="link cursor-pointer">Change</button>
     </p>
   )
   const nameField = step === 'create' && (
-    <Field label="Your name" name="name" autoComplete="name" placeholder="First and last name" defaultValue={state.name} error={errors.name} autoFocus />
+    <Field key="name" label="Your name" name="name" autoComplete="name" placeholder="First and last name" defaultValue={state.name} error={errors.name} autoFocus />
   )
 
   return (

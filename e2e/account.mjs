@@ -55,6 +55,7 @@ try {
   await page.goto(`${base}/ap/signin?return_to=%2Faccount`)
   await page.getByLabel('Email').fill(email)
   await page.getByRole('button', { name: 'Continue' }).click()
+  assert.equal(await page.getByLabel('Your name').inputValue(), '', '"Your name" starts empty, not with the email')
   await page.getByLabel('Your name').fill('Ann Account')
   await page.getByLabel('Password', { exact: true }).fill('secret123')
   await page.getByLabel('Re-enter password').fill('secret123')
@@ -108,15 +109,22 @@ try {
   await page.getByText(newEmail).waitFor()
   email = newEmail
 
-  step('sign out, old password fails, new password signs in')
+  step('sign out, old password fails, new password signs in; a return_to with a newline or tab stays on site')
   await page.goto(`${base}/account`)
   await page.getByRole('button', { name: 'Sign Out' }).click()
   await page.waitForURL(`${base}/`)
-  await page.goto(`${base}/ap/signin?return_to=%2Faccount`)
+  await page.goto(`${base}/ap/signin?return_to=%2F%0A%2Fevil.com`)
+  assert.equal(await page.locator('input[name="return_to"]').inputValue(), '/')
   await signIn(page, email, 'secret123')
   await page.getByText('Your password is incorrect.').waitFor()
   await page.getByLabel('Password', { exact: true }).fill('newsecret1')
   await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.waitForURL(`${base}/`)
+  for (const rt of ['%2F%09%2Fevil.com', '%2F%09%09%2Fevil.com', '%2F%0D%2Fevil.com', '%2F%5Cevil.com', '%2F%2Fevil.com']) {
+    const res = await page.request.get(`${base}/ap/signin?return_to=${rt}`, { maxRedirects: 0 })
+    assert.equal(res.headers().location, '/', `signed-in return_to=${rt} redirects home`)
+  }
+  await page.goto(`${base}/account`)
   await page.getByRole('heading', { level: 1, name: 'Your Account' }).waitFor()
 
   step('addresses: validation, add two, set the second as default, Deliver to follows')

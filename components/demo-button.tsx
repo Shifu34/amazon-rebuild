@@ -20,7 +20,7 @@ export function DemoButton({ token }: { token: string }) {
       <p id="demo-note" className="mt-1.5 text-center text-xs text-muted">
         Creates a fresh sample shopper with orders in every state, a saved address and test card, and a Shopping List.
       </p>
-      {state?.error && <p role="alert" className="field-error">{state.error}</p>}
+      {state?.error && !pending && <p role="alert" className="field-error">{state.error}</p>}
     </form>
   )
 }

@@ -34,13 +34,23 @@ try {
   }
   await page.getByText('Hello, Demo').first().waitFor()
 
-  step('another browser on the same network within a minute is asked to wait')
+  step('another browser on the same network within a minute is asked to wait; a retry hides the old message while pending')
   const other = await browser.newContext()
   const second = await other.newPage()
+  const waitAlert = second.getByRole('alert').filter({ hasText: 'Please wait a minute and try again.' })
   await second.goto(`${base}/ap/signin`)
   await second.getByRole('button', { name: 'Explore with a demo account' }).click()
-  await second.getByRole('alert').filter({ hasText: 'Please wait a minute and try again.' }).waitFor()
+  await waitAlert.waitFor()
   assert.equal(new URL(second.url()).pathname, '/ap/signin')
+  // hold the retry's POST for 2s so the pending state can be inspected; it is still rate limited, so no second shopper
+  await second.route(`${base}/ap/signin`, async (r) => {
+    if (r.request().method() === 'POST') await new Promise((res) => setTimeout(res, 2000))
+    await r.continue()
+  })
+  await second.getByRole('button', { name: 'Explore with a demo account' }).click()
+  await second.getByRole('button', { name: 'Setting up your demo account…' }).waitFor()
+  assert.equal(await waitAlert.count(), 0, 'old wait message hidden while the retry is pending')
+  await waitAlert.waitFor()
   await other.close()
 
   step('Your Orders has an order in every state')

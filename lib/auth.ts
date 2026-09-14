@@ -28,10 +28,11 @@ export async function verifyPassword(password: string, stored: string) {
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
 
-// same-site paths only, so return_to can't become an open redirect
+// same-site paths only, so return_to can't become an open redirect. Parsing the way browsers do (tabs and newlines dropped,
+// backslash as slash) catches "/\t/evil.com"; the result is re-serialized, so it's always a valid Location header.
 export const safeReturnTo = (v: unknown) => {
-  const s = typeof v === 'string' ? v : ''
-  return s.startsWith('/') && !s.startsWith('//') && !s.startsWith('/\\') ? s : '/'
+  const url = typeof v === 'string' && v.startsWith('/') ? URL.parse(v, 'http://n') : null
+  return url?.origin === 'http://n' ? url.pathname + url.search + url.hash : '/'
 }
 
 export const getUser = cache(async (): Promise<User | null> => {
