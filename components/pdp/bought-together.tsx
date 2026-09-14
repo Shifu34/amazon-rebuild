@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Fragment, useActionState, useState } from 'react'
+import { Fragment, useActionState, useRef, useState } from 'react'
 import { addBundle, type BundleState } from '@/app/actions/bundle'
 import { Price } from '@/components/price'
 import { usd, usdCents } from '@/lib/format'
@@ -14,6 +14,7 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
   const [checked, setChecked] = useState(() => items.map(() => true))
   const [state, action, pending] = useActionState<BundleState, FormData>(addBundle, null)
   const [dismissed, setDismissed] = useState<BundleState>(null)
+  const submit = useRef<HTMLButtonElement>(null)
 
   const chosen = items.filter((_, i) => checked[i])
   const totalCents = chosen.reduce((sum, p) => sum + Math.round(p.price * 100), 0)
@@ -40,7 +41,7 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
             Total price: <span className="text-xl font-bold"><Price value={totalCents / 100} /></span>
           </p>
           <span className="sr-only" aria-live="polite">Total price {usdCents(totalCents)} for {chosen.length} items</span>
-          <button type="submit" disabled={pending || !chosen.length} className="btn btn-cart mt-2 w-full">
+          <button ref={submit} type="submit" disabled={pending || !chosen.length} className="btn btn-cart mt-2 w-full">
             {pending ? 'Adding…' : label}
           </button>
           {state && !state.ok && <p role="alert" className="field-error">{state.error}</p>}
@@ -68,7 +69,10 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
       </form>
       <AddedSheet
         open={!!state?.ok && dismissed !== state}
-        onClose={() => setDismissed(state)}
+        onClose={() => {
+          setDismissed(state)
+          submit.current?.focus() // the button was disabled while adding, so the dialog has nothing to hand focus back to
+        }}
         items={state?.ok ? items.filter((p) => state.ids.includes(p.id)) : []}
         cart={cart}
       />

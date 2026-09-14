@@ -90,7 +90,7 @@ try {
   step('Add to List: default list, duplicate, validation, new list')
   await page.getByRole('button', { name: 'Add to List' }).click()
   await page.getByText('Added to Shopping List').waitFor()
-  assert.equal(await page.getByRole('link', { name: 'View your list' }).getAttribute('href'), '/lists')
+  assert.match(await page.getByRole('link', { name: 'View your list' }).getAttribute('href'), /^\/lists\/[0-9a-f-]{36}$/)
   await page.getByRole('button', { name: 'Add to List' }).click()
   await page.getByText('Already in Shopping List').waitFor()
   await page.getByRole('button', { name: 'Choose a list' }).click()

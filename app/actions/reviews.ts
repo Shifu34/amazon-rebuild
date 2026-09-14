@@ -3,13 +3,11 @@
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/auth'
 import { getProduct } from '@/lib/catalog'
-import { saveReview as save, voteHelpful } from '@/lib/reviews'
+import { saveReview as save, reviewFeedback } from '@/lib/reviews'
 
 export type ReviewErrors = { rating?: string; headline?: string; body?: string; form?: string }
 export type ReviewState = { ok: boolean; errors?: ReviewErrors }
-export type HelpfulState = { ok: true } | { ok: false; error: string } | null
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export type FeedbackState = { ok: true } | { ok: false; error: string } | null
 
 export async function saveReview(_prev: ReviewState, form: FormData): Promise<ReviewState> {
   const p = getProduct(Number(form.get('productId')))
@@ -32,11 +30,11 @@ export async function saveReview(_prev: ReviewState, form: FormData): Promise<Re
   return { ok: true }
 }
 
-export async function markHelpful(_prev: HelpfulState, form: FormData): Promise<HelpfulState> {
-  const reviewId = String(form.get('reviewId') ?? '')
+// Fields: reviewId (uuid or seed-{productId}-{index}), kind (helpful | report).
+export async function sendReviewFeedback(_prev: FeedbackState, form: FormData): Promise<FeedbackState> {
+  const kind = form.get('kind') === 'report' ? 'report' : 'helpful'
   const user = await getUser()
-  if (!user) return { ok: false, error: 'Sign in to vote on reviews.' }
-  if (!UUID.test(reviewId)) return { ok: false, error: 'Sorry, we failed to record your vote. Please try again.' }
-  await voteHelpful(user.id, reviewId)
-  return { ok: true }
+  if (!user) return { ok: false, error: kind === 'report' ? 'Sign in to report reviews.' : 'Sign in to vote on reviews.' }
+  const saved = await reviewFeedback(user.id, String(form.get('reviewId') ?? ''), kind)
+  return saved ? { ok: true } : { ok: false, error: 'Sorry, we failed to record your feedback. Please try again.' }
 }

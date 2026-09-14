@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { saveReview, type ReviewState } from '@/app/actions/reviews'
 import { CheckCircle } from './added-sheet'
 
@@ -26,6 +26,14 @@ export function ReviewForm({ productId, existing }: { productId: number; existin
   const [headline, setHeadline] = useState(existing?.headline ?? '')
   const [body, setBody] = useState(existing?.body ?? '')
   const errors = state.errors ?? {}
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // A failed submit moves focus to the first field with an error; the disabled Submit button would otherwise drop it on <body>.
+  useEffect(() => {
+    const e = state.errors
+    const first = e?.rating ? 'rating' : e?.headline ? 'headline' : e?.body ? 'body' : null
+    if (first) formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
+  }, [state])
 
   if (state.ok) {
     return (
@@ -44,7 +52,7 @@ export function ReviewForm({ productId, existing }: { productId: number; existin
 
   const shown = hover || rating
   return (
-    <form action={action} noValidate className="space-y-6">
+    <form ref={formRef} action={action} noValidate className="space-y-6">
       <input type="hidden" name="productId" value={productId} />
       {errors.form && <p role="alert" className="field-error">{errors.form}</p>}
 
@@ -52,7 +60,7 @@ export function ReviewForm({ productId, existing }: { productId: number; existin
         <legend className="text-lg font-bold">Overall rating</legend>
         <div className="mt-2 flex items-center gap-1" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (
-            <label key={n} onMouseEnter={() => setHover(n)} className="cursor-pointer rounded p-0.5 has-[:focus-visible]:shadow-[0_0_0_3px_#c8f3fa,0_0_0_1px_#007185]">
+            <label key={n} onMouseEnter={() => setHover(n)} className="cursor-pointer rounded p-0.5 has-[:focus-visible]:bg-[#e6f6f8] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus">
               <input type="radio" name="rating" value={n} checked={rating === n} onChange={() => setRating(n)} aria-label={n === 1 ? '1 star' : `${n} stars`} className="sr-only" />
               <svg viewBox="0 0 24 24" className="size-9" aria-hidden>
                 <path d={STAR} strokeWidth="1.3" strokeLinejoin="round" className={n <= shown ? 'fill-[#ffa41c] stroke-star' : 'fill-white stroke-[#949494]'} />

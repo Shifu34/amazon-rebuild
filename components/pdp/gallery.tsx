@@ -3,11 +3,14 @@
 import { useRef, useState } from 'react'
 import { ChevronIcon, CloseIcon } from '@/components/icons'
 
-// Desktop: thumbnail strip (hover or focus swaps) + main image with a mouse-follow zoom; click opens the viewer.
+const ZOOM = 2.5
+const LENS = 1 / ZOOM // lens side as a fraction of the main image tile
+
+// Desktop: thumbnail strip (hover or focus swaps) + main image; hovering draws a lens and a zoom pane over the center column; click opens the viewer.
 // Mobile: a swipeable scroll-snap strip with dots; tap opens the viewer.
 export function Gallery({ images, title }: { images: string[]; title: string }) {
   const [index, setIndex] = useState(0)
-  const [lens, setLens] = useState<string | null>(null) // transform-origin while the mouse is over the main image
+  const [lens, setLens] = useState<{ x: number; y: number } | null>(null) // lens top-left as fractions of the tile, while the mouse is over it
   const [zoomed, setZoomed] = useState<string | null>(null) // transform-origin when zoomed in the viewer
   const dialog = useRef<HTMLDialogElement>(null)
   const n = images.length
@@ -50,25 +53,42 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
             ))}
           </ul>
         )}
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
           <button
             type="button"
             onClick={() => openViewer(index)}
-            onPointerMove={(e) => e.pointerType === 'mouse' && setLens(origin(e))}
+            onPointerMove={(e) => {
+              if (e.pointerType !== 'mouse') return
+              const r = e.currentTarget.getBoundingClientRect()
+              const at = (v: number) => Math.min(1 - LENS, Math.max(0, v - LENS / 2))
+              setLens({ x: at((e.clientX - r.left) / r.width), y: at((e.clientY - r.top) / r.height) })
+            }}
             onPointerLeave={() => setLens(null)}
             aria-label="Open full-screen image viewer"
-            className="flex aspect-square max-h-[560px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-sm bg-[#f7f7f7] focus-visible:outline-2 focus-visible:outline-focus"
+            className="relative flex aspect-square max-h-[560px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-sm bg-[#f7f7f7] focus-visible:outline-2 focus-visible:outline-focus"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={images[index]}
-              alt={title}
-              fetchPriority="high"
-              className="max-h-full max-w-full object-contain mix-blend-multiply"
-              style={lens ? { transform: 'scale(2.2)', transformOrigin: lens } : undefined}
-            />
+            <img src={images[index]} alt={title} fetchPriority="high" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+            {lens && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute border border-[#6f7373] bg-white/40"
+                style={{ left: `${lens.x * 100}%`, top: `${lens.y * 100}%`, width: `${LENS * 100}%`, height: `${LENS * 100}%` }}
+              />
+            )}
           </button>
           <p className="mt-2 text-center text-xs text-muted">Roll over image to zoom in · Click to see full view</p>
+          {lens && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute top-0 left-full z-30 ml-8 aspect-square w-full border border-line bg-[#f7f7f7] bg-no-repeat bg-blend-multiply shadow-[0_0_14px_rgba(15,17,17,0.35)]"
+              style={{
+                backgroundImage: `url("${images[index]}")`,
+                backgroundSize: `${ZOOM * 100}%`,
+                backgroundPosition: `${(lens.x / (1 - LENS)) * 100}% ${(lens.y / (1 - LENS)) * 100}%`,
+              }}
+            />
+          )}
         </div>
       </div>
 

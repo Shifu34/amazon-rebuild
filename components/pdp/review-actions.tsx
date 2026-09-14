@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { markHelpful, type HelpfulState } from '@/app/actions/reviews'
+import { sendReviewFeedback, type FeedbackState } from '@/app/actions/reviews'
 
 export function ReadMore({ text }: { text: string }) {
   const [open, setOpen] = useState(false)
@@ -18,13 +18,18 @@ export function ReadMore({ text }: { text: string }) {
   )
 }
 
-export function HelpfulButton({ reviewId }: { reviewId: string }) {
-  const [state, action, pending] = useActionState<HelpfulState, FormData>(markHelpful, null)
-  if (state?.ok) return <p role="status" className="text-success">✓ Thank you for your feedback.</p>
+// "Helpful" pill or "Report" link on a review card (signed in).
+export function FeedbackButton({ reviewId, kind }: { reviewId: string; kind: 'helpful' | 'report' }) {
+  const [state, action, pending] = useActionState<FeedbackState, FormData>(sendReviewFeedback, null)
+  const helpful = kind === 'helpful'
+  if (state?.ok) return <p role="status" className={helpful ? 'text-success' : ''}>{helpful ? '✓ Thank you for your feedback.' : 'Reported. Thanks for letting us know.'}</p>
   return (
     <form action={action}>
       <input type="hidden" name="reviewId" value={reviewId} />
-      <button type="submit" disabled={pending} className="btn btn-plain">Helpful</button>
+      <input type="hidden" name="kind" value={kind} />
+      <button type="submit" disabled={pending} className={helpful ? 'btn btn-plain px-5' : 'cursor-pointer rounded hover:text-link-hover hover:underline disabled:opacity-55'}>
+        {helpful ? 'Helpful' : 'Report'}
+      </button>
       {state && !state.ok && <p role="alert" className="field-error">{state.error}</p>}
     </form>
   )

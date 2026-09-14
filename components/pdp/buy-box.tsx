@@ -1,51 +1,91 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useState } from 'react'
-import { addToCart, type AddToCartState } from '@/app/actions/cart'
+import { useActionState, useRef, useState } from 'react'
+import { addToCart } from '@/app/actions/cart'
 import { CaretIcon } from '@/components/icons'
 import { AddedSheet, type CartTotals } from './added-sheet'
 
-type Props = { product: { id: number; title: string; thumbnail: string }; max: number; signedIn: boolean; inCart: number; cart: CartTotals }
+type Item = { id: number; title: string; thumbnail: string; price: number }
+type Props = { product: Item; max: number; stock: number; signedIn: boolean; inCart: number; cart: CartTotals; picks: Item[] }
+type State = { ok: true; added: number; requested: number } | { ok: false; error: string } | null
 
 // Quantity, Add to Cart (opens the side sheet) and Buy Now for an in-stock product.
-export function PurchaseControls({ product, max, signedIn, inCart, cart }: Props) {
+// Once the cart holds the most that can be bought, Add to Cart gives way to Go to Cart instead of a silent no-op.
+export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, picks }: Props) {
   const [qty, setQty] = useState(1)
-  const [state, action, pending] = useActionState<AddToCartState, FormData>(addToCart, null)
-  const [dismissed, setDismissed] = useState<AddToCartState>(null)
+  const addButton = useRef<HTMLButtonElement>(null)
+  const cartLink = useRef<HTMLAnchorElement>(null)
+  const [dismissed, setDismissed] = useState<State>(null)
+  const limit = max === stock ? `only ${max} available` : `limit ${max} per customer`
+  const [state, action, pending] = useActionState<State, FormData>(async (_prev, form) => {
+    const result = await addToCart(null, form)
+    if (!result?.ok) return result
+    // addToCart clamps to the stock/quantity cap, so compare with what the cart held when the form was rendered
+    const added = result.inCart - Number(form.get('inCart'))
+    if (added <= 0) return { ok: false, error: `You already have ${result.inCart} in your cart (${limit}).` }
+    return { ok: true, added, requested: Number(form.get('quantity')) }
+  }, null)
 
-  const checkout = `/checkout?buy=${product.id}&qty=${qty}`
+  const room = max - inCart
+  const quantity = Math.max(1, Math.min(qty, room))
+  const checkout = `/checkout?buy=${product.id}&qty=${quantity}`
   const buyNow = signedIn ? checkout : `/ap/signin?return_to=${encodeURIComponent(checkout)}`
+  const close = () => {
+    setDismissed(state)
+    ;(addButton.current ?? cartLink.current)?.focus()
+  }
 
   return (
-    <form action={action} className="space-y-2.5">
-      <input type="hidden" name="productId" value={product.id} />
-      <div className="select-pill relative inline-flex items-center gap-1 pr-2 has-[:focus-visible]:border-focus has-[:focus-visible]:shadow-[0_0_0_3px_#c8f3fa]">
-        <span aria-hidden>Quantity:</span>
-        <select
-          name="quantity"
-          aria-label="Quantity"
-          value={qty}
-          onChange={(e) => setQty(Number(e.target.value))}
-          className="cursor-pointer appearance-none bg-transparent pr-3 outline-none"
-        >
-          {Array.from({ length: max }, (_, i) => (
-            <option key={i + 1} value={i + 1}>{i + 1}</option>
-          ))}
-        </select>
-        <CaretIcon className="pointer-events-none absolute right-2 h-1.5 w-2 text-muted" />
-      </div>
-      <button type="submit" disabled={pending} className="btn btn-cart btn-lg w-full">
-        {pending ? 'Adding…' : 'Add to Cart'}
-      </button>
-      <Link href={buyNow} className="btn btn-buy btn-lg w-full">Buy Now</Link>
-      {state && !state.ok && <p role="alert" className="field-error">{state.error}</p>}
-      {inCart > 0 && (
-        <p className="text-[13px] text-success">
-          {inCart} in your <Link href="/cart" className="link">cart</Link>
-        </p>
-      )}
-      <AddedSheet open={!!state?.ok && dismissed !== state} onClose={() => setDismissed(state)} items={[product]} cart={cart} />
-    </form>
+    <>
+      <form action={action} className="space-y-2.5">
+        <input type="hidden" name="productId" value={product.id} />
+        <input type="hidden" name="inCart" value={inCart} />
+        {room > 0 ? (
+          <>
+            <div className="select-pill relative inline-flex items-center gap-1 pr-2 has-[:focus-visible]:border-focus has-[:focus-visible]:shadow-[0_0_0_3px_#c8f3fa]">
+              <span aria-hidden>Quantity:</span>
+              <select
+                name="quantity"
+                aria-label="Quantity"
+                value={quantity}
+                onChange={(e) => setQty(Number(e.target.value))}
+                className="cursor-pointer appearance-none bg-transparent pr-3 outline-none"
+              >
+                {Array.from({ length: room }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                ))}
+              </select>
+              <CaretIcon className="pointer-events-none absolute right-2 h-1.5 w-2 text-muted" />
+            </div>
+            <button ref={addButton} type="submit" disabled={pending} className="btn btn-cart btn-lg w-full">
+              {pending ? 'Adding…' : 'Add to Cart'}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm">
+              <b className="text-success">{inCart} in your cart</b> <span className="text-muted">({limit})</span>
+            </p>
+            <Link ref={cartLink} href="/cart" className="btn btn-cart btn-lg w-full">Go to Cart</Link>
+          </>
+        )}
+        <Link href={buyNow} className="btn btn-buy btn-lg w-full">Buy Now</Link>
+        {state && !state.ok && <p role="alert" className="field-error">{state.error}</p>}
+        {inCart > 0 && room > 0 && (
+          <p className="text-[13px] text-success">
+            {inCart} in your <Link href="/cart" className="link">cart</Link>
+          </p>
+        )}
+      </form>
+      <AddedSheet
+        open={!!state?.ok && dismissed !== state}
+        onClose={close}
+        items={[{ ...product, quantity: state?.ok ? state.added : 1 }]}
+        note={state?.ok && state.added < state.requested ? `Only ${state.added} added: that's the most you can buy (${limit}).` : undefined}
+        cart={cart}
+        picks={picks}
+      />
+    </>
   )
 }

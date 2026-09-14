@@ -56,7 +56,8 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
 
   return (
     <div className="mx-auto max-w-[1300px] px-4 py-6">
-      <div className="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
+      {/* Phones read summary, reviews, then the write prompt; on desktop the prompt sits under the histogram. */}
+      <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
         <aside className="space-y-6">
           <Link href={`/dp/${p.id}`} className="group flex items-center gap-3">
             <span className="flex size-20 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1.5">
@@ -72,12 +73,9 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
             <h1 className="mb-2 text-2xl">Customer reviews</h1>
             <RatingBreakdown summary={summary} productId={p.id} activeStar={star} />
           </div>
-          <div className="border-t border-line pt-6">
-            <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
-          </div>
         </aside>
 
-        <div className="min-w-0">
+        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <ReviewFilters
             productId={p.id}
             star={star}
@@ -124,6 +122,10 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
               {page < pages ? <Link href={href(page + 1)} className="btn btn-plain">Next page →</Link> : <span aria-disabled="true" className="btn btn-plain opacity-50">Next page →</span>}
             </nav>
           )}
+        </div>
+
+        <div className="border-t border-line pt-6 lg:col-start-1 lg:row-start-2 lg:self-start">
+          <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
         </div>
       </div>
     </div>

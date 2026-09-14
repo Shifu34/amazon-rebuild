@@ -17,7 +17,7 @@ import { getUser } from '@/lib/auth'
 import { cartSummary, MAX_QTY } from '@/lib/cart'
 import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, popularity, products, related, type Product } from '@/lib/catalog'
 import { one } from '@/lib/db'
-import { fastestDelivery, FREE_SHIPPING_MIN, relativeDay, STANDARD_SHIPPING, standardDelivery } from '@/lib/delivery'
+import { EXPEDITED_SHIPPING, fastestDelivery, FREE_SHIPPING_MIN, relativeDay, STANDARD_SHIPPING, standardDelivery } from '@/lib/delivery'
 import { compactCount, fullDate, longDate, plural, usd } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
@@ -44,11 +44,13 @@ function deliveryPromise(p: Product, now = new Date()) {
   const shipsFrom = missedToday ? new Date(now.getTime() + DAY) : now
   const standard = standardDelivery(p, shipsFrom)
   const fastest = fastestDelivery(p, shipsFrom)
+  const earliest = fastest.getTime() < standard.getTime() ? fastest : null
   const mins = Math.ceil((cutoff.getTime() - now.getTime()) / 60_000)
   return {
     standard,
-    fastest: fastest.getTime() < standard.getTime() ? fastest : null,
-    within: mins >= 60 ? `${Math.floor(mins / 60)} hrs ${mins % 60} mins` : `${mins} mins`,
+    fastest: earliest,
+    // the countdown sits next to a near date only; a promise weeks out doesn't need a stopwatch
+    within: (earliest ?? standard).getTime() - now.getTime() > 3 * DAY ? null : mins >= 60 ? `${Math.floor(mins / 60)} hrs ${mins % 60} mins` : `${mins} mins`,
   }
 }
 
@@ -124,6 +126,11 @@ export default async function ProductPage({ params }: Props) {
   const category = categoryName(p.category)
   const inStock = p.stock > 0
   const { standard, fastest, within } = deliveryPromise(p)
+  const countdown = within && (
+    <>
+      . Order within <span className="whitespace-nowrap text-success">{within}</span>
+    </>
+  )
   const returnDays = Number(p.returnPolicy.match(/\d+/)?.[0] ?? 0)
   const cartTotals = { count: cart.count, subtotalCents: cart.subtotalCents }
   const inCart = cart.lines.find((l) => l.product.id === p.id)?.quantity ?? 0
@@ -135,15 +142,15 @@ export default async function ProductPage({ params }: Props) {
     .slice(0, 12)
   const topReviews = sortReviews(reviews, 'helpful').slice(0, 8)
   const recent = history.filter((h) => h.product.id !== p.id).slice(0, 20)
-  const dims = `${p.dimensions.depth}"D x ${p.dimensions.width}"W x ${p.dimensions.height}"H`
+  // The catalog's weight and dimensions are unitless demo numbers (a 4 "pound" mascara), so they stay off the page.
   const specs: [string, string][] = [
     ['Brand', p.brand ?? 'Generic'],
+    ['Category', category],
     ['SKU', p.sku],
-    ['Item Weight', `${p.weight} pounds`],
-    ['Product Dimensions', dims],
     ['Warranty', p.warranty],
   ]
   const signInHere = `/ap/signin?return_to=${encodeURIComponent(`/dp/${p.id}`)}`
+  const jump = 'flex h-10 items-center hover:text-link-hover hover:underline'
 
   return (
     <div className="mx-auto max-w-[1500px] px-4 pt-3">
@@ -159,8 +166,13 @@ export default async function ProductPage({ params }: Props) {
         </ol>
       </nav>
 
+      {/* DOM order is gallery, title, price, buy box, specs so focus follows the columns; on phones the title moves above the gallery. */}
       <div className="mt-3 grid gap-x-8 gap-y-4 pb-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto_1fr] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(240px,270px)] lg:grid-rows-[auto_auto_1fr]">
-        <div className="md:col-start-2 md:row-start-1">
+        <div className="md:sticky md:top-3 md:col-start-1 md:row-span-4 md:row-start-1 md:self-start lg:row-span-3">
+          <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} />
+        </div>
+
+        <div className="max-md:order-first md:col-start-2 md:row-start-1">
           <h1 className="text-xl leading-7 font-normal md:text-2xl md:leading-8">{p.title}</h1>
           {p.brand && <Link href={`/s?brand=${encodeURIComponent(p.brand)}`} className="link text-sm">Visit the {p.brand} Store</Link>}
           <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm">
@@ -185,26 +197,23 @@ export default async function ProductPage({ params }: Props) {
           )}
         </div>
 
-        <div className="md:sticky md:top-3 md:col-start-1 md:row-span-4 md:row-start-1 md:self-start lg:row-span-3">
-          <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} />
-        </div>
-
-        <div className="border-t border-line pt-3 md:col-start-2 md:row-start-2">
-          {p.discount >= 10 && inStock && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Limited time deal</span>}
-          <div className="mt-1 flex items-start gap-2">
-            {p.discount > 0 && <span className="text-[28px] leading-8 font-light text-deal">-{p.discount}%</span>}
-            <span className="text-[28px] leading-8"><Price value={p.price} /></span>
+        {inStock && (
+          <div className="border-t border-line pt-3 md:col-start-2 md:row-start-2">
+            {p.discount >= 10 && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Limited time deal</span>}
+            <div className="mt-1 flex items-start gap-2">
+              {p.discount > 0 && <span className="text-[28px] leading-8 font-light text-deal">-{p.discount}%</span>}
+              <span className="text-[28px] leading-8"><Price value={p.price} /></span>
+            </div>
+            {p.listPrice && (
+              <p className="mt-1 text-xs text-muted">
+                List Price: <s>{usd(p.listPrice)}</s>
+                <InfoPopover id="list-price-info" label="About List Price">
+                  The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller.
+                </InfoPopover>
+              </p>
+            )}
           </div>
-          {p.listPrice && (
-            <p className="mt-1 text-xs text-muted">
-              List Price: <s>{usd(p.listPrice)}</s>
-              <InfoPopover id="list-price-info" label="About List Price">
-                The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller.
-              </InfoPopover>
-            </p>
-          )}
-          {!inStock && <p className="mt-1 text-sm text-[#c10015]">Currently unavailable.</p>}
-        </div>
+        )}
 
         <aside aria-label="Buy box" className="rounded-lg border border-line p-4 md:col-start-2 md:row-start-3 lg:sticky lg:top-3 lg:col-start-3 lg:row-span-3 lg:row-start-1 lg:self-start">
           {inStock ? (
@@ -212,11 +221,16 @@ export default async function ProductPage({ params }: Props) {
               <div className="mb-2 hidden text-[28px] leading-8 lg:block"><Price value={p.price} /></div>
               <div className="space-y-2 text-sm">
                 <p>
-                  {p.price >= FREE_SHIPPING_MIN ? 'FREE delivery' : <><b>{usd(STANDARD_SHIPPING)}</b> delivery</>} <b>{dayLabel(standard)}</b>.{' '}
-                  Order within <span className="text-success">{within}</span>
+                  {p.price >= FREE_SHIPPING_MIN ? 'FREE delivery' : <><b>{usd(STANDARD_SHIPPING)}</b> delivery</>} <b>{dayLabel(standard)}</b>
+                  {!fastest && countdown}
                 </p>
-                {p.price < FREE_SHIPPING_MIN && <p className="text-xs text-muted">FREE delivery on orders over ${FREE_SHIPPING_MIN}</p>}
-                {fastest && <p>Or fastest delivery <b>{dayLabel(fastest)}</b></p>}
+                {p.price < FREE_SHIPPING_MIN && <p className="text-xs text-muted">FREE delivery on orders of ${FREE_SHIPPING_MIN} or more</p>}
+                {fastest && (
+                  <p>
+                    Or fastest delivery <b>{dayLabel(fastest)}</b> for <b>{usd(EXPEDITED_SHIPPING)}</b>
+                    {countdown}
+                  </p>
+                )}
               </div>
               <Link href={user ? '/account/addresses' : signInHere} className="link mt-3 flex items-center gap-1 text-xs">
                 <PinIcon className="size-4 shrink-0" />
@@ -226,7 +240,7 @@ export default async function ProductPage({ params }: Props) {
                 {p.stock < 10 ? `Only ${p.stock} left in stock - order soon.` : 'In Stock'}
               </p>
               <div className="mt-3">
-                <PurchaseControls product={slim(p)} max={Math.min(p.stock, MAX_QTY)} signedIn={!!user} inCart={inCart} cart={cartTotals} />
+                <PurchaseControls product={slim(p)} max={Math.min(p.stock, MAX_QTY)} stock={p.stock} signedIn={!!user} inCart={inCart} cart={cartTotals} picks={pairs.map(slim)} />
               </div>
               <table className="mt-4 w-full text-xs">
                 <tbody>
@@ -275,7 +289,7 @@ export default async function ProductPage({ params }: Props) {
               ))}
             </tbody>
           </table>
-          <h2 className="mt-4 border-t border-line pt-4 text-base">About this item</h2>
+          <h2 id="about" className="mt-4 scroll-mt-12 border-t border-line pt-4 text-base">About this item</h2>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
             {aboutBullets(p).map(([lead, text]) => (
               <li key={lead + text}>{lead && <b>{lead}: </b>}{text}</li>
@@ -285,15 +299,31 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
+      {/* In flow under the hero, then sticks to the top while the long lower page scrolls. */}
+      <nav aria-label="On this page" className="sticky top-0 z-20 -mx-4 -mb-px flex items-center gap-6 border-y border-line bg-white px-4 text-[13px] sm:text-sm">
+        <ul className="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap [scrollbar-width:none] sm:gap-5">
+          <li className="max-sm:hidden"><a href="#" className={jump}>↑ Top</a></li>
+          <li><a href="#about" className={jump}>About this item</a></li>
+          <li><a href="#similar" className={jump}>Similar</a></li>
+          <li><a href="#product-details" className={jump}>Product information</a></li>
+          <li><a href="#reviews" className={jump}>Reviews</a></li>
+        </ul>
+        <div className="hidden max-w-72 min-w-0 items-center gap-2 md:flex">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.thumbnail} alt="" loading="lazy" className="size-8 shrink-0 object-contain mix-blend-multiply" />
+          <span className="line-clamp-2 text-xs">{p.title}</span>
+        </div>
+      </nav>
+
       {pairs.length > 0 && <BoughtTogether items={[p, ...pairs].map(slim)} cart={cartTotals} />}
 
       {relatedItems.length > 0 && (
-        <div className="-mx-4 overflow-hidden border-t border-line">
+        <div id="similar" className="-mx-4 scroll-mt-10 overflow-hidden border-t border-line">
           <ProductCarousel title="Products related to this item" products={relatedItems} />
         </div>
       )}
 
-      <section id="product-details" aria-labelledby="product-info-title" className="scroll-mt-4 border-t border-line py-6">
+      <section id="product-details" aria-labelledby="product-info-title" className="scroll-mt-10 border-t border-line py-6">
         <h2 id="product-info-title" className="text-xl">Product information</h2>
         <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <InfoTable title="Technical Details" rows={[...specs, ['Manufacturer', p.brand ?? 'Generic']]} />
@@ -314,17 +344,13 @@ export default async function ProductPage({ params }: Props) {
         <p className="mt-2 max-w-4xl text-sm">{p.description}</p>
       </section>
 
-      <section id="reviews" aria-labelledby="reviews-title" className="grid scroll-mt-4 gap-8 border-t border-line py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.4fr)]">
-        <div className="space-y-6">
-          <div>
-            <h2 id="reviews-title" className="mb-2 text-2xl">Customer reviews</h2>
-            <RatingBreakdown summary={summary} productId={p.id} />
-          </div>
-          <div className="border-t border-line pt-6">
-            <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
-          </div>
-        </div>
+      {/* Phones read summary, reviews, then the write prompt; on desktop the prompt sits under the histogram. */}
+      <section id="reviews" aria-labelledby="reviews-title" className="grid scroll-mt-10 gap-x-8 gap-y-6 border-t border-line py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.4fr)] lg:grid-rows-[auto_1fr]">
         <div>
+          <h2 id="reviews-title" className="mb-2 text-2xl">Customer reviews</h2>
+          <RatingBreakdown summary={summary} productId={p.id} />
+        </div>
+        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <h3 className="text-lg">Top reviews from the United States</h3>
           {topReviews.length ? (
             <div className="divide-y divide-line">
@@ -335,11 +361,14 @@ export default async function ProductPage({ params }: Props) {
           ) : (
             <p className="mt-3 text-sm">No customer reviews</p>
           )}
-          {reviews.length > 0 && <Link href={`/product-reviews/${p.id}`} className="link mt-2 inline-block font-bold">See more reviews ›</Link>}
+          {reviews.length > topReviews.length && <Link href={`/product-reviews/${p.id}`} className="link mt-2 inline-block font-bold">See more reviews ›</Link>}
+        </div>
+        <div className="border-t border-line pt-6 lg:col-start-1 lg:row-start-2 lg:self-start">
+          <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
         </div>
       </section>
 
-      <div className="-mx-4 overflow-hidden border-t border-line">
+      <div id={relatedItems.length ? undefined : 'similar'} className="-mx-4 scroll-mt-10 overflow-hidden border-t border-line">
         <ProductCarousel title="Customers who viewed this item also viewed" products={related(p, 12)} />
       </div>
 

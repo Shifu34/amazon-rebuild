@@ -42,8 +42,9 @@ function ListPicker({ productId, lists }: { productId: number; lists: ListOption
   const nameError = state && !state.ok && state.field === 'name' ? state.error : undefined
 
   return (
-    <div ref={wrap} className="relative">
-      <div className="flex">
+    <div ref={wrap}>
+      {/* the menu anchors to this row, so it opens under the caret even when the status box is showing */}
+      <div className="relative flex">
         <form action={action} className="min-w-0 flex-1">
           {productField}
           <button type="submit" disabled={pending} className="btn btn-plain w-full rounded-r-none">
@@ -60,7 +61,6 @@ function ListPicker({ productId, lists }: { productId: number; lists: ListOption
         >
           <CaretIcon className="h-1.5 w-2" />
         </button>
-      </div>
 
       {menu && (
         <div id={menuId} className="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-line bg-white py-2 text-sm shadow-[0_0_14px_rgba(15,17,17,0.35)]">
@@ -98,13 +98,14 @@ function ListPicker({ productId, lists }: { productId: number; lists: ListOption
           </form>
         </div>
       )}
+      </div>
 
       {state?.ok && dismissed !== state && (
         <div role="status" className="mt-2 rounded-lg border border-[#0b7b3c] p-3 text-sm">
-          <p className="font-bold text-success">✓ {state.added ? 'Added to' : 'Already in'} {state.listName}</p>
-          <p className="mt-1 flex gap-3">
-            <Link href="/lists" className="link">View your list</Link>
-            <button type="button" onClick={() => setDismissed(state)} className="link cursor-pointer">Continue shopping</button>
+          <p className="font-bold break-words text-success">✓ {state.added ? '1 item added to' : 'Already in'} {state.listName}</p>
+          <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
+            <Link href={`/lists/${state.listId}`} className="link whitespace-nowrap">View your list</Link>
+            <button type="button" onClick={() => setDismissed(state)} className="link cursor-pointer whitespace-nowrap">Continue shopping</button>
           </p>
         </div>
       )}
