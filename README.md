@@ -2,7 +2,7 @@
 
 A working rebuild of Amazon's shopping loop: search, product pages, cart, checkout, orders, returns, lists, reviews and accounts. It runs on a real database and has no ads.
 
-- **Live:** _added at deploy_
+- **Live:** https://amazon-rebuild-teal.vercel.app
 - **Repo:** https://github.com/Shifu34/amazon-rebuild
 - **Walkthrough:** _Loom link_
 
