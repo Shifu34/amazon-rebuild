@@ -1,0 +1,1372 @@
+{
+  "area": "orders-lists-reviews",
+  "screens": [
+    {
+      "name": "Your Orders (order history)",
+      "purpose": "Signed-in hub for every past and in-flight order. From here the user finds an order and starts every post-purchase action: track, cancel, return, buy again, review. This is where the shopping loop visibly finishes, because the order you just placed shows up at the top.",
+      "url_pattern": "Amazon: /gp/css/order-history (the nav link 'Returns & Orders' goes here; since 2024 it often redirects to /your-orders/orders?timeFilter=months-3). Filters: ?timeFilter=last30 | months-3 | year-2026. Search: ?search=<q>. Tabs are separate routes (Buy Again: /gp/buyagain; Cancelled: orderFilter=cancelled). Rebuild: /orders?tab=all|not-shipped|cancelled&range=3m&q=",
+      "layout": "DESKTOP, top to bottom: (1) Global header; the 'Returns & Orders' nav item links here. (2) Breadcrumb 'Your Account › Your Orders' in small teal links. (3) Title row: H1 'Your Orders' on the left. On the right, a search input with magnifier icon, placeholder 'Search all orders', and a dark rounded 'Search Orders' button. (4) Tab row of text tabs with an orange underline on the active tab: 'Orders' | 'Buy Again' | 'Not Yet Shipped' | 'Cancelled Orders'. Some accounts also show 'Local Store Orders' or 'Amazon Pay'. (5) Filter line: '<b>N orders</b> placed in' followed by a small grey dropdown button '[past 3 months ▾]'. (6) A vertical stack of order cards, each a rounded 1px grey border box: (a) Header band, light grey (#F0F2F2), with small uppercase grey labels over values in 4 columns: 'ORDER PLACED / September 10, 2026', 'TOTAL / $42.17', and 'SHIP TO / Jane Doe ▾' (hover opens an address popover). Right-aligned: 'ORDER # 112-1234567-1234567' with the links 'View order details | Invoice ▾' underneath. (b) Body, one block per shipment: a bold status line ('Delivered September 12') with a grey sub-line under it ('Package was left near the front door or porch'). Then per item: a ~90px thumbnail; a 2-line truncated title link; the grey line 'Return or replace items: Eligible through October 12, 2026'; and two small buttons, 'Buy it again' (yellow, cart icon) and 'View your item' (white). (c) A right column (~220px) of full-width white pill buttons in this order: 'Track package' (yellow when the package is in transit), 'Return or replace items', 'Share gift receipt', 'Leave seller feedback', 'Write a product review'. For some products 'Get product support' appears. Before shipment the column shows 'Cancel items' and 'Track package'. (7) Pagination: '← Previous  1 2 3 …  Next →', 10 orders per page. (8) Below the orders, a recommendation carousel such as 'Buy it again' or 'Recommended based on your purchase'. MOBILE WEB: header 'Your Orders'; the search field 'Search all orders' with a 'Filter' button that opens a bottom sheet with the time ranges; no grey header band. Each shipment is a tappable row (thumbnail, bold status 'Delivered Sep 12', chevron ›) that opens Order Details. Action buttons live only on Order Details.",
+      "elements": [
+        "Breadcrumb 'Your Account › Your Orders'",
+        "H1 'Your Orders'",
+        "Search input, placeholder 'Search all orders', with a 'Search Orders' button (matches item title, order #, recipient name)",
+        "Tabs: 'Orders', 'Buy Again', 'Not Yet Shipped', 'Cancelled Orders'",
+        "Count plus time filter: 'N orders placed in [past 3 months ▾]'. Options: 'last 30 days', 'past 3 months', '2026', '2025', and every year back to account creation. Legacy accounts may still see 'Archived Orders'.",
+        "Order card header: 'ORDER PLACED', 'TOTAL', 'SHIP TO <name ▾>', 'ORDER # <3-7-7 digits>', 'View order details', 'Invoice ▾'",
+        "Ship-to popover: name, street, city/state/ZIP, 'United States'",
+        "Invoice dropdown: 'Invoice' / 'Printable Order Summary' (opens the printable invoice)",
+        "Shipment status line in bold plus a grey sub-line",
+        "Item thumbnail and title link (goes to the product page)",
+        "Return window line: 'Return or replace items: Eligible through <date>' or 'Return window closed on <date>'",
+        "Per-item buttons: 'Buy it again' (primary), 'View your item'",
+        "Right action column: 'Track package', 'Return or replace items', 'Share gift receipt', 'Leave seller feedback', 'Write a product review', 'Get product support', 'Cancel items' (not yet shipped only)",
+        "Pagination 'Previous / 1 2 3 / Next'",
+        "Recommendation carousel under the list (ads and recs; skip in the rebuild)"
+      ],
+      "states": [
+        "SIGNED OUT: redirect to /ap/signin ('Sign in' page, 'Email or mobile phone number', 'Continue'); after sign-in, return to Your Orders",
+        "LOADING: whole server-rendered page; the mobile app shows grey skeleton rows. Rebuild: 3 skeleton cards.",
+        "EMPTY (range): 'You have not placed any orders in the past 3 months.' plus a link to the previous year, e.g. 'View orders in 2025' (memory, approximate wording)",
+        "EMPTY (new account): 'Looks like you haven't placed an order' plus a 'Continue shopping' link (memory)",
+        "SEARCH WITH NO RESULTS: 'No orders matched your search' plus a link back to all orders (memory, approximate)",
+        "SEARCH RESULTS: 'N orders matching \"earbuds\"'; the time filter is ignored while searching",
+        "NOT YET SHIPPED: status 'Not yet shipped' or 'Preparing for Shipment'; buttons 'Cancel items', 'Track package'; sometimes 'Change Payment Method' if payment failed",
+        "IN TRANSIT: 'Arriving tomorrow by 10 PM', 'Arriving Friday', 'Arriving Sep 15 - Sep 18', 'Shipped'",
+        "OUT FOR DELIVERY: 'Now arriving today by 10 PM' / 'Out for delivery'; the mobile app may show 'X stops away' and map tracking",
+        "DELIVERED: 'Delivered today' / 'Delivered September 12', sub-line 'Package was left near the front door or porch' / 'Your package was delivered. It was handed directly to a resident.'",
+        "DELAYED: 'Delayed, now arriving Sep 16' / 'Running late' / 'Delivery attempted'",
+        "CANCELLED: status 'Cancelled'; sub-text that you have not been charged for the order; only 'Buy it again' / 'View your item' remain",
+        "RETURN IN PROGRESS: 'Return started', then 'Refund issued' and 'Return complete'; button 'View return/refund status'",
+        "RETURN WINDOW CLOSED: 'Return window closed on Oct 12, 2026'; the 'Return or replace items' button disappears",
+        "MULTI-SHIPMENT ORDER: one card containing several shipment blocks, each with its own status and 'Track package'",
+        "DIGITAL ORDER (Kindle, apps): no shipping; different buttons (skip)",
+        "ERROR: generic Amazon 'Sorry! Something went wrong!' page with dog image (memory)"
+      ],
+      "interactions": [
+        "Hovering (or clicking) the 'SHIP TO' name opens an address popover; mouse-out closes it",
+        "Changing the time dropdown reloads the page with ?timeFilter= (full reload, no client filtering)",
+        "Typing a query and pressing Enter or 'Search Orders' reloads with results across all time",
+        "'Buy it again' adds the item to the cart and shows a small inline 'Added to cart' confirmation or a side sheet; on some versions it goes to the product page",
+        "Clicking the item title or 'View your item' opens the product page (or an 'item' page showing the order context)",
+        "'Track package' opens the tracking page for that shipment",
+        "'Return or replace items' opens the Online Return Center with that order's items",
+        "'Cancel items' opens the cancel page for that order",
+        "'Write a product review' opens /review/create-review for that product",
+        "'Invoice ▾' opens a popover; its link opens a printable page in a new tab",
+        "Tabs are real links (new page load)"
+      ],
+      "microcopy": [
+        "Your Orders",
+        "Search all orders",
+        "Search Orders",
+        "Orders | Buy Again | Not Yet Shipped | Cancelled Orders",
+        "12 orders placed in",
+        "past 3 months",
+        "last 30 days",
+        "ORDER PLACED",
+        "TOTAL",
+        "SHIP TO",
+        "ORDER #",
+        "View order details",
+        "Invoice",
+        "Delivered September 12",
+        "Package was left near the front door or porch",
+        "Arriving tomorrow by 10 PM",
+        "Now arriving today by 10 PM",
+        "Not yet shipped",
+        "Return or replace items: Eligible through October 12, 2026",
+        "Return window closed on October 12, 2026",
+        "Buy it again",
+        "View your item",
+        "Track package",
+        "Return or replace items",
+        "Share gift receipt",
+        "Leave seller feedback",
+        "Write a product review",
+        "Get product support",
+        "Cancel items"
+      ]
+    },
+    {
+      "name": "Buy Again",
+      "purpose": "A grid of products the user bought before, for one-click reorder of consumables. It is a tab of Your Orders.",
+      "url_pattern": "Amazon: /gp/buyagain (tab 'Buy Again'). Rebuild: /orders?tab=buy-again",
+      "layout": "DESKTOP: breadcrumb and Your Orders tabs with 'Buy Again' active. H1 'Buy Again'. A horizontal row of category filter chips ('All', 'Grocery', 'Health & Household', 'Beauty', …). Then a responsive grid of 5-6 product cards per row: image; 2-3 line title; stars and review count; price in large format ('$12.99', unit price '($0.43/Count)'); delivery line ('FREE delivery Tomorrow'); purchase history line ('Purchased 3 times' / 'Last purchased Sep 12, 2026'); yellow 'Add to cart' button. After adding, the button becomes a '– 1 +' stepper, or shows a check and 'Added'. A '⋯' / 'Remove from Buy Again' control hides items (memory). MOBILE: a 2-column grid of the same cards with a sticky filter chip row.",
+      "elements": [
+        "Category filter chips",
+        "Product card: image, title, rating, price, unit price, delivery promise",
+        "'Purchased N times' / 'Last purchased <date>'",
+        "'Add to cart' button, which becomes a quantity stepper once in the cart",
+        "Out-of-stock card: 'Currently unavailable' in grey; no add button, or a 'See similar items' link",
+        "Hide/remove item control"
+      ],
+      "states": [
+        "EMPTY: no past purchases, e.g. 'There are no items to buy again' with a 'Continue shopping' link (memory)",
+        "ITEM UNAVAILABLE: greyed card, 'Currently unavailable'",
+        "PRICE CHANGED: current price shown; the old price is not shown",
+        "SIGNED OUT: redirect to sign in"
+      ],
+      "interactions": [
+        "'Add to cart' adds in place without navigation and updates the header cart count; shows a stepper",
+        "Clicking a chip filters the grid",
+        "Clicking the image or title opens the product page"
+      ],
+      "microcopy": [
+        "Buy Again",
+        "Add to cart",
+        "Purchased 3 times",
+        "Currently unavailable"
+      ]
+    },
+    {
+      "name": "Order Details",
+      "purpose": "The single source of truth for one order: where it ships, how it was paid, a line-by-line money breakdown, and every shipment and item with its own actions.",
+      "url_pattern": "Amazon: /gp/your-account/order-details?orderID=112-1234567-1234567 (newer: /your-orders/order-details?orderID=…). Rebuild: /orders/:orderId",
+      "layout": "DESKTOP: (1) Breadcrumb 'Your Account › Your Orders › Order Details'. (2) H1 'Order Details'. (3) Sub-row: 'Order placed September 10, 2026 | Order # 112-1234567-1234567' on the left; 'Invoice ▾' / 'View or Print invoice' link on the right. (4) Summary box (bordered) with 3-4 columns: 'Ship to' (name and full address); 'Payment method' (card brand logo and 'Visa ending in 1234'); 'Order Summary', a right-aligned key/value table: 'Item(s) Subtotal:', 'Shipping & Handling:', optional 'Free Shipping:' / 'Promotion Applied:' negative lines, 'Total before tax:', 'Estimated tax to be collected:', then bold 'Grand Total:'. (5) One bordered block per shipment: bold status ('Delivered September 12' / 'Arriving tomorrow'), sub-line, then item rows (thumbnail, title link, 'Sold by: Amazon.com Services, LLC', 'Return or replace items: Eligible through …', '$19.99', 'Condition: New', buttons 'Buy it again', 'View your item'). The right column has the same action buttons as the order card ('Track package', 'Return or replace items', 'Share gift receipt', 'Leave seller feedback', 'Write a product review'; 'Cancel items' before shipping). (6) Sometimes a 'Transactions' link, and a 'Leave seller feedback' link lives here. MOBILE: stacked sections in the order 'View order details' header, shipment status card with 'Track package' button, action list rows ('Cancel items', 'Return or replace items', 'Share gift receipt', 'Write a product review'), 'Payment information' section, 'Shipping address' section, 'Order Summary' section, 'Download invoice'.",
+      "elements": [
+        "Breadcrumb",
+        "H1 'Order Details'",
+        "Order placed date and order number",
+        "Invoice link",
+        "Ship to block",
+        "Payment method block (brand logo, 'ending in 1234')",
+        "Order Summary money table: Item(s) Subtotal, Shipping & Handling, Promotion Applied (optional), Total before tax, Estimated tax to be collected, Grand Total",
+        "Shipment blocks, each with status and items",
+        "Item row: image, title, Sold by, Condition, unit price, quantity (if >1, shown as the '2 of' prefix or 'Qty: 2'), return window line",
+        "Action buttons per shipment/item"
+      ],
+      "states": [
+        "NOT YET SHIPPED: 'Cancel items' shown; tax still 'Estimated'",
+        "PARTIALLY SHIPPED: two shipment blocks with different statuses",
+        "PARTIALLY CANCELLED: cancelled item rows show 'Cancelled'; totals are recomputed",
+        "REFUNDED: a 'Refund Total' line appears in the summary (memory); item shows 'Refund issued'",
+        "GIFT ORDER: gift message and 'Share gift receipt' shown",
+        "ORDER NOT FOUND or belongs to another user: 'We're unable to load your order details' / redirect to Your Orders (memory). Rebuild: 404 without leaking existence.",
+        "SIGNED OUT: redirect to sign in"
+      ],
+      "interactions": [
+        "'Invoice' opens a printable page (window.print friendly)",
+        "All action buttons behave the same as on the order card",
+        "Clicking the order number does nothing (plain text); a copy affordance does not exist on Amazon"
+      ],
+      "microcopy": [
+        "Order Details",
+        "Order placed",
+        "Order #",
+        "Ship to",
+        "Payment method",
+        "Visa ending in 1234",
+        "Order Summary",
+        "Item(s) Subtotal:",
+        "Shipping & Handling:",
+        "Total before tax:",
+        "Estimated tax to be collected:",
+        "Grand Total:",
+        "Sold by:",
+        "Condition: New"
+      ]
+    },
+    {
+      "name": "Invoice / Printable Order Summary",
+      "purpose": "A plain printable record for expenses and taxes.",
+      "url_pattern": "Amazon: /gp/css/summary/print.html?orderID=… (newer: /your-orders/invoice/popover?orderId=…). Rebuild: /orders/:id/invoice, or a print stylesheet on Order Details",
+      "layout": "Plain white page, serif-ish, no nav. Bold 'Final Details for Order #112-…'; 'Order Placed: September 10, 2026'; 'Amazon.com order number: 112-…'; 'Order Total: $42.17'. A bordered box per shipment: 'Shipped on September 11, 2026', table 'Items Ordered | Price' ('1 of: <title>', 'Sold by: …', 'Condition: New'), 'Shipping Address:', 'Shipping Speed:'. Then a 'Payment information' box: 'Payment Method: Visa | Last digits: 1234', 'Billing address', 'Item(s) Subtotal:', 'Shipping & Handling:', 'Total before tax:', 'Estimated tax to be collected:', 'Grand Total:', 'Credit Card transactions: Visa ending in 1234: September 11, 2026: $42.17'. Footer: 'To view the status of your order, return to Order Summary.'",
+      "elements": [
+        "Final Details for Order # heading",
+        "Order meta lines",
+        "Shipment box with item table",
+        "Payment information box with totals",
+        "Credit card transactions line",
+        "Link 'return to Order Summary'"
+      ],
+      "states": [
+        "NOT YET SHIPPED: the shipment box says 'Not Yet Shipped'; transaction lines are absent"
+      ],
+      "interactions": [
+        "Browser print (Ctrl/Cmd+P); no buttons"
+      ],
+      "microcopy": [
+        "Final Details for Order #",
+        "Order Placed:",
+        "Order Total:",
+        "Shipped on",
+        "Items Ordered",
+        "Price",
+        "Shipping Address:",
+        "Shipping Speed:",
+        "Payment information",
+        "Credit Card transactions",
+        "To view the status of your order, return to Order Summary."
+      ]
+    },
+    {
+      "name": "Track Package",
+      "purpose": "Shows exactly where a shipment is and when it will arrive, plus a full carrier event log.",
+      "url_pattern": "Amazon: /progress-tracker/package?orderId=…&shipmentId=…&itemId=… (older /gp/your-account/ship-track?…). Rebuild: /orders/:orderId/track/:shipmentId",
+      "layout": "DESKTOP, 2 columns. LEFT (wide): (1) Large bold status headline: 'Arriving tomorrow', 'Now arriving today 2:15 PM - 6:15 PM', 'Out for delivery', 'Delivered today', 'Delivered September 12'. (2) Grey sub-line: 'Package was left near the front door or porch' / 'Your package is on the way'. (3) A horizontal progress bar with 4 labelled nodes: 'Ordered <day, date>' → 'Shipped' → 'Out for delivery' → 'Delivered'. Reached nodes are filled green/teal and the current node is emphasised. (4) On delivery day with Amazon Logistics: a map card showing the driver 'N stops away' (app first). After delivery: a 'Photo on delivery' thumbnail that enlarges on click. (5) 'See all updates ›' link, which expands or opens the event list. RIGHT (narrow, bordered cards): 'Shipped with UPS' (or 'Delivery by Amazon'), 'Tracking ID: 1Z999AA10123456784' (copyable text); 'Shipping Address' block; the items in this package (thumbnails with titles); buttons 'Share tracking', 'See all orders', 'Return or replace items' (after delivery), 'Leave delivery feedback', and a 'Package didn't arrive?' / 'Report a problem' help link. EVENT LIST: grouped by date heading ('Friday, September 12'), rows of '10:14 AM | Delivered | SEATTLE, WA US', 'Out for delivery', 'Arrived at carrier facility', 'Departed carrier facility', 'Shipped', 'Package has left seller facility and is in transit to carrier', 'Label created', newest first. MOBILE: a single column; status headline, a vertical stepper instead of a horizontal bar, 'See all updates' as a sheet, carrier and tracking ID card at the bottom.",
+      "elements": [
+        "Status headline (arrival window or delivered time)",
+        "Sub-status line",
+        "4-step progress bar: Ordered, Shipped, Out for delivery, Delivered",
+        "Photo on delivery thumbnail (Amazon Logistics only)",
+        "Map tracking 'N stops away' (delivery day, opted in)",
+        "'See all updates' link or expander",
+        "Event rows: time, description, location",
+        "Carrier line 'Shipped with UPS' / 'Delivery by Amazon'",
+        "'Tracking ID: <id>'",
+        "Shipping address block",
+        "Items in package",
+        "Buttons: 'Share tracking', 'See all orders', 'Leave delivery feedback', 'Return or replace items'"
+      ],
+      "states": [
+        "NOT YET SHIPPED: headline 'Arriving Sep 15 - Sep 18', only the 'Ordered' node filled, no tracking ID ('Tracking info will be available when your package ships')",
+        "IN TRANSIT: Ordered and Shipped filled; carrier and tracking ID shown",
+        "OUT FOR DELIVERY: 3 nodes filled; map appears when close",
+        "DELIVERED: all nodes filled; delivered time; photo; 'Return or replace items'",
+        "DELAYED: amber text 'Delayed, now arriving <date>' / 'Your package may arrive later than expected'",
+        "DELIVERY ATTEMPTED / UNDELIVERABLE: red text, 'Returning to sender'; the refund is automatic",
+        "LOST: after the expected date a 'Package didn't arrive?' prompt offers 'Get help' (refund/replacement)",
+        "CANCELLED: the tracker is not reachable; show a cancelled message"
+      ],
+      "interactions": [
+        "'See all updates' toggles or expands the full event log",
+        "'Share tracking' opens a share sheet or copy link (text, email, WhatsApp)",
+        "Clicking the delivery photo opens a lightbox",
+        "Tracking ID is selectable text; the carrier link goes to the carrier site for UPS/USPS/FedEx"
+      ],
+      "microcopy": [
+        "Arriving tomorrow",
+        "Now arriving today",
+        "Out for delivery",
+        "Delivered today",
+        "Package was left near the front door or porch",
+        "Ordered",
+        "Shipped",
+        "Out for delivery",
+        "Delivered",
+        "See all updates",
+        "Shipped with UPS",
+        "Delivery by Amazon",
+        "Tracking ID:",
+        "Share tracking",
+        "See all orders",
+        "Photo on delivery"
+      ]
+    },
+    {
+      "name": "Cancel Items",
+      "purpose": "Lets the user cancel one or more not-yet-shipped items and see an immediate result.",
+      "url_pattern": "Amazon: reached from 'Cancel items' on an order; historically /gp/your-account/order-edit.html?orderID=…&type=cancel (newer /your-orders/cancel?orderId=…; exact path unverified). Rebuild: /orders/:id/cancel, or a modal on the order",
+      "layout": "DESKTOP single column (~800px). H1 'Cancel items'. Instruction 'Check the items you want to cancel'. Item rows each have a checkbox, thumbnail, title, 'Qty: 1', and 'Sold by: …'. Below the rows: label 'Reason for cancel (optional)' with a select, default option 'Select cancellation reason'. Primary yellow button 'Request cancellation' (older copy: 'Cancel selected items in this order'), placed bottom-left. Small print: 'We'll send you a confirmation email when your item is cancelled' (memory). The order summary appears on the right in some versions. MOBILE (app): the same list with checkboxes; bottom button 'Cancel checked items'.",
+      "elements": [
+        "H1 'Cancel items'",
+        "Item checkbox rows (all unchecked by default; single-item orders may pre-check)",
+        "Reason select (optional)",
+        "'Request cancellation' primary button",
+        "Back link to order"
+      ],
+      "states": [
+        "DEFAULT: no items checked",
+        "VALIDATION: submit with none checked shows red 'Please select at least one item to cancel' (memory, approximate)",
+        "SUBMITTING: button disabled with spinner",
+        "SUCCESS (Amazon-fulfilled): page or banner with green check, 'This order has been cancelled.' / 'Your item(s) have been cancelled'; confirmation email sent; the order moves to 'Cancelled Orders'; not charged (memory for exact copy)",
+        "SUCCESS (third-party seller): 'Cancellation requested' / 'Your cancellation request has been sent to the seller'; status pending until the seller confirms",
+        "PARTIAL: some items already entered shipping, e.g. 'We were unable to cancel <item> because it has already shipped'",
+        "ALREADY SHIPPED: 'Cancel items' is not offered; the user is told it can't be cancelled after dispatch and to refuse delivery or return it (verified that a shipped order can't be cancelled, via Pocket-lint)",
+        "SIGNED OUT / NOT OWNER: redirect"
+      ],
+      "interactions": [
+        "Checking an item enables the submit button",
+        "The reason select is a native <select>",
+        "Submitting posts, then redirects to the confirmation or Order Details with a banner"
+      ],
+      "microcopy": [
+        "Cancel items",
+        "Check the items you want to cancel",
+        "Reason for cancel (optional)",
+        "Select cancellation reason",
+        "Order Created by Mistake",
+        "Item(s) Would Not Arrive on Time",
+        "Shipping Cost Too High",
+        "Item Price Too High",
+        "Found Cheaper Somewhere Else",
+        "Need to Change Shipping Address",
+        "Need to Change Shipping Speed",
+        "Need to Change Billing Address",
+        "Need to Change Payment Method",
+        "Other",
+        "Request cancellation",
+        "Cancel selected items in this order",
+        "Cancelled"
+      ]
+    },
+    {
+      "name": "Online Return Center: Return or Replace Items",
+      "purpose": "A guided return for refund or replacement: choose items and reason, choose the resolution and refund method, choose the drop-off method, see the refund estimate, confirm, and get a QR code and drop-off-by date.",
+      "url_pattern": "Amazon: /spr/returns/cart?orderId=112-… (steps are client-rendered on the same URL family; confirmation under /spr/returns/label/… or /spr/returns/confirmation). Rebuild: /returns/new?order=:id → /returns/:returnId",
+      "layout": "DESKTOP: a narrow main column (~700px) with sequential cards and a sticky summary card on the right. STEP 1 'Choose items to return': one row per eligible item (checkbox, thumbnail, title, price, 'Return window closes on Oct 12, 2026', 'Qty' select if >1). When checked, a 'Why are you returning this?' select appears ('Choose a response'). For some reasons a 'Comments (optional)' textarea appears; it is required for defective, damaged or not-as-described reasons ('Please tell us more'), with a ~1,000-character limit. Button 'Continue'. STEP 2 'How can we make it right?' offers radio cards: 'Replace with exact item' (only for defective/damaged/wrong item, in stock, Amazon-fulfilled; 'Free replacement ships when we receive your return' or 'We'll ship it now'), 'Exchange for a different size or color' (apparel), 'Refund'. Some items instead offer 'Get product support' / troubleshooting. STEP 3 'How would you like your refund?' offers radio cards: 'Refund to Amazon gift card balance' (fast; refund within ~2-3 hours after drop-off) and 'Refund to original payment method' ('Visa ending in 1234', 3-5 business days after we receive it). STEP 4 'How would you like to return your item?' offers radio cards sorted by recommendation, each with name, badge, fee and distance: 'Whole Foods Market Drop off | No box, no label needed | Free', 'Kohl's Drop off | No box, no label needed | Free', 'The UPS Store Drop off | No box or label needed | Free' (some items charge a ~$1 fee), 'UPS Dropoff | Box and print label required | Free', 'UPS Pickup | <$ fee>', 'Amazon Fresh', 'Staples'; each has a 'See locations' / 'Nearest: 0.8 mi' link. RIGHT SUMMARY CARD 'Refund summary': 'Refund subtotal $19.99', 'Tax refund $1.10' (estimated), 'Return shipping $0.00', 'Total estimated refund $21.09', 'Refund to: Visa ending in 1234', then the primary yellow 'Confirm your return' button. Small print: 'Your refund will be issued after the item is dropped off and scanned.' CONFIRMATION page: green check and 'Your return is confirmed' / 'Return started'; bold 'Drop off by <date>' (usually ~14-30 days out, bounded by the return window); a large QR code with the caption 'Show this QR code at The UPS Store' and a return code under it ('Return code: 1A2B3C'); buttons 'Email QR code', 'Print', 'Add to Apple Wallet'; 'What to bring: Only the item. No box or label needed.'; 'Find a drop off location' map link; 'Refund timeline' copy; links 'View return status', 'Return another item', 'Back to Your Orders'. MOBILE: the same steps as full-width stacked cards; the summary becomes a sticky bottom bar ('Estimated refund $21.09 · Confirm your return').",
+      "elements": [
+        "Eligible item rows with checkboxes and return window text",
+        "'Why are you returning this?' select",
+        "Conditional comments textarea",
+        "Resolution radio group (Refund / Replace with exact item / Exchange)",
+        "Refund method radio group (gift card balance vs original payment)",
+        "Return method radio cards with fee, badges and distance",
+        "'See locations' link / location list",
+        "Sticky 'Refund summary' card with line items",
+        "'Confirm your return' primary button",
+        "Confirmation: drop-off-by date, QR code, return code, email/print/wallet actions, status link"
+      ],
+      "states": [
+        "NO ELIGIBLE ITEMS: 'This item isn't eligible for return' / 'Return window closed on <date>'; a help link to 'Get help with this item'",
+        "NON-RETURNABLE CATEGORY (e.g. groceries, digital): 'This item is non-returnable' plus possibly a refund without return",
+        "HOLIDAY WINDOW: items bought Nov 1 - Dec 31 are returnable until Jan 31 (verified via LegalClarity)",
+        "VALIDATION: continue with no item checked shows 'Please select at least one item'; no reason shows 'Please select a reason for return'; required comment empty shows 'Please enter comments' (memory, approximate)",
+        "FEE CHANGE: choosing a 'buyer's remorse' reason ('No longer needed', 'Bought by mistake', 'Better price available') on some third-party items shows a 'Return shipping fee' line deducted from the refund; defect reasons make it free",
+        "RETURNLESS: 'You don't need to return this item' with refund issued immediately (low-price items)",
+        "REPLACEMENT: the summary shows '$0.00 replacement order' plus the replacement shipping date; the confirmation mentions the replacement order number",
+        "SUBMITTING: button spinner; double-submit prevented",
+        "CONFIRMED: QR code and drop-off-by date; the order card now shows 'Return started'",
+        "AFTER DROP-OFF: order status 'Return in transit' / 'Refund issued on <date>'; the gift card balance refund arrives within hours and card refunds take 3-5 business days (verified timelines, third party)",
+        "RETURN CANCELLED: 'Cancel this return' link on the return status page (memory)",
+        "EXPIRED: drop-off-by passed shows 'Your return authorization has expired'; the user can start again if still within the window (memory)"
+      ],
+      "interactions": [
+        "Checking an item reveals its reason select inline (progressive disclosure)",
+        "Some reasons reveal the comment box and change the available resolutions (replacement only for defect/damage)",
+        "Selecting a refund method or return method recalculates the summary card live",
+        "'See locations' opens a modal list or map of nearby drop-off points with addresses and hours",
+        "'Confirm your return' submits and navigates to the confirmation",
+        "'Email QR code' sends the code; 'Print' prints the label or code"
+      ],
+      "microcopy": [
+        "Choose items to return",
+        "Why are you returning this?",
+        "Choose a response",
+        "Bought by mistake",
+        "Better price available",
+        "No longer needed",
+        "Item arrived too late",
+        "Missing parts or accessories",
+        "Product and shipping box both damaged",
+        "Product damaged, but shipping box OK",
+        "Item defective or doesn't work",
+        "Received extra item I didn't buy (no refund needed)",
+        "Wrong item was sent",
+        "Inaccurate website description",
+        "Performance or quality not adequate",
+        "Incompatible or not useful",
+        "Didn't approve purchase",
+        "Comments (optional)",
+        "Continue",
+        "How would you like your refund?",
+        "Replace with exact item",
+        "How would you like to return your item?",
+        "Whole Foods Market Drop off",
+        "Kohl's Drop off",
+        "The UPS Store Drop off",
+        "UPS Dropoff",
+        "UPS Pickup",
+        "No box, no label needed",
+        "Free",
+        "Refund summary",
+        "Refund subtotal",
+        "Total estimated refund",
+        "Confirm your return",
+        "Drop off by",
+        "Return code",
+        "Return started",
+        "Refund issued"
+      ]
+    },
+    {
+      "name": "Your Lists (wish lists and shopping lists)",
+      "purpose": "Saved products across one or more named lists with privacy and sharing. Lets the user move items to the cart or between lists, and add notes, priority and quantity.",
+      "url_pattern": "Amazon: /hz/wishlist/ls (redirects to the default list /hz/wishlist/ls/<LISTID>); shared view /hz/wishlist/ls/<LISTID>?ref_=wl_share; friends /hz/wishlist/yourfriends; idea lists /hz/wishlist/idea… (skip). Rebuild: /lists, /lists/:listId, /lists/shared/:token",
+      "layout": "DESKTOP: (1) A top sub-nav of text tabs: 'Your Lists' | 'Your Friends' (and 'Your Idea Lists' for some); a 'Create a List' link on the right. (2) LEFT RAIL (~260px, scrolls): an entry per list showing the list name in bold (active list highlighted with a left border or grey background), a small grey privacy label under it ('Private' / 'Shared' / 'Public'), and a 'Default List' tag on the default. 'Shopping List' is first by default. A 'Create a List' button sits at the top of the rail in newer versions. (3) MAIN: the list header has the list name (large) with a lock icon and 'Private'; actions on the right: 'Invite' (or 'Send list to others') and '⋯ More' ▾ with 'Manage List', 'Print List', 'Delete List'. Under the header: a 'Search this list' input and a 'Filter & Sort' dropdown (Filter: 'All', 'Unpurchased', 'Purchased', 'Price drops'; Sort: 'Priority (High to Low)', 'Date Added', 'Last Updated', 'Price (Low to High)', 'Price (High to Low)', 'Title'), plus a list/grid view toggle. (4) Item rows, divided by 1px lines: a ~135px image; title link; 'by <Brand>'; stars and count; price '$29.99'; a green 'Price dropped 12%' line (was $34.00 when added); 'Item added September 3, 2026'; availability ('In Stock' / 'Currently unavailable' / 'Usually ships within 2 to 3 weeks'); optional 'Comment:', 'Priority:', 'Needs: 1 | Has: 0'. On the right, a yellow 'Add to Cart' button (or 'See all buying options' if no Buy Box), then small links 'Move ▾' (lists other lists and 'Create a new list') and 'Delete', plus 'Add comment, quantity & priority'. (5) Bottom: 'End of list' / infinite scroll. MOBILE: a list switcher dropdown at top ('Shopping List ▾'); an items grid of 2 columns; the '⋯' on each item opens a sheet ('Move', 'Delete', 'Add comment, quantity & priority'); a sticky 'Invite' button.",
+      "elements": [
+        "Tabs 'Your Lists' | 'Your Friends'",
+        "'Create a List' button/link",
+        "Left rail list entries with privacy label and 'Default List' tag",
+        "List header name, privacy icon, 'Invite', '⋯ More' menu ('Manage List', 'Print List', 'Delete List')",
+        "'Search this list' input",
+        "'Filter & Sort' dropdown",
+        "Item row: image, title, brand, rating, price, price-drop badge, date added, availability",
+        "Per item: 'Add to Cart', 'Move', 'Delete', 'Add comment, quantity & priority'",
+        "Comment / Priority (Lowest, Low, Medium, High, Highest) / Needs & Has quantity fields",
+        "Undo toast after delete or move"
+      ],
+      "states": [
+        "SIGNED OUT: 'Your Lists' redirects to sign in; a shared or public list link is viewable without sign-in (read-only, 'Add to Cart' still works)",
+        "EMPTY LIST: an illustration with 'This list is empty' / 'Add items to your list' and a 'Continue shopping' CTA (memory, approximate)",
+        "NO LISTS YET: a default 'Shopping List' is auto-created the first time 'Add to List' is used",
+        "LOADING: rows lazy-load as you scroll (infinite scroll with spinner)",
+        "ITEM DELETED: the row collapses to 'Deleted' with an 'Undo' link (memory)",
+        "ITEM MOVED: the row collapses to 'Moved to <List name>' with a 'View list' link (memory)",
+        "ITEM UNAVAILABLE: 'Currently unavailable' in red; 'See all buying options' replaces 'Add to Cart'",
+        "ADDED TO CART from list: the button changes to 'Added to Cart' / the header cart count increments; if 'Keep purchased items on this list' is on, bought items show 'Purchased'",
+        "FILTER NO MATCH: 'No items match your filter'",
+        "SHARED VIEW (others): no Move/Delete; for gift lists a 'Needs/Has' counter and a 'Don't spoil my surprises' behaviour that hides purchase status from the owner"
+      ],
+      "interactions": [
+        "Clicking a list in the rail switches the main panel (URL changes to the list id)",
+        "'Filter & Sort' opens a popover of radio options that apply immediately",
+        "'Move ▾' opens a dropdown of the user's other lists; picking one moves the item with a confirmation",
+        "'Delete' removes the item in place with undo",
+        "'Add comment, quantity & priority' opens a small modal with 'Comment' (textarea), 'Quantity' (Needs), 'Priority' select, 'Save' / 'Cancel'",
+        "'Invite' opens the share modal",
+        "'⋯ More' → 'Manage List' opens the settings modal",
+        "Drag handle or 'Top' link to reorder (older UI; memory)"
+      ],
+      "microcopy": [
+        "Your Lists",
+        "Your Friends",
+        "Create a List",
+        "Shopping List",
+        "Default List",
+        "Private",
+        "Shared",
+        "Public",
+        "Invite",
+        "Send list to others",
+        "Manage List",
+        "Delete List",
+        "Search this list",
+        "Filter & Sort",
+        "Unpurchased",
+        "Purchased",
+        "Price drops",
+        "Priority (High to Low)",
+        "Date Added",
+        "Price (Low to High)",
+        "Add to Cart",
+        "Move",
+        "Delete",
+        "Add comment, quantity & priority",
+        "Item added September 3, 2026",
+        "Price dropped",
+        "See all buying options"
+      ]
+    },
+    {
+      "name": "Create a List modal, Manage List modal and Invite modal",
+      "purpose": "Create a new list, edit its settings and privacy, and share it.",
+      "url_pattern": "Modals over /hz/wishlist/ls and over the product page 'Add to List' dropdown. Rebuild: <dialog> components",
+      "layout": "CREATE: a centered modal about 450px wide; title 'Create a new list'; close X at top right. One field: label 'List name' with the input prefilled 'Shopping List' (or empty). Older versions also offered type radios, 'Shopping List' ('Add items you want to shop for.') vs 'Wish List' ('Let people know what gifts you'd like.'). Footer buttons: 'Cancel' (white) and 'Create List' (yellow). MANAGE LIST: a taller modal titled 'Manage list' with fields in this order: 'List name'; 'Privacy' select with helper text per option ('Private', 'Shared', 'Public'); 'Recipient' name, 'Birthday', 'Email' (Public lists only); 'Description'; 'Shipping address' select ('None' or a saved address; 'Third party sellers can see your address'); checkbox 'Keep purchased items on this list'; checkbox 'Don't spoil my surprises'; checkbox 'This is my default list'; 'Manage list with Alexa' toggle; link 'Delete list'. Footer: 'Cancel' and 'Save Changes'. INVITE: modal 'Invite to your list' / 'Send list to others'; a radio pair, 'View only' (Friends can view list) vs 'View and edit' (Friends can add and remove items); then a 'Copy link' button (shows 'Link copied') and 'Invite by email'. Mobile uses the native share sheet with 'Email' / 'Text Message'.",
+      "elements": [
+        "List name input (required, ~50 char max)",
+        "Create List / Cancel buttons",
+        "Privacy select: Private / Shared / Public with explanations",
+        "Description, recipient, birthday, shipping address",
+        "Checkboxes: Keep purchased items on this list; Don't spoil my surprises; This is my default list",
+        "Delete list link with confirm",
+        "Invite: View only / View and edit radios, Copy link, Email"
+      ],
+      "states": [
+        "VALIDATION: empty name shows 'Please enter a list name'; over the limit shows 'List name is too long' (memory, approximate)",
+        "CREATED: the modal closes, the new list is selected in the rail, and the product (if created from a product page) is added to it",
+        "DELETE CONFIRM: 'Are you sure you want to delete this list? This will delete all items in the list.' with 'Yes' / 'No' (memory)",
+        "DEFAULT LIST DELETED: another list becomes the default",
+        "SHARED → PRIVATE: existing links stop working"
+      ],
+      "interactions": [
+        "Enter submits Create List",
+        "Esc or X closes without saving",
+        "Privacy helper text updates when the select changes",
+        "'Copy link' copies to clipboard and changes its label"
+      ],
+      "microcopy": [
+        "Create a new list",
+        "List name",
+        "Create List",
+        "Cancel",
+        "Manage list",
+        "Privacy",
+        "Private",
+        "Shared",
+        "Public",
+        "Description",
+        "Shipping address",
+        "Keep purchased items on this list",
+        "Don't spoil my surprises",
+        "Save Changes",
+        "Delete list",
+        "Invite",
+        "Send list to others",
+        "View only",
+        "View and edit",
+        "Copy link"
+      ]
+    },
+    {
+      "name": "Add to List on the product page and 'Added to List' confirmation",
+      "purpose": "Saves a product from the product page into the default or a chosen list without leaving the page.",
+      "url_pattern": "Product page buy box /dp/<ASIN>; the POST goes to /hz/wishlist/… add endpoint. Rebuild: an inline component on /dp/:asin",
+      "layout": "DESKTOP buy box order: price, delivery, stock, Qty, yellow 'Add to Cart', orange 'Buy Now', then a separator and a white split button 'Add to List' | '▾'. The main part adds to the default list; the caret opens a dropdown panel under the button that lists each list ('Shopping List', 'Birthday', …) with a small privacy word under each, and 'Create another list' at the bottom (which opens the Create modal). On success, a modal or popover appears: green check, '1 item added to Shopping List' (thumbnail and title), buttons 'View Your List' (white) and 'Continue shopping' (yellow/white); newer versions add 'Compare with similar items' / 'Customers also saved' carousels below. MOBILE product page: 'Add to List' is a text link or heart icon below 'Buy Now'; tapping opens a bottom sheet with the lists and '+ Create new list'; a toast shows 'Added to Shopping List' with 'View' / 'Change'.",
+      "elements": [
+        "'Add to List' split button",
+        "List picker dropdown with privacy labels",
+        "'Create another list' entry",
+        "Confirmation modal: '1 item added to <List>', 'View Your List', 'Continue shopping'",
+        "Mobile toast with 'Change'"
+      ],
+      "states": [
+        "SIGNED OUT: clicking goes to sign in, then returns to the product page and completes the add (memory)",
+        "ALREADY IN LIST: the confirmation still appears (Amazon allows duplicates in different lists); in the same list it may say the item is already in the list (memory, uncertain)",
+        "NO LISTS: the first click creates 'Shopping List' and adds the item",
+        "ERROR: 'There was a problem adding this item to your list. Please try again.' (memory, approximate)"
+      ],
+      "interactions": [
+        "Click the main button to add instantly to the default list",
+        "Click the caret to open the list dropdown; click a list to add",
+        "Click 'Create another list' to open the Create modal; the item is added to the new list on create",
+        "The confirmation closes via X, Esc, or 'Continue shopping'"
+      ],
+      "microcopy": [
+        "Add to List",
+        "Create another list",
+        "1 item added to Shopping List",
+        "View Your List",
+        "Continue shopping"
+      ]
+    },
+    {
+      "name": "Saved for later (cart relation)",
+      "purpose": "A parking area under the cart; distinct from Lists but part of the same 'save it for later' mental model.",
+      "url_pattern": "Amazon: /gp/cart/view.html, section below the Shopping Cart. Rebuild: /cart",
+      "layout": "Under the 'Shopping Cart' box: a separate box headed 'Saved for later (N items)'. Newer designs show a grid of cards with filter chips ('All', 'Deals', 'In stock'). Each item: image, title, price, availability, 'Move to cart' (white button), links 'Delete', 'Add to list', 'Compare with similar items'. In the cart line item, a 'Save for later' link moves the item down.",
+      "elements": [
+        "'Save for later' link on cart items",
+        "'Saved for later (N items)' section",
+        "'Move to cart', 'Delete', 'Add to list', 'Compare with similar items'"
+      ],
+      "states": [
+        "EMPTY: section hidden",
+        "ITEM UNAVAILABLE: 'Currently unavailable'; 'Move to cart' disabled",
+        "PRICE CHANGE: cart shows 'Important messages about items in your Cart: <item> price has changed from $X to $Y' (memory)"
+      ],
+      "interactions": [
+        "'Save for later' moves the row without a page reload",
+        "'Move to cart' moves it back",
+        "'Add to list' opens the list picker"
+      ],
+      "microcopy": [
+        "Save for later",
+        "Saved for later",
+        "Move to cart",
+        "Delete",
+        "Add to list",
+        "Compare with similar items"
+      ]
+    },
+    {
+      "name": "Create Review",
+      "purpose": "Collects a star rating, and optionally a headline, text and media, for a purchased (or any) product. Feeds the product page rating and the Verified Purchase badge.",
+      "url_pattern": "Amazon: /review/create-review?asin=B0XXXXXXX&channel=… (from Your Orders 'Write a product review', or 'Write a customer review' on the product page); also /review/review-your-purchases/listing for the bulk 'Review your purchases' page. Rebuild: /review/:asin",
+      "layout": "DESKTOP single column (~700px), white. (1) H1 'Create Review'. (2) Product row: small thumbnail and product title. (3) A divider, then 'Overall rating' (bold) with 5 large outline stars (hover fills progressively; the selected state is filled orange) and a 'Clear' link that appears after rating. (4) Optional 'Rate features' block for some categories (e.g. 'Sound quality', 'Battery life', 'Comfort', 'Value for money'), each a row of 5 small stars. (5) 'Add a headline' label and a single-line input, placeholder 'What's most important to know?'. (6) 'Add a photo or video' label with helper 'Shoppers find images and videos more helpful than text alone.' and a dashed square tile with a '+' / camera icon. (7) 'Add a written review' label and a large textarea, placeholder 'What did you like or dislike? What did you use this product for?'. (8) 'Choose your public name' label, helper 'This is how you'll appear to other customers', and an input prefilled with the profile name. (9) A yellow 'Submit' button, right-aligned at the bottom; a small link to the Community Guidelines. MOBILE: the same fields full-width; after tapping a star the page scrolls to reveal the rest; a sticky 'Submit' at the bottom.",
+      "elements": [
+        "H1 'Create Review'",
+        "Product thumbnail and title",
+        "Overall rating: 5-star radio control with 'Clear'",
+        "Optional per-feature star rows",
+        "Headline input",
+        "Photo/video upload tile (images; video up to a size limit)",
+        "Written review textarea",
+        "Public name input",
+        "Submit button",
+        "Community Guidelines link"
+      ],
+      "states": [
+        "DEFAULT: nothing selected; Submit enabled but validates",
+        "STAR ONLY: allowed. Amazon accepts ratings without text (a star-only rating is published quickly and shows as a rating without a review).",
+        "VALIDATION: no star shows red 'Please select a star rating'; text entered without a headline shows 'Please enter a headline'; very short text shows 'Please write at least 20 characters' (memory, approximate)",
+        "UPLOAD ERROR: 'Unsupported file type' / 'File is too large'",
+        "SUBMITTING: button spinner",
+        "THANK YOU: a page or modal with a green check, 'Review submitted - Thank you!', 'We're processing your review. This may take several days, so we'll notify you when it's approved.' (memory, approximate; moderation 'a few hours to 72 hours' verified via third party). Below it: a grid 'Review more purchases' of other ordered products with inline star rows.",
+        "ALREADY REVIEWED: the page opens prefilled for editing ('Edit review'); 'Delete' is available from the Your reviews / profile page",
+        "NOT ELIGIBLE: 'Sorry, we are unable to accept your review of this product' / you're not eligible to review. Eligibility requires $50 spent on Amazon.com with a credit/debit card in the past 12 months (verified via third party).",
+        "REJECTED: an email saying the review doesn't meet the Community Guidelines",
+        "SIGNED OUT: redirect to sign in"
+      ],
+      "interactions": [
+        "Hovering over stars previews the rating; click sets it; keyboard arrows are poorly supported on Amazon",
+        "'Clear' resets the rating",
+        "The '+' tile opens the native file picker; the thumbnail preview has an X to remove",
+        "'Submit' posts and shows the thank-you state; 'Review more purchases' stars submit star-only ratings inline"
+      ],
+      "microcopy": [
+        "Create Review",
+        "Overall rating",
+        "Clear",
+        "Add a headline",
+        "What's most important to know?",
+        "Add a photo or video",
+        "Shoppers find images and videos more helpful than text alone.",
+        "Add a written review",
+        "What did you like or dislike? What did you use this product for?",
+        "Choose your public name",
+        "This is how you'll appear to other customers",
+        "Submit",
+        "Verified Purchase"
+      ]
+    },
+    {
+      "name": "Customer Service hub (decide: stub)",
+      "purpose": "Self-service entry to order/return help, the help library, and chat or phone contact with agents.",
+      "url_pattern": "Amazon: /gp/help/customer/display.html (nodeId=508510 'Help & Contact Us'); contact flow /hz/contact-us/foresight/hubgateway; help articles ?nodeId=<id>. Rebuild: /help (static)",
+      "layout": "DESKTOP: H1 'Welcome to Amazon Customer Service' and the sub-line 'What would you like help with today? You can quickly take care of most things here, or connect with us when needed.' (memory). A 'Recent orders' carousel of your last orders; clicking one shows problem choices. Topic tiles in a grid: 'A delivery, order or return', 'Prime', 'Payments, charges or gift cards', 'Address, security & privacy', 'Amazon devices', 'Something else' (memory). A second tile grid of quick links: 'Your Orders' (Track packages, Edit or cancel orders), 'Returns & Refunds' (Return or exchange items, Print return mailing labels), 'Manage Addresses', 'Manage Prime', 'Payment Settings', 'Account Settings', 'Digital Services and Device Support'. Then 'Search our help library' input and an 'All help topics' two-pane nav (left topics, right article). 'Something else' / 'Talk to someone' opens a chat panel with Amazon's assistant, which escalates to an associate; phone call-back is also available.",
+      "elements": [
+        "Welcome heading",
+        "Recent orders strip",
+        "Topic tiles",
+        "Quick-link tiles",
+        "Help library search",
+        "All help topics nav",
+        "Chat entry"
+      ],
+      "states": [
+        "SIGNED OUT: tiles are still visible; actions require sign-in; help library is public"
+      ],
+      "interactions": [
+        "Tile → sub-options → an automated resolution (refund, replacement) or chat",
+        "The search box shows matching help articles"
+      ],
+      "microcopy": [
+        "Welcome to Amazon Customer Service",
+        "Your Orders",
+        "Returns & Refunds",
+        "Manage Prime",
+        "Payment Settings",
+        "Account Settings",
+        "Something else",
+        "Search our help library"
+      ]
+    },
+    {
+      "name": "Leave seller feedback and Share gift receipt (secondary order actions)",
+      "purpose": "Seller rating for third-party orders, and sending a price-free receipt to a gift recipient.",
+      "url_pattern": "Seller feedback: /hz/feedback?orderId=… ; Gift receipt: modal from Your Orders, or /gp/css/order-details gift receipt page",
+      "layout": "SELLER FEEDBACK: title 'Rate seller' / 'Leave seller feedback' with the order and seller name; 5 stars; three Yes/No questions ('Item arrived by <date>?', 'Item as described by the seller?', 'Prompt and courteous service?' asked only if you contacted the seller); 'Comments' textarea; 'Submit Feedback'. Allowed within 90 days of the order date, and it may take up to 3 days after completion for the button to appear (verified via search snippet of the Amazon help page). SHARE GIFT RECEIPT: modal 'Share gift receipt' listing the items with checkboxes and a preview without prices; buttons 'Copy link' / share (email, text) and 'Download PDF' (verified via How-To Geek).",
+      "elements": [
+        "Seller rating stars and Yes/No questions",
+        "Comment box and Submit Feedback",
+        "Gift receipt item selection, Copy link / Share, Download PDF"
+      ],
+      "states": [
+        "Feedback window expired: button hidden",
+        "Gift receipt: the recipient view shows the item, gift message and return option without prices"
+      ],
+      "interactions": [
+        "Standard form submit",
+        "Copy link to clipboard"
+      ],
+      "microcopy": [
+        "Leave seller feedback",
+        "Share gift receipt",
+        "Download PDF"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "See the order you just placed (loop closure)",
+      "steps": [
+        "Checkout 'Place your order' → Thank-you page 'Order placed, thank you!' with a 'Review or edit your recent orders' link (the checkout surface)",
+        "Click 'Returns & Orders' in the header (or the thank-you link) → Your Orders, 'past 3 months'",
+        "The new order is first: header 'ORDER PLACED <today>', 'TOTAL $x', 'ORDER # …'; status 'Arriving <date>' or 'Not yet shipped'",
+        "Click 'View order details' → Order Details with ship-to, payment, Order Summary math matching checkout"
+      ]
+    },
+    {
+      "name": "Find an old order",
+      "steps": [
+        "Your Orders → type 'earbuds' in 'Search all orders' → Enter",
+        "The page reloads with 'N orders matching \"earbuds\"' across all years",
+        "Alternatively change '[past 3 months ▾]' to '2025' → the page reloads with that year's orders, 10 per page",
+        "Paginate with 'Next →'"
+      ]
+    },
+    {
+      "name": "Track a package",
+      "steps": [
+        "Your Orders → order card → 'Track package'",
+        "Tracking page: headline 'Arriving tomorrow', progress bar Ordered ✓ → Shipped ✓ → Out for delivery → Delivered",
+        "Read carrier 'Shipped with UPS' and 'Tracking ID'",
+        "Click 'See all updates' → dated event list, newest first",
+        "Delivery day: headline 'Out for delivery' / 'Now arriving today by 10 PM'; the map shows 'N stops away' (app)",
+        "After delivery: 'Delivered today', 'Package was left near the front door or porch', 'Photo on delivery'; the order card now shows 'Return or replace items: Eligible through <date+30d>'"
+      ]
+    },
+    {
+      "name": "Cancel an item before it ships",
+      "steps": [
+        "Your Orders → 'Not Yet Shipped' tab (or the order card) → 'Cancel items'",
+        "Cancel page: check the item(s) (at least one required)",
+        "Optionally pick 'Reason for cancel' (e.g. 'Order Created by Mistake')",
+        "Click 'Request cancellation'",
+        "Amazon-fulfilled: immediate 'This order has been cancelled' banner and confirmation email; the order leaves Not Yet Shipped and appears in 'Cancelled Orders'; no charge (the card was only authorised)",
+        "Third-party or already in fulfilment: 'Cancellation requested'; the result is emailed later; if it already shipped, the user must refuse delivery or return it"
+      ]
+    },
+    {
+      "name": "Return an item for a refund at a drop-off (no box, no label)",
+      "steps": [
+        "Your Orders → delivered order → 'Return or replace items' (only while 'Eligible through' is in the future)",
+        "Online Return Center: check the item → 'Why are you returning this?' → 'No longer needed' → 'Continue'",
+        "Resolution: 'Refund' (replacement not offered for remorse reasons)",
+        "Refund method: 'Refund to original payment method' (Visa ending 1234, 3-5 business days after receipt) or 'Amazon gift card balance' (hours after drop-off)",
+        "Return method: 'The UPS Store Drop off · No box or label needed · Free' (nearest 0.8 mi)",
+        "Summary card: 'Refund subtotal $19.99', tax, 'Return shipping $0.00', 'Total estimated refund $21.09' → 'Confirm your return'",
+        "Confirmation: 'Drop off by Oct 5', QR code and return code, 'Email QR code' / 'Add to Apple Wallet'",
+        "The order card shows 'Return started'; after the QR scan at the store it shows 'Refund issued' (verified: refund triggered on scan, per third-party guides)"
+      ]
+    },
+    {
+      "name": "Replace a defective item",
+      "steps": [
+        "Your Orders → 'Return or replace items' → check the item → reason 'Item defective or doesn't work' → comment required 'Please tell us more' → 'Continue'",
+        "Resolution: 'Replace with exact item' (in stock, Amazon-fulfilled)",
+        "Choose return method (free, since it's a defect)",
+        "Confirm → the confirmation shows the replacement order number (a $0.00 order) plus the QR code for returning the original",
+        "A new $0.00 order appears in Your Orders with 'Arriving <date>'"
+      ]
+    },
+    {
+      "name": "Buy again",
+      "steps": [
+        "From the order card click 'Buy it again' → item added to cart (confirmation) or goes to the product page",
+        "OR Your Orders → 'Buy Again' tab → grid of past purchases → 'Add to cart' → stepper '– 1 +' appears inline, header cart count updates",
+        "Proceed to cart / checkout as normal"
+      ]
+    },
+    {
+      "name": "Save a product to a list from the product page",
+      "steps": [
+        "Product page → buy box → click 'Add to List' (signed out → sign-in → back to the product page, item added)",
+        "The item is added to the default 'Shopping List' → modal '1 item added to Shopping List' with 'View Your List' / 'Continue shopping'",
+        "OR click the '▾' caret → choose 'Birthday' list, or 'Create another list' → modal 'List name' → 'Create List' → item added to the new list",
+        "'View Your List' → /hz/wishlist/ls/<id> with the item at top, 'Item added <today>'"
+      ]
+    },
+    {
+      "name": "Manage a list",
+      "steps": [
+        "Account & Lists → 'Your Lists' (or 'Create a List') → left rail shows lists, default first",
+        "Select a list → items shown; 'Filter & Sort' → 'Price (Low to High)'",
+        "On an item: 'Add to Cart' (item goes to cart; stays on list if 'Keep purchased items on this list') OR 'Move ▾' → pick another list → 'Moved to …' OR 'Delete' → 'Deleted · Undo'",
+        "'Add comment, quantity & priority' → set 'Priority: High', 'Needs: 2' → Save",
+        "'⋯ More' → 'Manage List' → Privacy 'Shared' → 'Save Changes'",
+        "'Invite' → 'View only' → 'Copy link' → paste to a friend; the friend opens the read-only list and can 'Add to Cart'"
+      ]
+    },
+    {
+      "name": "Saved for later to list",
+      "steps": [
+        "Cart → line item 'Save for later' → item moves to 'Saved for later (1 item)'",
+        "Later: 'Move to cart' to buy, or 'Add to list' to file it into a named list, or 'Delete'"
+      ]
+    },
+    {
+      "name": "Write a product review after delivery",
+      "steps": [
+        "Your Orders → delivered order → 'Write a product review' (or product page → Customer reviews → 'Write a customer review'). Signed out → sign-in.",
+        "Create Review: click 4th star under 'Overall rating' (required)",
+        "Optional: 'Add a headline' → 'Great sound for the price'; 'Add a photo or video'; 'Add a written review'; check 'Choose your public name'",
+        "Click 'Submit' → validation (star required) → thank-you: 'Review submitted - Thank you!' with 'processing' note and 'Review more purchases' grid",
+        "After moderation (hours to ~72h), the review appears on the product page with the 'Verified Purchase' badge (bought on Amazon at a price available to most shoppers) and counts toward the star rating, weighted by recency and verified status"
+      ]
+    },
+    {
+      "name": "Get help with an order (stubbed in the rebuild)",
+      "steps": [
+        "Footer/header 'Customer Service' → hub 'Welcome to Amazon Customer Service'",
+        "Pick the recent order → 'A delivery, order or return' → options (Where's my stuff, Return, Cancel) deep-link to the same Track / Return / Cancel screens",
+        "'Something else' → chat assistant → associate"
+      ]
+    }
+  ],
+  "data": [
+    {
+      "entity": "Order",
+      "fields": [
+        "id (string, Amazon format ###-#######-#######)",
+        "userId",
+        "placedAt (datetime)",
+        "status (derived from shipments: pending | partially_shipped | shipped | delivered | cancelled | partially_cancelled)",
+        "shipTo (address snapshot: fullName, line1, line2, city, state, zip, country, phone)",
+        "paymentMethod (snapshot: brand, last4)",
+        "itemsSubtotalCents",
+        "shippingCents",
+        "promotionCents (negative)",
+        "totalBeforeTaxCents",
+        "taxCents (estimated)",
+        "grandTotalCents",
+        "refundTotalCents",
+        "isGift (bool)",
+        "giftMessage",
+        "giftReceiptToken",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    {
+      "entity": "OrderItem",
+      "fields": [
+        "id",
+        "orderId",
+        "shipmentId",
+        "productId (ASIN)",
+        "titleSnapshot",
+        "imageSnapshot",
+        "unitPriceCents (snapshot)",
+        "quantity",
+        "soldBy (default 'Amazon.com')",
+        "condition ('New')",
+        "returnWindowEndsAt (deliveredAt + 30d; null until delivered; holiday rule optional)",
+        "status (active | cancelled | return_started | returned | refunded | replaced)",
+        "cancelledQty",
+        "returnedQty",
+        "reviewId (nullable, for 'Write a product review' vs 'Edit review')"
+      ]
+    },
+    {
+      "entity": "Shipment",
+      "fields": [
+        "id",
+        "orderId",
+        "carrier (Amazon | UPS | USPS | FedEx)",
+        "trackingId",
+        "status (ordered | shipped | out_for_delivery | delivered | delayed | attempted | cancelled)",
+        "promisedStart",
+        "promisedEnd",
+        "shippedAt",
+        "outForDeliveryAt",
+        "deliveredAt",
+        "deliveryNote ('Package was left near the front door or porch')",
+        "deliveryPhotoUrl (skip)"
+      ]
+    },
+    {
+      "entity": "TrackingEvent",
+      "fields": [
+        "id",
+        "shipmentId",
+        "occurredAt",
+        "code (label_created | shipped | arrived_facility | departed_facility | out_for_delivery | delivered | delayed)",
+        "message",
+        "city",
+        "state"
+      ]
+    },
+    {
+      "entity": "Cancellation",
+      "fields": [
+        "id",
+        "orderId",
+        "orderItemIds[] with qty",
+        "reason (enum of the cancel reasons, nullable)",
+        "status (requested | cancelled | denied_already_shipped)",
+        "requestedAt",
+        "resolvedAt"
+      ]
+    },
+    {
+      "entity": "Return",
+      "fields": [
+        "id (RMA / return code)",
+        "orderId",
+        "userId",
+        "items[] (orderItemId, qty, reason enum, comment)",
+        "resolution (refund | replacement)",
+        "refundMethod (original_payment | gift_card_balance)",
+        "returnMethod (whole_foods | kohls | ups_store | ups_dropoff_label | ups_pickup)",
+        "returnFeeCents",
+        "refundSubtotalCents",
+        "taxRefundCents",
+        "refundTotalCents",
+        "dropOffBy (date)",
+        "qrPayload",
+        "status (started | dropped_off | received | refund_issued | cancelled | expired)",
+        "replacementOrderId (nullable)",
+        "createdAt",
+        "refundedAt"
+      ]
+    },
+    {
+      "entity": "List",
+      "fields": [
+        "id",
+        "ownerId",
+        "name (1-50 chars)",
+        "privacy (private | shared | public)",
+        "isDefault (bool, exactly one per user)",
+        "description",
+        "shippingAddressId (nullable)",
+        "keepPurchasedItems (bool)",
+        "dontSpoilSurprises (bool)",
+        "shareToken (random, for view-only link)",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    {
+      "entity": "ListItem",
+      "fields": [
+        "id",
+        "listId",
+        "productId",
+        "addedAt",
+        "priceAtAddCents (for the 'Price dropped' badge)",
+        "comment",
+        "priority (lowest | low | medium | high | highest; default medium)",
+        "needsQty",
+        "hasQty",
+        "position",
+        "purchasedAt (nullable)",
+        "unique(listId, productId)"
+      ]
+    },
+    {
+      "entity": "ListCollaborator (P2)",
+      "fields": [
+        "listId",
+        "userId",
+        "role (view | edit)",
+        "invitedAt"
+      ]
+    },
+    {
+      "entity": "SavedForLater (or CartItem.saved flag)",
+      "fields": [
+        "userId",
+        "productId",
+        "quantity",
+        "savedAt"
+      ]
+    },
+    {
+      "entity": "Review",
+      "fields": [
+        "id",
+        "productId",
+        "userId",
+        "orderItemId (nullable)",
+        "rating (1-5 int, required)",
+        "featureRatings (json map feature → 1-5, optional)",
+        "headline (≤ ~150 chars)",
+        "body (text)",
+        "media[] (type image|video, url)",
+        "publicName",
+        "verifiedPurchase (bool: user has a delivered, non-cancelled order item for this product)",
+        "status (pending | published | rejected); rebuild: publish immediately",
+        "helpfulCount",
+        "createdAt",
+        "updatedAt",
+        "unique(productId, userId)"
+      ]
+    },
+    {
+      "entity": "ProductRatingAggregate (derived)",
+      "fields": [
+        "productId",
+        "ratingCount",
+        "average (optionally weighted: verified ×, recency ×)",
+        "histogram[5..1]"
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "feature": "Orders list: one card per order with header (date, total, ship-to, order #), shipment status line, item rows, pagination or 'load more'",
+      "tier": "P0",
+      "why": "The shopping loop isn't finished until a placed order shows up somewhere you can find it. The data already exists from checkout, so the only work is rendering it."
+    },
+    {
+      "feature": "Order Details page with ship-to, payment method (last4) and the Order Summary money table",
+      "tier": "P0",
+      "why": "Proves checkout wrote a correct, consistent order. Cheap because it re-renders the same order object."
+    },
+    {
+      "feature": "Order status derived from time since the order (Not yet shipped → Shipped → Out for delivery → Delivered)",
+      "tier": "P0",
+      "why": "There are no real carriers. A tiny deterministic time-based simulator makes status, tracking, cancel eligibility and return windows all behave realistically in a live demo. One function feeds every status."
+    },
+    {
+      "feature": "Signed-out redirect to sign-in with return URL on orders, lists and review routes; ownership check on order/list access",
+      "tier": "P0",
+      "why": "Security and correctness basics at a trust boundary; never leak another user's orders or private lists."
+    },
+    {
+      "feature": "Empty states: no orders, no orders in range, empty list, no search results",
+      "tier": "P0",
+      "why": "A new judge account will see these first. They are cheap and heavily affect perceived quality."
+    },
+    {
+      "feature": "'Buy it again' button on order items (adds to cart)",
+      "tier": "P0",
+      "why": "One button that reuses add-to-cart and loops the user back into shopping. It is Amazon's highest-intent post-purchase action."
+    },
+    {
+      "feature": "Track package page: status headline, 4-step progress bar, carrier and tracking ID, simulated event list",
+      "tier": "P1",
+      "why": "Strongly expected, and trivial once simulated statuses exist (events generated from the same timeline). Skip maps and delivery photos."
+    },
+    {
+      "feature": "Cancel items (not yet shipped): select items, optional reason, request, instant success, order moves to Cancelled",
+      "tier": "P1",
+      "why": "Expected and cheap: one form, one status update. It showcases correct state rules (only before shipped)."
+    },
+    {
+      "feature": "Tabs/filters: All / Not Yet Shipped / Cancelled",
+      "tier": "P1",
+      "why": "These are where-clauses on the same query. Amazon's exact tabs are recognizable and cost almost nothing."
+    },
+    {
+      "feature": "Search all orders (title / order # substring)",
+      "tier": "P1",
+      "why": "A single ILIKE query; high utility once there are more than ~5 orders."
+    },
+    {
+      "feature": "Return/replace flow condensed to one page: items and reason, refund method, drop-off method, live refund summary, Confirm, confirmation with QR code and drop-off-by date",
+      "tier": "P1",
+      "why": "The signature Amazon post-purchase experience and a strong demo moment. One page with progressive sections plus a QR generated client-side keeps it to a few hours. Refunds are status changes only."
+    },
+    {
+      "feature": "'Return or replace items: Eligible through <date>' line and window enforcement",
+      "tier": "P1",
+      "why": "deliveredAt + 30 days, computed once; it gates the return button and prevents invalid returns."
+    },
+    {
+      "feature": "Add to List on the product page (default list auto-created) with confirmation toast/modal and list picker",
+      "tier": "P1",
+      "why": "Expected on every product page; one table and one endpoint. It turns browsing into saved intent."
+    },
+    {
+      "feature": "Your Lists page: left rail of lists, items with price, date added, Add to Cart, Move, Delete (with undo)",
+      "tier": "P1",
+      "why": "The minimum useful list management. Reuses product cards and add-to-cart."
+    },
+    {
+      "feature": "Create a List modal (name only) and rename/delete list",
+      "tier": "P1",
+      "why": "A single field plus native <dialog>; needed as soon as there is more than one list."
+    },
+    {
+      "feature": "Write a review: required star rating, optional headline and text, Submit, thank-you state; published immediately and updates the product page average and count",
+      "tier": "P1",
+      "why": "Closes the loop back into the product page's social proof and is cheap (one form, one insert, one aggregate recompute). Skip moderation."
+    },
+    {
+      "feature": "Verified Purchase badge computed from delivered orders",
+      "tier": "P1",
+      "why": "A boolean at insert time; it adds credibility and mirrors Amazon's most trusted review signal."
+    },
+    {
+      "feature": "Only allow 'Write a product review' / show 'Edit review' if already reviewed (one review per user per product)",
+      "tier": "P1",
+      "why": "A unique constraint in the DB (native rung); prevents spam and duplicate UI."
+    },
+    {
+      "feature": "Save for later in cart",
+      "tier": "P1",
+      "why": "Probably owned by the cart surface. Include only if cart doesn't; a flag on the cart item."
+    },
+    {
+      "feature": "Time range filter (last 30 days / past 3 months / by year)",
+      "tier": "P2",
+      "why": "Demo accounts have few orders. Search plus tabs cover it; add when order volume makes scrolling painful."
+    },
+    {
+      "feature": "Buy Again tab (grid of distinct previously purchased products)",
+      "tier": "P2",
+      "why": "One DISTINCT query plus the existing product card, but the per-item 'Buy it again' button already covers the need."
+    },
+    {
+      "feature": "Printable invoice",
+      "tier": "P2",
+      "why": "A print stylesheet on Order Details gets 90% of it for free; low judge visibility."
+    },
+    {
+      "feature": "List sort/filter (date added, price, priority; purchased/unpurchased; price drops) and 'Price dropped X%' badge",
+      "tier": "P2",
+      "why": "Cheap ORDER BY and a stored priceAtAdd, but lists in a demo are short."
+    },
+    {
+      "feature": "List privacy (Private/Shared/Public) and view-only share link via token",
+      "tier": "P2",
+      "why": "A strong feature for gifting but not core. A share token route is small; add after the core list works."
+    },
+    {
+      "feature": "Comment, quantity and priority per list item",
+      "tier": "P2",
+      "why": "Rarely used outside gift lists; three nullable columns and a small modal."
+    },
+    {
+      "feature": "Replacement resolution (creates a $0 replacement order)",
+      "tier": "P2",
+      "why": "Reuses order creation, but adds branching to the return flow; refund-only covers the demo."
+    },
+    {
+      "feature": "Review photo/video upload",
+      "tier": "P2",
+      "why": "Needs file storage, validation and moderation concerns; text plus stars is enough for the loop."
+    },
+    {
+      "feature": "Per-feature ratings on reviews",
+      "tier": "P2",
+      "why": "Category-specific configuration with little payoff in 24h."
+    },
+    {
+      "feature": "Edit/delete own review",
+      "tier": "P2",
+      "why": "Upsert on the same form; add after create works."
+    },
+    {
+      "feature": "Share gift receipt",
+      "tier": "P2",
+      "why": "A token link to a price-less order view; niche."
+    },
+    {
+      "feature": "Share tracking link",
+      "tier": "P2",
+      "why": "navigator.share / copy link; trivial but low value."
+    },
+    {
+      "feature": "Customer Service hub",
+      "tier": "skip",
+      "why": "Deep, agent-backed system with chat and phone. Stub a static /help page with 4 tiles deep-linking to Your Orders, Returns and Lists plus a 'Contact us' mailto, so footer links don't 404."
+    },
+    {
+      "feature": "Chat / 'Something else' assistant",
+      "tier": "skip",
+      "why": "Requires an agent backend and escalation; no end-to-end value for the shopping loop."
+    },
+    {
+      "feature": "Leave seller feedback",
+      "tier": "skip",
+      "why": "The rebuild has a single first-party seller, so seller feedback is meaningless; Amazon has already buried it in order details."
+    },
+    {
+      "feature": "Get product support (manufacturer contacts)",
+      "tier": "skip",
+      "why": "No manufacturer data."
+    },
+    {
+      "feature": "Map tracking, photo on delivery, real carrier tracking APIs",
+      "tier": "skip",
+      "why": "Requires a real logistics network; the simulated timeline conveys the same UX."
+    },
+    {
+      "feature": "Archive / hide orders",
+      "tier": "skip",
+      "why": "Amazon itself removed archived orders for most users; low value."
+    },
+    {
+      "feature": "Idea Lists, Your Friends, registries (Baby, Wedding), Alexa list sync",
+      "tier": "skip",
+      "why": "Separate product lines; no impact on the core loop."
+    },
+    {
+      "feature": "Review eligibility ($50 in 12 months), moderation queue, Community Guidelines enforcement, helpful votes on reviews",
+      "tier": "skip",
+      "why": "Anti-abuse machinery for a marketplace at scale. The rebuild limits reviewing to signed-in users, one per product, and badges verified buyers. Helpful votes belong to the product page reviews surface if anywhere."
+    },
+    {
+      "feature": "Real refunds / payment reversals, return shipping labels (PDF), drop-off location lookup",
+      "tier": "skip",
+      "why": "No real payments or carriers; mock with status changes, a static list of 3-4 drop-off options and a generated QR code."
+    },
+    {
+      "feature": "Digital orders, Local Store Orders, Amazon Pay tabs, Subscribe & Save",
+      "tier": "skip",
+      "why": "Separate businesses outside the physical-goods shopping loop."
+    },
+    {
+      "feature": "Emails (confirmation, shipped, refund)",
+      "tier": "skip",
+      "why": "Needs deliverability setup; in-app banners and status carry the same information during judging."
+    }
+  ],
+  "better_than_original": [
+    "One primary action per shipment, chosen by state, instead of a stack of 5-6 equal-weight buttons: 'Cancel items' while not shipped, 'Track package' in transit, 'Return or replace' when delivered and eligible, 'Write a review' after the window. Everything else goes in a 'More actions' menu. Amazon's right column makes every order look identical and hides the one thing you came to do.",
+    "Show quantity and unit price on the order card itself. Amazon only shows the order TOTAL, so you must open details to see what an item cost.",
+    "Show the tracking summary inline on the card: 'Out for delivery · Last update 10:14 AM Seattle', with a compact 4-dot progress bar. Most users never need the separate Track page.",
+    "Replace the return-window line with a countdown chip: 'Return by Oct 12 · 28 days left'. It turns amber under 7 days and changes to 'Return window closed' afterwards.",
+    "Search orders instantly as you type, with matched words highlighted, and search all time by default. Amazon reloads the page, and the relationship between the time dropdown and search is confusing.",
+    "Default the time filter to 'All' when the user has fewer than ~20 orders, so the 'past 3 months' default never shows a false empty state; the empty state offers a one-click 'Show all orders'.",
+    "Run the whole return in one page with progressive sections and a live refund summary: refund timing shown for each method side by side ('Gift card balance: within hours of drop-off' vs 'Visa ••1234: 3-5 business days'), fees shown before choosing, no page hops. Confirmation offers QR, 'Add to calendar' for the drop-off-by date, and 'Download'.",
+    "Show exact refund math, including tax, and state plainly why a fee applies ('Return shipping $6.99 because reason is \"No longer needed\"') instead of fees appearing silently.",
+    "Cancel inside a modal on the order, with the reason optional and collapsed, and an instant, unambiguous result ('Cancelled. You won't be charged.'). No separate page, no ambiguous 'requested' state for first-party items.",
+    "Saving to a list is one click with a non-blocking toast ('Saved to Shopping List · Change · View'), replacing Amazon's modal that interrupts shopping. Create a new list inline inside the dropdown (a name field plus Enter) instead of stacking a second modal.",
+    "Treat 'Saved for later' as a system list shown in the Lists rail, so users see all saved intent in one place instead of two parallel concepts.",
+    "On list items, a clear price-change signal ('$29.99 · down $4.01 since you saved it') and bulk actions ('Add selected to cart', 'Move selected').",
+    "Rate directly from the order card: 5 inline stars under a delivered item submit a star-only rating instantly; the headline and text expand afterwards, optionally. The card then shows 'You rated 4★ · Edit'. This raises review volume without Amazon's separate page.",
+    "Put a character counter and autosaved draft on the review form, state 'Only a star rating is required' up front, and show the Verified Purchase badge preview before submitting.",
+    "Accessibility: star ratings as a real radio group ('4 out of 5 stars') with arrow-key support. The ship-to address in a click/focus disclosure instead of a hover-only popover. Visible focus rings, aria-live announcements for add-to-cart/list/cancel toasts, 44px touch targets, link contrast that meets WCAG AA.",
+    "Speed and clutter: no ad carousels or 'Recommended' rails on orders, tracking or return pages; server-rendered order list with skeletons only for slow sections. Order pages become task pages, not merchandising pages.",
+    "Mobile: the card header collapses to one line ('Sep 10 · $42.17 · #112-…' with a copy button for the order number), and a sticky bottom bar carries the state's primary action.",
+    "Contextual help instead of a generic hub: a 'Problem with this order?' link on each order opens the order-specific options (didn't arrive, damaged, wrong item) that route straight into the return or refund flow."
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/gp/css/order-history",
+      "verified": false,
+      "note": "WebFetch returned HTTP 503 (bot-blocked). Order card layout and labels are from memory of Amazon desktop and mobile web in 2024-2026."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GKM69DUUYKQWKWX7",
+      "verified": false,
+      "note": "Amazon Return Policy help page. WebFetch HTTP 503; not read."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GSL37WQTJZUYA9QE",
+      "verified": false,
+      "note": "Cancel Items and Orders help page. WebFetch HTTP 503. A search snippet confirmed: cancel unshipped physical items via Your Orders, 'Choose a reason for the cancellation and select Request cancellation', history under Canceled Orders."
+    },
+    {
+      "url": "https://www.amazon.com.be/-/en/gp/help/customer/display.html?nodeId=GSL37WQTJZUYA9QE",
+      "verified": false,
+      "note": "Mirror also HTTP 503."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GJQCLXZJQKJDPDBW",
+      "verified": false,
+      "note": "Search snippet only: 'select View or edit order. Select Cancel Items. Select the check box next to the item… select Request Cancellation'; 'You won't be charged for cancelled orders'."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GENAFPTNLHV7ZACW",
+      "verified": false,
+      "note": "Tracking your package help page. amazon.com and amazon.sg both HTTP 503. A search snippet confirmed the 'Track Package' button in Your Orders and the 'past three months' filter text."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G8UYX7LALQC8V9KA",
+      "verified": false,
+      "note": "Understanding Customer Reviews and Ratings. Search snippet only: Verified Purchase requires buying on Amazon at a price available to most shoppers."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G5346HRPNJFYRA49",
+      "verified": false,
+      "note": "Leave Seller Feedback help page. Search snippet only: up to 3 days after completion for the button to appear; 90 days from the order date."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GX93M9BCRC8DGGVQ",
+      "verified": false,
+      "note": "Send a Gift Receipt help page. Search snippet only: 'Share gift receipt' in Your Orders; share via email/SMS; download PDF."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/amazon-wish-list",
+      "verified": true,
+      "note": "Fetched. Create lists via Account & Lists → Your Lists and the product page 'Add to List'; settings for shipping address, keep purchased items, spoil surprises; items take comments and priority; 'Invite' button with copy link / 'Email' / 'Text Message'; 'Find a List or Registry'."
+    },
+    {
+      "url": "https://www.makeuseof.com/how-to-use-amazon-lists/",
+      "verified": true,
+      "note": "Fetched. List UI labels: 'Create a List', 'Add to List', 'Move', 'Delete', 'Add comment, quantity, & priority', 'Filter & Sort', 'Add to Cart', 'More', 'Manage List', 'List Name', 'Privacy' Private/Shared/Public, 'Keep purchased items on this list', 'Don't spoil my surprises', 'Default List', 'Delete List', 'Invite', 'Send list to others', 'View Only', 'View and Edit', 'Your Friends', 'Idea List', 'Saved for Later'."
+    },
+    {
+      "url": "https://www.howtogeek.com/229419/how-to-create-and-better-manage-amazon-wish-lists/",
+      "verified": true,
+      "note": "Fetched. Sort by title, price, date added and priority; filter unpurchased, purchased, both, and price drops; Add to Cart / Move / Delete; drag handle and 'Top' reorder (older UI)."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/amazon-customer-reviews-star-ratings",
+      "verified": true,
+      "note": "Fetched. Review steps via Your Orders → 'Write a product review' → 1-5 stars → headline → written review → optional photos/videos → submit; rating weighted by recency and verified purchase; AI review highlights."
+    },
+    {
+      "url": "https://www.goatconsulting.com/merchandising/amazon-product-review-guidelines",
+      "verified": true,
+      "note": "Fetched (third party, 2026). $50 spent in the past 12 months with a credit/debit card; Verified Purchase for non-discounted purchases; prohibited content; reviews appear within a few hours to 72 hours."
+    },
+    {
+      "url": "https://www.online-tech-tips.com/how-to-add-edit-and-see-your-amazon-reviews/",
+      "verified": true,
+      "note": "Fetched. 'Write a Product Review', 'Submit', 'Edit Review', 'Delete Review', and reviews listed under profile Community Activity."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/whole-foods-amazon-returns",
+      "verified": true,
+      "note": "Fetched. 'Return or replace items' → reason → refund type (account credit or original card) → drop-off location ('Whole Foods Dropoff') → QR code scanned at the Pickup & Return desk; refund typically within several hours."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/operations/free-returns-with-no-box-tape-or-label-needed",
+      "verified": true,
+      "note": "Fetched. No box/tape/label returns at FedEx Office, Whole Foods, The UPS Store, Kohl's, Staples, Rent-A-Center and regional partners; QR code flow."
+    },
+    {
+      "url": "https://blog.returnqueen.com/blog/how-to-make-amazon-returns-at-kohls-whole-foods-and-ups/",
+      "verified": true,
+      "note": "Fetched. Return method names 'Kohl's Drop-off', 'UPS Dropoff', 'UPS Pickup'; QR code, no printer needed."
+    },
+    {
+      "url": "https://legalclarity.org/how-to-return-items-to-amazon-drop-off-options-and-refund-timelines/",
+      "verified": true,
+      "note": "Fetched (third party). 30 days from delivery; holiday purchases Nov 1 - Dec 31 returnable through Jan 31; refund timelines by method; occasional ~$1 UPS Store fee; QR code vs printable label."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/track-amazon-package",
+      "verified": true,
+      "note": "Fetched. 'Returns & Orders' nav, 'Track Package', map tracking when ~10 stops away, 'Share Tracking' from the progress tracker page."
+    },
+    {
+      "url": "https://www.howtogeek.com/746805/how-to-give-a-gift-receipt-with-an-amazon-purchase/",
+      "verified": true,
+      "note": "Fetched. 'Share Gift Receipt' order action; share link and 'Download PDF'."
+    },
+    {
+      "url": "https://www.pocket-lint.com/how-to-cancel-amazon-order/",
+      "verified": true,
+      "note": "Fetched. 'Cancel items' → select items → 'Cancel selected items in this order' (older desktop copy); app 'Cancel checked items'; can't cancel after dispatch."
+    },
+    {
+      "url": "https://techcrunch.com/2025/10/02/amazon-now-lets-prime-members-add-items-to-upcoming-orders-with-one-tap",
+      "verified": true,
+      "note": "Fetched. 'Add to today's delivery' button on the product page with 'Undo' (Oct 2025); relevant to order and PDP interplay, not needed for the rebuild."
+    },
+    {
+      "url": "https://sellercentral.amazon.com/seller-forums/discussions/t/1784428ea5287c00e9194f025e6a2fae",
+      "verified": true,
+      "note": "Fetched. The 'Leave Seller Feedback' button was removed from the order list at some point and remains reachable via 'View Order Details' (older post)."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/company-news/contact-amazon-customer-service",
+      "verified": true,
+      "note": "Fetched. Customer Service actions: check order status, refund status, digital content, take care of an issue, device troubleshooting; 24/7 chat or phone."
+    },
+    {
+      "url": "https://designbeep.com/2026/05/07/how-to-hide-amazon-orders-in-2026-what-still-works/",
+      "verified": true,
+      "note": "Fetched but no concrete UI detail beyond 'Returns & Orders' / 'Your Orders'."
+    },
+    {
+      "url": "https://www.technobezz.com/how-to-view-your-amazon-archived-orders",
+      "verified": false,
+      "note": "Search snippet only: time dropdown 'last 30 days', 'past 3 months', specific years; archived orders were folded back into the main list for most users."
+    },
+    {
+      "url": "https://eathealthy365.com/a-guide-to-filtering-your-amazon-order-history/",
+      "verified": false,
+      "note": "HTTP 403."
+    },
+    {
+      "url": "https://www.returnful.com/blog/ultimate-guide-amazon-returns",
+      "verified": true,
+      "note": "Fetched; no screen-level microcopy (only 'Select UPS Store as your drop-off location', 'Get a QR code on your phone')."
+    },
+    {
+      "url": "https://closo.co/blogs/casestudies/how-to-amazon-return-codes-apple-wallet-and-what-i-learned-after-24-returns-in-2025",
+      "verified": true,
+      "note": "Fetched. The return pass shows the QR code, item title, return-by date and drop-off location; 'Add to Apple Wallet'."
+    },
+    {
+      "url": "https://public.destinyhosted.com/hidaldocs/2021/CC/20210427_3794/80437_Req%20432430.pdf",
+      "verified": false,
+      "note": "Scanned Amazon invoice PDF (image-only, not text-readable). Order summary labels 'Item(s) Subtotal / Shipping & Handling / Total before tax / Estimated tax to be collected / Grand Total' were confirmed via the search snippet for this and similar invoices."
+    },
+    {
+      "url": "memory://amazon.com desktop + mobile web, 2024-2026",
+      "verified": false,
+      "note": "From memory: exact tab set, return reason list wording, cancel reason list, Create Review placeholders ('What's most important to know?', 'What did you like or dislike? What did you use this product for?' partly echoed by a search snippet), thank-you copy, validation messages, list modal copy, Customer Service hub tile names, and URL paths such as /your-orders/orders, /progress-tracker/package, /spr/returns/cart, /review/create-review. Validation and empty-state strings are marked approximate in the screens."
+    }
+  ]
+}

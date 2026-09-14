@@ -1,0 +1,1192 @@
+{
+  "area": "product-detail",
+  "screens": [
+    {
+      "name": "Product detail page (PDP): header strip, breadcrumb, image block",
+      "url_pattern": "/dp/{ASIN} | /{title-slug}/dp/{ASIN}/ref={tracking} | /gp/product/{ASIN} | ?th=1&psc=1 (th=1 means show this child variant, psc=1 means the variant was preselected) | canonical for some electronics now /clp/{ASIN} (seen in fetched <head>)",
+      "purpose": "Orient the shopper (where am I, back to results) and let them inspect the product visually.",
+      "layout": "DESKTOP (3 columns above the fold, ~1500px max; image ~40%, center ~35%, buy box ~245px fixed on the right): (1) global header (search, Deliver to, Account & Lists, Cart), (2) sometimes a slim promo/sponsored banner, (3) row with '‹ Back to results' (only when you came from search) on the left and the breadcrumb, (4) LEFT column: vertical thumbnail strip (about 7 image thumbs, ~40px, then a video tile labelled 'N VIDEOS' with a play glyph) next to the main image (~500px); under the main image the hint 'Roll over image to zoom in' ('Click to see full view' when there is no hi-res zoom); a share icon at the top right of the image block. MOBILE WEB: no breadcrumb. Order: brand link + rating row first, then title, then a full-width swipeable image carousel with dot/'1 of 8' indicator, a heart (Add to List) and share icon overlaid top right; no hover zoom; tap opens the full-screen viewer with pinch zoom.",
+      "elements": [
+        "'‹ Back to results' link (back to the search results page, keeping query and scroll)",
+        "Breadcrumb e.g. 'Electronics › Headphones, Earbuds & Accessories › Headphones & Earbuds › Earbud Headphones'; each crumb links to a browse node; small grey 12px text",
+        "Vertical thumbnail strip: image thumbs with 1px grey border; the active one gets an orange/blue focus border",
+        "Video tile: last thumbnail shows 'VIDEO' or '6 VIDEOS' overlay with play icon",
+        "Main image: white background, object-fit contain, ~1:1",
+        "Hover zoom: a lens (grey rectangle with a dotted pattern) over the main image; a zoomed hi-res pane opens OVER the center column at the same height",
+        "Hint text under image: 'Roll over image to zoom in' / 'Click to see full view' / mobile 'Tap image to zoom in'?? (mobile wording from memory, uncertain)",
+        "Share button (arrow-out-of-box icon): popover with 'Copy Link', Email, Pinterest, Facebook, X; after copying: 'Link copied!'",
+        "Sometimes: 'VIEW IN YOUR ROOM' (AR) and '360°' tiles for select furniture/electronics",
+        "Sponsored video ad or 'Sponsored' display ad below the image block on some pages"
+      ],
+      "interactions": [
+        "Hover a thumbnail (desktop): main image swaps immediately on hover, no click needed; click does the same",
+        "Hover the main image: lens follows the cursor, zoom pane shows 2-3x crop; leaving the image closes it",
+        "Click the main image: opens the full-screen image/video modal on the IMAGES tab at the current index",
+        "Click the video tile: opens the modal on the VIDEOS tab and autoplays the first video",
+        "Hover a color swatch in the center column: main image and thumbnail set preview that variant; mouseout reverts to the selected variant",
+        "Mobile: swipe the carousel; double-tap or pinch zooms inside the full-screen viewer"
+      ],
+      "states": [
+        "Loading: server-rendered; main image loads first (LCP) and thumbnails lazy-hydrate. A variant switch dims the center column and buy box with a white translucent overlay and spinner while the twister (variation selector) AJAX loads",
+        "Only one image: no thumbnail strip; zoom still works if hi-res exists",
+        "No hi-res image: no zoom lens; hint changes to 'Click to see full view'",
+        "Image failed: grey placeholder box with a camera glyph",
+        "Signed-out vs signed-in: identical"
+      ],
+      "microcopy": [
+        "‹ Back to results",
+        "Roll over image to zoom in",
+        "Click to see full view",
+        "6 VIDEOS",
+        "Copy Link",
+        "Link copied!"
+      ]
+    },
+    {
+      "name": "PDP center column: title, rating, badges, price block, variations, specs, About this item",
+      "url_pattern": "/dp/{ASIN} (selecting a variant rewrites to /dp/{childASIN}?th=1 or &psc=1)",
+      "purpose": "Answer 'what is it, is it good, what does it cost, which version do I want' in one scannable column.",
+      "layout": "DESKTOP, top to bottom: title (H1, 24px, regular weight) -> 'Visit the Apple Store' link (blue/teal) -> rating row -> badge row ('#1 Best Seller' or 'Amazon's Choice' / 'Overall Pick') -> 'X bought in past month' -> 1px divider -> price block (deal badge, -% + big price, List/Typical price, unit price, coupon, financing, FREE Returns, Prime) -> small tax/extra-savings lines ('Save 5% on 2 select item(s)', 'Extra Savings') -> divider -> variation selectors (one block per dimension: 'Color: Black' label then swatches; 'Size:' buttons or dropdown; 'Style:' tiles) -> compact spec table (4-8 rows, 'See more' expander) -> divider -> 'About this item' bullet list -> '› See more product details' link -> 'Report an issue with this product or seller' link. MOBILE: brand link and rating row sit ABOVE the title and image; after the image: price block, then variations as horizontal-scroll swatch rows (a swatch may show a price underneath), then the buy box content inline (delivery, stock, qty, Add to Cart, Buy Now), then 'About this item' collapsed to the first 3-5 bullets with 'See more', then 'Product details' accordion.",
+      "elements": [
+        "Title H1 (the full seller title, often 150-200 chars)",
+        "Brand link: 'Visit the {Brand} Store' (links to /stores/{Brand}/page/{id}); for books 'by {Author} (Author)'; for non-store brands 'Brand: {Brand}'",
+        "Rating row (current format): '4.7' + 5-star glyphs + '(62,345)' count link + ' | Search this page'. Older/other format: '62,345 ratings' and '| 1,000+ answered questions'",
+        "Star hover popover (desktop): '4.7 out of 5', '62,345 global ratings', 5 histogram rows '5 star 80%'... , 'How are ratings calculated?', 'See customer reviews ›'",
+        "Badges: orange '#1 Best Seller' tag followed by 'in Earbud Headphones' category link; dark navy 'Amazon's Choice' tag (newer: 'Overall Pick', 'Amazon's Choice: Overall Pick'); hover explains 'Amazon's Choice highlights highly rated, well-priced products available to ship immediately.'",
+        "Social proof: '10K+ bought in past month' (bucketed 50+, 100+, 500+, 1K+, 5K+, 10K+; only shown above ~50 sales in 30 days, excludes returns)",
+        "Deal badge: red pill 'Limited time deal' / 'Prime Big Deal' / 'Deal' with an optional countdown 'Ends in 05:12:33'",
+        "Price: red '-24%' then price rendered as superscript '$' + large whole '189' + superscript '99' (no visible decimal point); screen-reader text '$189.99'",
+        "Reference price: 'List Price: $249.00' strikethrough + (i) popover ('The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller...') OR 'Typical price: $199.00' strikethrough + (i) popover (90-day median price paid on Amazon); 'Was Price' for deals",
+        "Unit price next to price: '($0.25 / Count)' or '($1.33 / Ounce)'",
+        "Coupon row: green 'Coupon:' label, checkbox-style button 'Apply $10 coupon' or 'Apply 15% coupon', then '| Terms'. After apply: 'Coupon applied' with green check; some pages show 'Save 15% with coupon (some sizes/colors)'",
+        "Financing: 'Or $47.50 /mo (4 mo). Select from 1 plan' or Affirm 'Pay $15.83/mo for 12 months...'; a Prime Visa gift card upsell line",
+        "'FREE Returns' link with chevron: popover 'Return this item for free' + steps '1. Go to your orders and start the return 2. Select your preferred free shipping option 3. Drop off and leave!'",
+        "Prime logo check + 'One-Day' / 'Overnight' / 'Same-Day' where eligible",
+        "'Available at a lower price from other sellers that may not offer free Prime shipping.'",
+        "Variation dimension label: 'Color: Black' (bold dimension name, selected value in normal weight); 'Size: Medium' + 'Size Chart' link (apparel)",
+        "Color swatches: 38-50px image thumbs; selected = 2px orange/teal border; hover preview; unavailable = dashed border with the image greyed and diagonal strike; 2024+ twister shows price or 'See available options' under each swatch",
+        "Size buttons: text tiles ('S','M','L' or '256GB'); selected = dark border + light blue/teal fill; unavailable = greyed text with dashed/grey border (still clickable, leads to 'Currently unavailable')",
+        "Style/Configuration dropdown: 'Select' native-styled dropdown with options like 'AirPods Pro 2 - USB-C'; unavailable options greyed with 'Currently unavailable'",
+        "Compact spec table (grey bold key | value): e.g. 'Brand | Apple', 'Model Name | AirPods Pro 2', 'Color | White', 'Form Factor | In Ear', 'Connectivity Technology | Wireless'; '⌄ See more' expands",
+        "'About this item' H3 + 5-7 bullets (seller-written, often a bold ALL-CAPS lead-in); '› See more product details' anchor to Product information",
+        "Climate Pledge Friendly, 'Small Business' or 'Frequently returned item' notices (the last one is a warning chip telling you to check the size chart / product details)",
+        "'Report an issue with this product or seller' link at the end of the column"
+      ],
+      "interactions": [
+        "Click the rating stars or count: smooth-scroll to the #customerReviews anchor on the page (not a navigation)",
+        "Hover the stars (desktop): histogram popover as above",
+        "Click 'Search this page': scroll to and focus 'Looking for specific info?'",
+        "Click the category after '#1 Best Seller': go to /gp/bestsellers/{category}",
+        "Click 'Apply $10 coupon': signed in, it toggles to 'Coupon applied' in place (AJAX); signed out, it redirects to sign-in and returns",
+        "Click (i) next to List Price or Typical price: popover definition",
+        "Hover a swatch: preview image and price; click selects it: URL changes to the child ASIN, and price, stock, delivery, images, title and bullets all update (partial reload with a dimming overlay)",
+        "Select a combo that doesn't exist (e.g. Blue + XL): selector stays, buy box shows 'Currently unavailable.' (or 'See available options'), Add to Cart disappears",
+        "Apparel with no size chosen: buy box shows 'To buy, select Size' in place of the buttons",
+        "'See more' in the spec table expands in place; label changes to '⌃ See less'"
+      ],
+      "states": [
+        "Deal active: red deal badge + '-X%' + reference price",
+        "No deal: just the price, no strike price and no '%'",
+        "Price hidden (MAP): 'To see our price, add this item to your cart.' plus 'Why don't we show the price?'",
+        "Price range for a parent with no variant selected: '$19.99 - $34.99'",
+        "No reviews yet: rating row hidden, or 'Be the first to review this item'",
+        "Out of stock / unavailable: the price block often disappears entirely; center column keeps title, images, bullets",
+        "Loading on variant switch: center column content at ~50% opacity with a spinner",
+        "Signed-out: same content; coupon click leads to sign-in; Prime-exclusive price line shows 'Join Prime to buy this item at $X'"
+      ],
+      "microcopy": [
+        "Visit the Apple Store",
+        "4.7 out of 5",
+        "62,345 global ratings",
+        "#1 Best Seller in Earbud Headphones",
+        "Amazon's Choice",
+        "10K+ bought in past month",
+        "Limited time deal",
+        "-24%",
+        "List Price: $249.00",
+        "Typical price: $199.00",
+        "($0.25 / Count)",
+        "Apply $10 coupon | Terms",
+        "Coupon applied",
+        "FREE Returns",
+        "Color: Black",
+        "Size: Medium",
+        "Size Chart",
+        "To buy, select Size",
+        "About this item",
+        "See more product details",
+        "Report an issue with this product or seller"
+      ]
+    },
+    {
+      "name": "PDP buy box (right rail)",
+      "url_pattern": "/dp/{ASIN} (right column; inline on mobile). 'Other sellers' opens ?aod=1 as a side sheet",
+      "purpose": "Turn intent into a cart or order: delivery certainty, stock, quantity, primary CTAs, trust rows.",
+      "layout": "DESKTOP: bordered rounded card (1px #D5D9D9, 8px radius, ~245px wide), top to bottom: (optional 'Buy new:' / 'Save with Used' radio accordions) -> price (repeated, medium size) -> Prime logo -> delivery block (standard free date, then 'Or fastest delivery' / Prime line with countdown) -> 'Deliver to' location line -> stock text (large green/red) -> 'Quantity:' dropdown -> yellow 'Add to Cart' pill -> orange 'Buy Now' pill -> trust table (Ships from / Sold by / Returns / Payment / Support, 'See more' expander) -> optional protection plan checkboxes -> 'Add a gift receipt for easy returns' checkbox -> divider -> 'Add to List' split button -> separate card 'Other sellers on Amazon' -> 'Have one to sell? Sell on Amazon' -> sponsored ad. The buy box does NOT stick on scroll. MOBILE: same blocks inline under price/variations, full-width buttons (Add to Cart above Buy Now); 'Add to List' is the heart on the image; a sticky bottom Add to Cart bar shows in some categories after scrolling past (uncertain).",
+      "elements": [
+        "Price: '$189.99' in superscript format",
+        "Delivery (non-Prime or signed-out): 'FREE delivery Tuesday, September 16 on orders shipped by Amazon over $35' or '$6.99 delivery Tuesday, September 16'; date in bold; 'Details' link popover",
+        "Delivery (Prime, signed-in): 'FREE delivery Tomorrow, September 15. Order within 5 hrs 30 mins' (countdown in green) and 'Or fastest delivery Today 4 PM - 8 PM. Order within 2 hrs 10 mins'",
+        "Prime upsell for non-Prime: 'Or Prime members get FREE delivery Tomorrow, September 15. Order within 5 hrs 30 mins. Join Prime'",
+        "Location line: pin icon + 'Deliver to Mikey - Brooklyn 11201' (signed-in); signed-out: 'Delivering to Ashburn 20147 - Update location' (IP-based)",
+        "Stock text: green 'In Stock' | red 'Only 3 left in stock - order soon.' | 'Only 1 left in stock (more on the way).' | 'Usually ships within 2 to 3 days.' | 'Temporarily out of stock.' | red 'Currently unavailable.'",
+        "Quantity selector: 'Quantity: 1 ⌄' pill (native select); options 1..min(stock, purchase limit, 30); some items add 'Limit 2 per customer'",
+        "'Add to Cart' button: #FFD814 yellow, full-width pill, 32-36px tall",
+        "'Buy Now' button: #FFA41C orange, full-width pill",
+        "Trust table (2 columns, small grey keys): 'Ships from | Amazon', 'Sold by | Amazon' (or seller name link), 'Returns | 30-day refund/replacement' (link), 'Payment | Secure transaction' (link), 'Support | Product support included', 'Packaging | Ships in product packaging', 'Gift options | Available at checkout'; '⌄ See more'",
+        "Returns popover: 'Eligible for Return, Refund or Replacement within 30 days of receipt' + 'Read full return policy'",
+        "Payment popover: 'Your transaction is secure. We work hard to protect your security and privacy. Our payment security system encrypts your information during transmission. We don't share your credit card details with third-party sellers, and we don't sell your information to others. Learn more'",
+        "Protection plan: 'Add a Protection Plan:' checkboxes '3-Year Protection for $19.99' / '4-Year Protection for $26.99'",
+        "Checkbox: 'Add a gift receipt for easy returns'",
+        "'Add to List' split button (white pill with ⌄); dropdown lists the user's lists ('Shopping List', 'Wish List', ...) + 'Create another list'",
+        "Used offer accordion: 'Save with Used - Very Good $149.00' + delivery + 'Ships from: Amazon Sold by: Amazon Resale'",
+        "'Other sellers on Amazon' card: 'New & Used (37) from $149.00' + '& FREE Shipping' or per-offer mini rows with an 'Add to Cart' button each",
+        "'Have one to sell?' + 'Sell on Amazon' button"
+      ],
+      "interactions": [
+        "Click 'Deliver to' line: opens the 'Choose your location' modal (see screen)",
+        "Change Quantity: purely local, no reload",
+        "Click 'Add to Cart': POSTs and then either (a) opens an 'Added to Cart' side sheet from the right on the PDP, or (b) navigates to the /cart/smart-wagon 'Added to Cart' page; protection-plan items can show an 'Add to your order' interstitial first ('No thanks' / 'Add protection'). Header cart count increments",
+        "Click 'Buy Now' (signed-out): redirects to /ap/signin with return_to; after sign-in lands in checkout with this item only (the cart is not changed)",
+        "Click 'Buy Now' (signed-in): goes to checkout for just this item; 1-click eligible accounts get a 'Turbo checkout' modal over the PDP ('Deliver to', 'Pay with', total, 'Place your order')",
+        "Click 'Add to List' main part: adds to the default list, then popover '1 item added to Shopping List' + 'View Your List' / 'Continue shopping'; signed-out goes to sign-in",
+        "Click the 'Add to List' chevron: dropdown of lists; 'Create another list' opens a modal with 'List name' input + 'Create List'",
+        "Click 'New & Used (37) from $149.00': opens the 'Other sellers' side sheet",
+        "Tick the gift receipt checkbox: just carried into the cart line"
+      ],
+      "states": [
+        "In stock: all CTAs visible",
+        "Low stock (<=~20): 'Only N left in stock - order soon.' in red; qty dropdown capped at N",
+        "Backorder: 'Temporarily out of stock. We are working hard to be back in stock. Place your order and we'll email you when we have an estimated delivery date. You won't be charged until the item ships.' CTAs remain",
+        "Currently unavailable (no featured offer): buy box shows only 'Currently unavailable. We don't know when or if this item will be back in stock.' + 'Add to List'; price, delivery, qty and CTAs removed; sometimes 'See All Buying Options' button if other sellers exist",
+        "No Buy Box winner but offers exist: price omitted; grey/white 'See All Buying Options' button opens the side sheet",
+        "Undeliverable location: 'This item cannot be shipped to your selected delivery location. Please choose a different delivery location.' and 'Add to Cart' stays but checkout would fail",
+        "Pre-order: 'This title will be released on October 3, 2026.' and the yellow button reads 'Pre-order Now'; 'Pre-order Price Guarantee'",
+        "Variant incomplete (apparel): 'To buy, select Size' with no buttons",
+        "Signed-out: geo-IP location, non-Prime delivery copy with 'Join Prime', 'Add to Cart' works as a guest cart, 'Buy Now'/'Add to List' require sign-in",
+        "Add-to-cart failure: 'There was a problem adding this item to Cart. Please try again.'"
+      ],
+      "microcopy": [
+        "FREE delivery Tuesday, September 16",
+        "Or fastest delivery Tomorrow, September 15",
+        "Order within 5 hrs 30 mins",
+        "Deliver to Mikey - Brooklyn 11201",
+        "Delivering to Ashburn 20147 - Update location",
+        "In Stock",
+        "Only 3 left in stock - order soon.",
+        "Temporarily out of stock.",
+        "Currently unavailable.",
+        "We don't know when or if this item will be back in stock.",
+        "Quantity: 1",
+        "Add to Cart",
+        "Buy Now",
+        "Ships from",
+        "Sold by",
+        "Returns",
+        "30-day refund/replacement",
+        "Payment",
+        "Secure transaction",
+        "Add a gift receipt for easy returns",
+        "Add to List",
+        "Other sellers on Amazon",
+        "New & Used (37) from $149.00",
+        "See All Buying Options",
+        "Have one to sell?",
+        "Sell on Amazon"
+      ]
+    },
+    {
+      "name": "Choose your location modal",
+      "url_pattern": "modal over /dp/{ASIN} (same component as the header 'Deliver to')",
+      "purpose": "Set the delivery zip so the delivery date and availability are accurate.",
+      "layout": "Centered ~375px modal with dark overlay: header bar 'Choose your location' + ×; subtext; signed-in shows address cards (radio-like, selected has teal border) + 'Manage address book' link; signed-out shows a yellow 'Sign in to see your addresses' button; divider 'or enter a US zip code'; zip input + 'Apply' button; divider 'or ship outside the US' + country dropdown; 'Done' button bottom right. Mobile: bottom sheet.",
+      "elements": [
+        "Title 'Choose your location'",
+        "Subtext 'Delivery options and delivery speeds may vary for different locations'",
+        "Address cards: bold name + street, city, zip; 'Default address' tag",
+        "'Manage address book' link",
+        "'Sign in to see your addresses' button (signed-out)",
+        "Zip input (5 digits) + 'Apply' button",
+        "'or ship outside the US' select",
+        "'Done' button"
+      ],
+      "interactions": [
+        "Click an address card: selects it; modal closes and the page reloads delivery info",
+        "Type a zip + Apply: validates; on success modal shows 'Deliver to {City} {zip}' then 'Continue'/'Done' and the page refreshes delivery estimates",
+        "Esc / × / overlay click closes without change"
+      ],
+      "states": [
+        "Invalid zip: red inline 'Please enter a valid US zip code'",
+        "Loading: Apply button spinner",
+        "Signed-out vs signed-in as above"
+      ],
+      "microcopy": [
+        "Choose your location",
+        "Delivery options and delivery speeds may vary for different locations",
+        "Sign in to see your addresses",
+        "or enter a US zip code",
+        "Apply",
+        "Please enter a valid US zip code",
+        "Done"
+      ]
+    },
+    {
+      "name": "Full-screen image / video modal (image immersive view)",
+      "url_pattern": "modal over /dp/{ASIN}",
+      "purpose": "Inspect media at large size.",
+      "layout": "DESKTOP: near-full-viewport white modal; top-left tabs 'VIDEOS' | 'IMAGES' (active tab underlined orange); × top right; left/center large image (click toggles zoom); right side: product title (small) + grid of image thumbnails (4 per row), with the variant name for color sets. VIDEOS tab: large player + right column list 'Videos for this product' (with a 'Merchant video' / creator attribution) and 'Related videos' + 'Upload your video' link. MOBILE: black full-screen viewer, swipe between images, pinch zoom, × top left, thumbnail row at bottom.",
+      "elements": [
+        "Tabs 'VIDEOS' / 'IMAGES'",
+        "Large image with click-to-zoom cursor (magnifier +/-)",
+        "Thumbnail grid",
+        "Close ×",
+        "Video player with duration badge per list item, 'Merchant video' or influencer name",
+        "'Upload your video' link"
+      ],
+      "interactions": [
+        "Click thumbnail: swaps large image",
+        "Click large image: zooms to cursor point, drag/move pans; click again zooms out",
+        "Arrow keys: previous/next (desktop, partially supported)",
+        "Esc or ×: close and go back to the PDP at the same scroll position"
+      ],
+      "states": [
+        "No videos: VIDEOS tab hidden",
+        "Video loading: black box with spinner"
+      ],
+      "microcopy": [
+        "VIDEOS",
+        "IMAGES",
+        "Videos for this product",
+        "Related videos",
+        "Upload your video"
+      ]
+    },
+    {
+      "name": "Other sellers side sheet (All Offers Display, AOD)",
+      "url_pattern": "/dp/{ASIN}?aod=1 (replaced old /gp/offer-listing/{ASIN} page)",
+      "purpose": "Compare every offer (new/used, sellers, delivery) and add a specific one to the cart.",
+      "layout": "Right-side sheet ~475px, full height, slides in over a dimmed page: header with product thumb + title + variant + '×'; 'Filter' button with active filter count; pinned offer (the buy box offer) at top in a box; then offers sorted by price + delivery. Each offer row: price (with savings), delivery line, 'Ships from', 'Sold by' (seller link + '(4.8 out of 5 stars) 97% positive over last 12 months'), Condition ('New', 'Used - Like New' + condition note 'Read more'), Returns, quantity dropdown + small yellow 'Add to Cart'. Mobile: full-screen sheet.",
+      "elements": [
+        "Header 'Other sellers on Amazon' (or product title)",
+        "'Filter' button -> checkboxes 'Prime', 'Free shipping', Condition 'New', 'Used - Like New', 'Used - Very Good', 'Used - Good', 'Used - Acceptable'",
+        "Pinned offer block",
+        "Offer rows as described",
+        "'Show more offers' / infinite scroll"
+      ],
+      "interactions": [
+        "Add to Cart on an offer: button turns into 'Added' with a check + cart count updates, sheet stays open",
+        "Seller name: seller profile page",
+        "× / Esc / overlay click closes"
+      ],
+      "states": [
+        "Filter with zero matches: 'No offers match your filters' (approx)",
+        "Loading: skeleton rows",
+        "Offer sold out while open: 'This offer is no longer available'"
+      ],
+      "microcopy": [
+        "Other sellers on Amazon",
+        "Filter",
+        "Ships from",
+        "Sold by",
+        "Condition",
+        "New",
+        "Used - Like New",
+        "97% positive over last 12 months",
+        "Add to Cart"
+      ]
+    },
+    {
+      "name": "Added to Cart confirmation (side sheet or smart-wagon page)",
+      "url_pattern": "side sheet on /dp/{ASIN}, or /cart/smart-wagon?newItems={id},{qty}",
+      "purpose": "Confirm the add and push to checkout or continue shopping (with upsells).",
+      "layout": "Side sheet version: from the right, green check 'Added to cart', thumb, 'Cart subtotal: $189.99', yellow 'Proceed to checkout (1 item)', white 'Go to Cart', then 'Frequently bought with {item}' mini cards with small 'Add to Cart'. Page version: top card with green check + thumb + 'Added to Cart', right card 'Cart subtotal (2 items): $199.98' + 'Proceed to checkout (2 items)' + 'Go to Cart'; below, carousels 'Customers who bought {item} also bought' and sponsored.",
+      "elements": [
+        "Green check + 'Added to cart'",
+        "'Cart subtotal (N items): $X'",
+        "'Proceed to checkout (N items)'",
+        "'Go to Cart'",
+        "Upsell carousel with 'Add to Cart' buttons"
+      ],
+      "interactions": [
+        "Proceed to checkout -> sign-in if needed -> checkout",
+        "Go to Cart -> /cart",
+        "Close sheet (×) -> back to PDP"
+      ],
+      "states": [
+        "Protection-plan interstitial before confirmation: 'Add to your order' + plan options + 'No thanks' / 'Add protection'",
+        "Quantity clipped: 'This seller has a limit of 2 per customer. To see if more are available from another seller, go to the product detail page.'"
+      ],
+      "microcopy": [
+        "Added to cart",
+        "Cart subtotal (1 item): $189.99",
+        "Proceed to checkout (1 item)",
+        "Go to Cart",
+        "No thanks"
+      ]
+    },
+    {
+      "name": "PDP below the fold: bundles, carousels, comparison, product information, description, page search",
+      "url_pattern": "/dp/{ASIN} (anchors #productDetails, #productDescription, #customerReviews)",
+      "purpose": "Cross-sell, and give the detail a shopper needs to decide (specs, description, comparison).",
+      "layout": "Full width, stacked, each section separated by a 1px divider (order varies by category; typical electronics order): (1) 'Frequently bought together' (2) 'Products related to this item' Sponsored carousel (3) 'Compare with similar items' table (sometimes higher) (4) 'Product information' (two-column tables: 'Technical Details' left, 'Additional Information' + 'Warranty & Support' + 'Feedback' right; apparel/books use a single 'Product details' bullet list; 2024+ variant uses collapsible accordions 'Item details', 'Measurements', 'Features & Specs', 'Style') (5) 'Videos' strip (6) 'Product Description' and/or 'From the brand' / 'From the manufacturer' A+ image modules (7) 'Looking for specific info?' (8) Customer reviews (9) 'Customers who viewed this item also viewed' / 'Customers who bought this item also bought' carousels (10) more sponsored carousels (11) 'Your Browsing History' strip (12) signed-out sign-in widget + footer. MOBILE: same order, sections collapsed into accordions ('Product details', 'Product description'), carousels horizontally swipeable, compare table scrolls sideways.",
+      "elements": [
+        "FBT: 2-3 product images joined with '+'; then per-item checkboxes: 'This item: {title} ... $189.99', '{title} $9.99' (title links); 'Total price: $219.97'; yellow 'Add all 3 to Cart' (2 items: 'Add both to Cart'; unchecking changes the count and total live); 'Some of these items ship sooner than the others. Show details' (expands per-item delivery). 2024+ version: horizontal cards each with a checkbox, star rating and price",
+        "Sponsored carousel: heading 'Products related to this item' + 'Sponsored' (i); cards with image, 2-3 line title, stars + count, price, Prime; 'Page 1 of 20' + ‹ › arrows + 'Start over'",
+        "Compare table: heading 'Compare with similar items'; first column 'This Item' (highlighted) + 4-5 competitors; rows: image + title, 'Add to Cart' buttons, 'Price', 'Delivery', 'Customer Ratings' (stars + count), 'Sold By', then category attributes (e.g. 'Noise Control', 'Battery Life', 'Connectivity Technology'); some pages have a 'Show only differences' toggle",
+        "Technical Details table (grey header cells): Brand, Model Name, Color, Form Factor, Connectivity Technology, Special Feature, Included Components, Battery Life, Item Weight ...",
+        "Additional Information table: 'ASIN', 'Customer Reviews' (stars + '62,345 ratings' + '4.7 out of 5 stars'), 'Best Sellers Rank' ('#1 in Electronics (See Top 100 in Electronics)' + '#1 in Earbud & In-Ear Headphones'), 'Date First Available' ('September 22, 2023'), 'Manufacturer', 'Item model number'",
+        "'Warranty & Support' text and 'Feedback' link: 'Would you like to tell us about a lower price?'",
+        "'Product Description' H2 + paragraph text; A+ content full-width image+text modules",
+        "'Looking for specific info?' H2 + search input (placeholder 'Search in reviews, Q&A...') + magnifier; results show matching review snippets with the term bolded; newer builds show AI answer + suggested questions (Rufus, renamed Alexa for Shopping in the US May 2026)",
+        "'Customers who viewed this item also viewed' carousel (same card format, no Sponsored label)",
+        "'Your Browsing History' strip: recent items, heading link 'View or edit your browsing history ›'; paginated 'Page 1 of 3'",
+        "Signed-out widget: 'See personalized recommendations' + yellow 'Sign in' + 'New customer? Start here.'",
+        "'Back to top' dark bar above the footer"
+      ],
+      "interactions": [
+        "FBT checkbox toggle: updates the image row (unchecked item fades), total price and button label live; 'Add all 3 to Cart' adds all checked items and shows the confirmation",
+        "Carousel arrows: page by the visible count; keyboard focusable; mobile swipe",
+        "Compare 'Add to Cart': adds that item",
+        "'Looking for specific info?' submit: results expand in place under the box; 'See all results' link",
+        "Browsing history 'View or edit' -> /gp/history (remove items, 'Manage history', turn history off)"
+      ],
+      "states": [
+        "FBT hidden when there's no co-purchase data or the item is unavailable",
+        "Compare table hidden for categories without comparable attributes",
+        "Browsing history empty (first visit): strip hidden, or on /gp/history 'After viewing product detail pages, look here to find an easy way to navigate back to pages you are interested in.'",
+        "Below-fold carousels lazy-load on scroll with grey card placeholders"
+      ],
+      "microcopy": [
+        "Frequently bought together",
+        "This item:",
+        "Total price:",
+        "Add all 3 to Cart",
+        "Add both to Cart",
+        "Some of these items ship sooner than the others.",
+        "Show details",
+        "Products related to this item",
+        "Sponsored",
+        "Page 1 of 20",
+        "Start over",
+        "Compare with similar items",
+        "This Item",
+        "Product information",
+        "Technical Details",
+        "Additional Information",
+        "Best Sellers Rank",
+        "(See Top 100 in Electronics)",
+        "Date First Available",
+        "Would you like to tell us about a lower price?",
+        "Product Description",
+        "From the manufacturer",
+        "Looking for specific info?",
+        "Customers who viewed this item also viewed",
+        "Your Browsing History",
+        "View or edit your browsing history",
+        "See personalized recommendations",
+        "New customer? Start here.",
+        "Back to top"
+      ]
+    },
+    {
+      "name": "PDP Customer reviews section",
+      "url_pattern": "/dp/{ASIN}#customerReviews",
+      "purpose": "Social proof: summary rating, distribution, AI summary, and the most helpful reviews.",
+      "layout": "DESKTOP two columns: LEFT (~30%, sticky-ish): 'Customer reviews' H2, 5 stars + '4.7 out of 5', '62,345 global ratings', histogram (5 rows: '5 star' link | horizontal bar (orange fill on grey track, rounded) | '80%'), '⌄ How are ratings calculated?' expander, divider, 'Review this product' H3, 'Share your thoughts with other customers', white pill 'Write a customer review', then sometimes a sponsored ad. RIGHT (~70%): 'Customers say' block (paragraph + 'Generated from the text of customer reviews' with AI icon) -> 'Select to learn more' + aspect chips -> 'Reviews with images' strip + 'See all photos ›' -> 'Top reviews from the United States' H3 (optional sort/filter dropdown 'Top reviews') -> ~8 review cards -> bold link 'See more reviews ›' -> 'Top reviews from other countries' + 'Translate all reviews to English'. MOBILE: single column: summary + histogram, then Customers say chips, then photos strip, then reviews, then 'See more reviews' full-width button; 'Write a customer review' at the end.",
+      "elements": [
+        "Summary: large stars, '4.7 out of 5', '62,345 global ratings'",
+        "Histogram rows '5 star 80%', '4 star 12%', '3 star 4%', '2 star 1%', '1 star 3%' (each row is a link)",
+        "'How are ratings calculated?' expanded text: 'To calculate the overall star rating and percentage breakdown by star, we don't use a simple average. Instead, our system considers things like how recent a review is and if the reviewer bought the item on Amazon. It also analyzes reviews to verify trustworthiness.'",
+        "'Review this product' / 'Share your thoughts with other customers' / 'Write a customer review'",
+        "'Customers say' paragraph (positives, then mixed/negatives)",
+        "'Generated from the text of customer reviews' AI attribution",
+        "'Select to learn more' + aspect chips: green check = mostly positive, orange minus = mostly negative, grey/no icon = mixed (e.g. '✓ Sound quality', '✓ Noise cancellation', '− Fit', 'Battery life')",
+        "Expanded chip panel: 'Customers find the sound quality...' summary, '142 customers mention \"sound quality\"', '130 positive', '12 negative' (toggle buttons), 2-4 review snippets with the phrase bolded + reviewer name + 'Read more'",
+        "'Reviews with images' horizontal strip of square thumbs + 'See all photos ›'",
+        "Review card: circular avatar (default grey silhouette) + display name; star glyphs + bold headline (link to the single review /gp/customer-reviews/{id}); 'Reviewed in the United States on September 3, 2026'; variant line 'Color: White | Style: AirPods Pro 2' (link); orange/brown bold 'Verified Purchase'; optional 'Vine Customer Review of Free Product'; body (truncated around 8 lines with 'Read more' / 'Read less'); image thumbs; '1,234 people found this helpful' ('One person found this helpful'); 'Helpful' white pill button; '|' ; 'Report' link",
+        "'See more reviews ›' link",
+        "'Top reviews from other countries' with 'Translate review to English' per card"
+      ],
+      "interactions": [
+        "Click a histogram row: filters the review list inline on the PDP ('Showing reviews with 5 stars' + 'Clear filter') in newer builds, or navigates to /product-reviews/{ASIN}?filterByStar=five_star",
+        "Click an aspect chip: expands the panel below the chips (only one open at a time); click the positive/negative counts to switch snippets; chip gets a selected outline",
+        "Click a photo in 'Reviews with images': opens a review image modal (large image left; that review's stars, headline, body, 'Helpful' on the right; ‹ › through all review images)",
+        "'Read more': expands inline",
+        "'Helpful' signed-in: button disappears and text shows green check 'Thank you for your feedback.'; count doesn't change instantly. Signed-out: redirects to sign-in",
+        "'Report': signed-in opens a small 'Report' modal/page (reasons like off-topic, inappropriate, fake; then 'Report') and confirms 'Thanks for letting us know. We'll look into it.' (exact reason labels uncertain); signed-out goes to sign-in",
+        "'Write a customer review': signed-out -> sign-in; signed-in -> /review/create-review?asin={ASIN}",
+        "'See more reviews': /product-reviews/{ASIN}/ref=cm_cr_dp_d_show_all_btm?ie=UTF8&reviewerType=all_reviews"
+      ],
+      "states": [
+        "No ratings: 'No customer reviews' + 'There are 0 customer reviews and 0 customer ratings.' + 'Review this product'",
+        "Ratings but no written reviews: histogram shown, 'No customer reviews' list text, no 'See more reviews'",
+        "Few reviews: Customers say, aspect chips and image strip hidden (need enough volume)",
+        "Filter with no matches: 'Sorry, no reviews match your current selections.' + 'Clear filter'",
+        "Signed-out: only about 8 top reviews visible, 'See more reviews' requires sign-in; in a mid-2026 test, logged-out sessions saw 'Customer reviews require account verification. Sign in.' in place of review text while histogram and Customers say stayed visible",
+        "Helpful vote error: 'Sorry, we failed to record your vote. Please try again.'",
+        "Lazy load: reviews render server-side, the image strip lazy-loads"
+      ],
+      "microcopy": [
+        "Customer reviews",
+        "4.7 out of 5",
+        "62,345 global ratings",
+        "How are ratings calculated?",
+        "Review this product",
+        "Share your thoughts with other customers",
+        "Write a customer review",
+        "Customers say",
+        "Generated from the text of customer reviews",
+        "Select to learn more",
+        "Reviews with images",
+        "See all photos",
+        "Top reviews from the United States",
+        "Reviewed in the United States on September 3, 2026",
+        "Verified Purchase",
+        "Read more",
+        "1,234 people found this helpful",
+        "One person found this helpful",
+        "Helpful",
+        "Report",
+        "Thank you for your feedback.",
+        "See more reviews",
+        "Top reviews from other countries",
+        "Translate all reviews to English"
+      ]
+    },
+    {
+      "name": "All reviews page",
+      "url_pattern": "/product-reviews/{ASIN}?reviewerType=all_reviews|avp_only_reviews&filterByStar=all_stars|five_star|four_star|three_star|two_star|one_star|positive|critical&sortBy=helpful|recent&mediaType=all_contents|media_reviews_only&formatType=all_formats|current_format&filterByKeyword={q}&pageNumber={n}",
+      "purpose": "Deep review research: filter by star, verified purchase, media, variant, keyword; sort by helpful or recent.",
+      "layout": "DESKTOP two columns: LEFT (~25%): product thumbnail + title link + 'by {Brand}', stars summary '4.7 out of 5', '62,345 global ratings', clickable histogram, 'How are ratings calculated?', 'Review this product' + 'Write a customer review'. RIGHT: 'Customers say' block + chips at top; older builds show 'Top positive review' vs 'Top critical review' side by side with 'See all 4,321 positive reviews ›' / 'See all 612 critical reviews ›'; then a search row ('Search customer reviews' input + 'Search' button); then filter row 'Filter by' with dropdowns (stars | reviewer type | format | media type) + 'Sort by' dropdown; then status line 'FILTERED BY' chips + 'Clear filter' and '1,234 total ratings, 456 with reviews'; review cards (same as PDP) ~10 per page; pagination '← Previous page' / 'Next page →' (some builds use a 'Show 10 more reviews' button). MOBILE: single column; 'Filter' + 'Sort' buttons open bottom sheets; histogram at top.",
+      "elements": [
+        "Star filter dropdown: 'All stars', '5 star only', '4 star only', '3 star only', '2 star only', '1 star only', 'All positive', 'All critical'",
+        "Reviewer type dropdown: 'All reviewers', 'Verified purchase only'",
+        "Format dropdown: 'All formats', '{Current variant e.g. Color: White}' (only for variation families)",
+        "Media dropdown: 'Text, image, video', 'Image and video reviews only'",
+        "Sort dropdown: 'Top reviews', 'Most recent'",
+        "Search input placeholder 'Search customer reviews' + 'Search' button",
+        "Status: '1,234 total ratings, 456 with reviews' and 'FILTERED BY' + filter labels + 'Clear filter'",
+        "Review cards with 'Helpful' / 'Report'",
+        "Pagination buttons"
+      ],
+      "interactions": [
+        "Changing any dropdown reloads the list via AJAX and resets to page 1; URL params update",
+        "Search: filters by keyword, highlights the term; 'Clear filter' resets",
+        "Clicking a histogram row = star filter",
+        "Next/Previous page: loads the next 10 and scrolls to the top of the list"
+      ],
+      "states": [
+        "Signed-out: redirects to /ap/signin (since late 2024 many sessions require sign-in to page past the PDP reviews)",
+        "No matches: 'Sorry, no reviews match your current selections. Try clearing or changing some filters.' + 'Show all reviews'",
+        "Loading: list dims with a spinner overlay",
+        "Last page: 'Next page' disabled (grey)"
+      ],
+      "microcopy": [
+        "Search customer reviews",
+        "Filter by",
+        "All stars",
+        "All positive",
+        "All critical",
+        "All reviewers",
+        "Verified purchase only",
+        "All formats",
+        "Text, image, video",
+        "Image and video reviews only",
+        "Sort by",
+        "Top reviews",
+        "Most recent",
+        "FILTERED BY",
+        "Clear filter",
+        "total ratings",
+        "with reviews",
+        "Previous page",
+        "Next page"
+      ]
+    },
+    {
+      "name": "Write a customer review",
+      "url_pattern": "/review/create-review?asin={ASIN}",
+      "purpose": "Let buyers leave a star rating, headline, text and media.",
+      "layout": "Single centered column: 'Create Review' H1, product thumbnail + title; 'Overall rating' with 5 large empty stars ('Clear' link after choosing); 'Add a headline' input; 'Add a photo or video' dashed upload box; 'Add a written review' textarea; 'Submit' yellow button bottom right. Mobile the same, full width.",
+      "elements": [
+        "'Overall rating' stars (required)",
+        "Headline input placeholder 'What's most important to know?'",
+        "Media upload box + text 'Shoppers find images and videos more helpful than text alone.'",
+        "Textarea placeholder 'What did you like or dislike? What did you use this product for?'",
+        "'Submit' button"
+      ],
+      "interactions": [
+        "Hover stars: preview fill; click sets rating",
+        "Submit: validates, then success page"
+      ],
+      "states": [
+        "Missing rating: 'Please select a star rating'",
+        "Missing text: 'Please enter your review' (headline and text required for written reviews; rating-only allowed in some builds)",
+        "Ineligible account: 'Sorry, you are not eligible to submit a review at this time' (requires $50 spend in 12 months)",
+        "Success: 'Review submitted - Thank you!' + 'We're processing your review. This may take several days, so we appreciate your patience.'",
+        "Signed-out: redirect to sign-in"
+      ],
+      "microcopy": [
+        "Create Review",
+        "Overall rating",
+        "Add a headline",
+        "What's most important to know?",
+        "Add a photo or video",
+        "Add a written review",
+        "Submit",
+        "Review submitted - Thank you!"
+      ]
+    },
+    {
+      "name": "Product not found / invalid ASIN",
+      "url_pattern": "/dp/{bad-ASIN} (HTTP 404)",
+      "purpose": "Recover from dead links.",
+      "layout": "Header + search, centered 'Sorry! We couldn't find that page. Try searching or go to Amazon's home page.' + large photo of an office dog ('Meet the dogs of Amazon' link) + footer.",
+      "elements": [
+        "Message with inline links 'Amazon's home page'",
+        "Dog image",
+        "Search bar in header"
+      ],
+      "interactions": [
+        "Click home link or search"
+      ],
+      "states": [
+        "Delisted product (ASIN exists but is suppressed) also 404s the same way"
+      ],
+      "microcopy": [
+        "Sorry! We couldn't find that page. Try searching or go to Amazon's home page."
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Core loop: search result -> PDP -> choose variant -> Add to Cart",
+      "steps": [
+        "Shopper clicks a result card; PDP /dp/{childASIN} loads server-rendered with 'Back to results' and the breadcrumb",
+        "Main image + title + price + buy box render above the fold (price, delivery date, 'In Stock')",
+        "Shopper hovers swatches (image preview) and clicks 'Color: Black': URL becomes /dp/{blackASIN}?th=1, center and buy box dim briefly, then price/stock/images/delivery update",
+        "Apparel: until a size is chosen the buy box says 'To buy, select Size'; clicking 'M' reveals Quantity + Add to Cart + Buy Now",
+        "Shopper picks 'Quantity: 2' (dropdown capped by stock/limit)",
+        "Clicks yellow 'Add to Cart'; if the item has protection plans, an 'Add to your order' interstitial offers them ('No thanks')",
+        "'Added to cart' side sheet (or /cart/smart-wagon page) shows 'Cart subtotal (2 items): $X', 'Proceed to checkout (2 items)', 'Go to Cart'; header cart badge increments to 2",
+        "Works signed-out (guest cart kept by cookie, merged on sign-in)"
+      ]
+    },
+    {
+      "name": "Buy Now (signed-out)",
+      "steps": [
+        "Shopper clicks orange 'Buy Now' with variant + qty selected",
+        "Redirect to /ap/signin?openid.return_to=... 'Sign in or create account' with 'Enter mobile number or email' + 'Continue'",
+        "After authentication, lands directly in checkout with only this item/qty (the existing cart is untouched)",
+        "Signed-in 1-click-eligible accounts may instead get a Turbo checkout modal on the PDP: address, payment, total, 'Place your order'"
+      ]
+    },
+    {
+      "name": "Change delivery location",
+      "steps": [
+        "Click 'Deliver to Brooklyn 11201' (buy box) or the header 'Deliver to'",
+        "'Choose your location' modal opens; signed-in picks a saved address card; signed-out types a zip",
+        "Invalid zip ('123') + Apply -> red 'Please enter a valid US zip code', focus stays in the input",
+        "Valid zip + Apply -> 'Deliver to {City} {zip}' confirmation, 'Done'",
+        "Page refreshes delivery block: date, cost, cutoff countdown, or 'This item cannot be shipped to your selected delivery location.'"
+      ]
+    },
+    {
+      "name": "Unavailable / out-of-stock variant",
+      "steps": [
+        "Shopper clicks a greyed/dashed swatch (e.g. Blue, XL)",
+        "Page switches to that child ASIN; price block disappears",
+        "Buy box shows red 'Currently unavailable.' + 'We don't know when or if this item will be back in stock.'; Quantity, Add to Cart, Buy Now are hidden; 'Add to List' remains",
+        "If third-party offers exist: a 'See All Buying Options' button opens the Other sellers side sheet",
+        "Temporarily-out-of-stock items instead keep CTAs with 'Temporarily out of stock. ... You won't be charged until the item ships.'"
+      ]
+    },
+    {
+      "name": "Image inspection",
+      "steps": [
+        "Hover thumbnails -> main image swaps",
+        "Hover main image -> zoom lens + magnified pane over center column ('Roll over image to zoom in')",
+        "Click main image -> full-screen modal on IMAGES tab; click thumb grid to browse; click image to zoom/pan",
+        "Click 'VIDEOS' tab or the 'N VIDEOS' thumb -> player + 'Videos for this product' list",
+        "Esc/× returns to the PDP"
+      ]
+    },
+    {
+      "name": "Frequently bought together bundle",
+      "steps": [
+        "Section shows This item + 2 add-ons all checked, 'Total price: $219.97', 'Add all 3 to Cart'",
+        "Uncheck an add-on -> its image fades, total recalculates, button becomes 'Add both to Cart'",
+        "Uncheck all but this item -> button 'Add to Cart'",
+        "Click button -> each checked item added (qty 1) -> Added to cart confirmation with subtotal"
+      ]
+    },
+    {
+      "name": "Reviews research",
+      "steps": [
+        "Click '(62,345)' next to stars -> smooth scroll to Customer reviews",
+        "Read 'Customers say'; click chip 'Battery life' -> panel '87 customers mention \"battery life\", 60 positive, 27 negative' with snippets; toggle negative",
+        "Click '1 star' histogram row -> list filters to 1-star reviews (inline or on /product-reviews?filterByStar=one_star)",
+        "Click 'Read more' on a long review; click 'Helpful' -> 'Thank you for your feedback.' (signed-out: sign-in redirect)",
+        "Click 'See more reviews' -> all reviews page; set 'Verified purchase only', 'Most recent', search 'crackling' -> filtered list with 'FILTERED BY' + 'Clear filter'; page with 'Next page'",
+        "No matches -> 'Sorry, no reviews match your current selections.' + clear"
+      ]
+    },
+    {
+      "name": "Save for later: Add to List",
+      "steps": [
+        "Signed-out click 'Add to List' -> sign-in -> returns to PDP and completes the add",
+        "Signed-in click main part -> popover '1 item added to Shopping List' with 'View Your List' / 'Continue shopping'",
+        "Click chevron -> choose another list or 'Create another list' -> modal 'List name' + 'Create List'"
+      ]
+    },
+    {
+      "name": "Clip coupon",
+      "steps": [
+        "Price block shows 'Coupon: Apply $10 coupon | Terms'",
+        "Signed-out click -> sign-in -> back to PDP",
+        "Signed-in click -> becomes 'Coupon applied' with check; discount appears at checkout, not in buy box price",
+        "'Terms' opens a popover with coupon conditions and expiry"
+      ]
+    },
+    {
+      "name": "Write a review",
+      "steps": [
+        "Click 'Write a customer review' (sign-in if needed)",
+        "On /review/create-review choose stars, headline, text, optional media",
+        "Submit without stars -> 'Please select a star rating'",
+        "Valid submit -> 'Review submitted - Thank you!' (goes into moderation, not instantly visible)"
+      ]
+    },
+    {
+      "name": "Return visit via browsing history",
+      "steps": [
+        "Every PDP view is recorded (cookie/session for signed-out, account for signed-in)",
+        "Bottom 'Your Browsing History' strip on any page shows recent items; click reopens PDP",
+        "'View or edit your browsing history' -> /gp/history to remove items"
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "feature": "PDP route /dp/:asin server-rendered with title, brand, images, price, bullets, buy box",
+      "tier": "P0",
+      "why": "This is the core shopping loop; every search result lands here. Server rendering keeps LCP fast, which is judged."
+    },
+    {
+      "feature": "Image block: thumbnail strip + main image with hover/click swap; mobile swipe carousel",
+      "tier": "P0",
+      "why": "Shoppers decide visually. Cheap with plain CSS and a few lines of JS."
+    },
+    {
+      "feature": "Rating row (stars + count) that anchors to reviews",
+      "tier": "P0",
+      "why": "Key trust signal next to the title, and trivial to build."
+    },
+    {
+      "feature": "Price block: superscript price, -% savings, strikethrough List Price",
+      "tier": "P0",
+      "why": "Amazon's visual identity plus the main purchase driver; it's just formatting."
+    },
+    {
+      "feature": "Variation selectors (color swatches with images, size buttons) mapped to child ASINs, updating URL, price, stock and images; unavailable options greyed",
+      "tier": "P0",
+      "why": "Most real catalog items have variants, and adding the wrong one breaks the loop. Keep it to 2 dimensions, client-side."
+    },
+    {
+      "feature": "Buy box: delivery date line, 'In Stock' / 'Only N left' / 'Currently unavailable', Quantity select, Add to Cart, Buy Now",
+      "tier": "P0",
+      "why": "This is the conversion point. Compute the date as today + N business days."
+    },
+    {
+      "feature": "Add to Cart confirmation (side sheet or toast with subtotal + 'Proceed to checkout' + 'Go to Cart') and header cart count update",
+      "tier": "P0",
+      "why": "Shoppers need to see the add worked, and the flow has to continue to the cart and checkout."
+    },
+    {
+      "feature": "Buy Now -> sign-in with return URL (signed-out) -> checkout with this item only",
+      "tier": "P0",
+      "why": "Tests the end-to-end path and the auth boundary. Reuse the checkout route."
+    },
+    {
+      "feature": "Out-of-stock / unavailable and invalid ASIN (404) states",
+      "tier": "P0",
+      "why": "Judges will click an unavailable variant or a bad link, so these can't crash. Cheap to build."
+    },
+    {
+      "feature": "'About this item' bullets",
+      "tier": "P0",
+      "why": "The main product info on the page, and it's static text."
+    },
+    {
+      "feature": "Customer reviews summary: average, global ratings count, 5-bar histogram with percentages",
+      "tier": "P0",
+      "why": "Core decision data. Precompute from seed reviews."
+    },
+    {
+      "feature": "Top reviews list (name, stars, headline, 'Reviewed in the United States on', variant, 'Verified Purchase', body with Read more, helpful count)",
+      "tier": "P0",
+      "why": "Shoppers expect it right under the summary. Render seed data, 8 per page."
+    },
+    {
+      "feature": "Responsive mobile layout (single column, full-width CTAs, swipe images) + accessibility basics",
+      "tier": "P0",
+      "why": "Required, and judged on UX. Most Amazon traffic is mobile."
+    },
+    {
+      "feature": "Breadcrumb + 'Back to results'",
+      "tier": "P1",
+      "why": "Cheap orientation; 'Back to results' can keep search state with history.back or the stored query."
+    },
+    {
+      "feature": "Hover zoom lens (desktop) + full-screen image modal with thumbnails and keyboard arrows",
+      "tier": "P1",
+      "why": "Strongly expected, and about 60 lines of CSS transform and a dialog element."
+    },
+    {
+      "feature": "'Visit the X Store' brand link -> search filtered by brand",
+      "tier": "P1",
+      "why": "Reuse search with a brand filter instead of building store pages."
+    },
+    {
+      "feature": "Badges: '#1 Best Seller in {cat}', 'Amazon's Choice', 'X bought in past month'",
+      "tier": "P1",
+      "why": "Cheap data flags with strong social proof, and reused on search cards."
+    },
+    {
+      "feature": "Unit price, 'FREE Returns' popover, Prime-style delivery with 'Order within X hrs Y mins' countdown and 'Or fastest delivery'",
+      "tier": "P1",
+      "why": "Big part of how Amazon feels, and it's pure computation from a cutoff time."
+    },
+    {
+      "feature": "'Deliver to' location popover with zip validation ('Please enter a valid US zip code') that recomputes delivery",
+      "tier": "P1",
+      "why": "Cheap, and shared with the header component; makes delivery dates credible."
+    },
+    {
+      "feature": "Trust rows: Ships from / Sold by / Returns '30-day refund/replacement' / Payment 'Secure transaction' with popovers",
+      "tier": "P1",
+      "why": "Static text that builds trust."
+    },
+    {
+      "feature": "Compact spec table + Product information (Technical Details / Additional Information incl. ASIN, Best Sellers Rank, Date First Available) + Product description",
+      "tier": "P1",
+      "why": "Key/value rendering from one specs object. Merge them into one table rather than repeating 3 times."
+    },
+    {
+      "feature": "Frequently bought together with checkboxes, live total and 'Add all 3 to Cart' / 'Add both to Cart'",
+      "tier": "P1",
+      "why": "Iconic cross-sell, and just a static relation list plus a loop over add-to-cart."
+    },
+    {
+      "feature": "One 'Customers also viewed' / related items carousel",
+      "tier": "P1",
+      "why": "Keeps browsing going. Use same-category items with CSS scroll-snap, no carousel library."
+    },
+    {
+      "feature": "Histogram rows filter the review list (inline, with 'Clear filter')",
+      "tier": "P1",
+      "why": "Expected, and just a client filter over already-loaded reviews."
+    },
+    {
+      "feature": "All reviews page /product-reviews/:asin with star filter, sort Top reviews/Most recent, pagination",
+      "tier": "P1",
+      "why": "The 'See more reviews' link must go somewhere. One DB query with params."
+    },
+    {
+      "feature": "'Helpful' vote (signed-in; 'Thank you for your feedback.'; signed-out -> sign-in)",
+      "tier": "P1",
+      "why": "One table plus a unique constraint (user, review) for idempotency."
+    },
+    {
+      "feature": "Add to List (single default wish list; signed-out -> sign-in; '1 item added to Shopping List')",
+      "tier": "P1",
+      "why": "Expected on every PDP. One list only; multiple named lists are P2."
+    },
+    {
+      "feature": "Your Browsing History strip",
+      "tier": "P1",
+      "why": "localStorage of the last 20 ASINs is nearly free and helps returning shoppers."
+    },
+    {
+      "feature": "Loading/transition states: variant switch without full reload, skeletons for below-fold carousels and reviews",
+      "tier": "P1",
+      "why": "Perceived speed is judged. Swap client-side from already-loaded variant data."
+    },
+    {
+      "feature": "'Customers say' summary + aspect chips with positive/negative counts and snippets",
+      "tier": "P2",
+      "why": "Impressive and on-brand, but it needs precomputed summaries. Generate once at seed time with an LLM or hand-write them for demo products; never call a model per page view."
+    },
+    {
+      "feature": "Reviews with images strip + review image modal",
+      "tier": "P2",
+      "why": "Nice visual, but needs seed review photos."
+    },
+    {
+      "feature": "Verified purchase only / with media / keyword search filters on all-reviews page",
+      "tier": "P2",
+      "why": "Cheap query params once the page exists, but rarely used in a demo."
+    },
+    {
+      "feature": "Write a customer review form with validation ('Please select a star rating')",
+      "tier": "P2",
+      "why": "Completes the review loop, but it's outside buying. Gate it to users who ordered the item."
+    },
+    {
+      "feature": "Coupon clip ('Apply $10 coupon' -> 'Coupon applied') applied in cart",
+      "tier": "P2",
+      "why": "Touches cart/checkout pricing math. Only worth it if the cart already supports discounts."
+    },
+    {
+      "feature": "Typical price / reference price tooltip, 'Limited time deal' badge with countdown",
+      "tier": "P2",
+      "why": "Data flags plus copy, useful with a Deals page."
+    },
+    {
+      "feature": "Compare with similar items table",
+      "tier": "P2",
+      "why": "Needs a normalized attribute set per category. Good UX but data-heavy."
+    },
+    {
+      "feature": "'Looking for specific info?' / 'Search this page' search over bullets, specs and reviews with highlighting",
+      "tier": "P2",
+      "why": "Client-side text search over loaded data. It's a real differentiator without AI."
+    },
+    {
+      "feature": "Other sellers on Amazon side sheet (multiple offers, condition, seller rating)",
+      "tier": "P2",
+      "why": "Needs a multi-offer data model. Show a single offer 'Sold by' row instead."
+    },
+    {
+      "feature": "Share button (navigator.share / copy link 'Link copied!')",
+      "tier": "P2",
+      "why": "About 10 lines; low value."
+    },
+    {
+      "feature": "Report review, 'Report an issue with this product or seller'",
+      "tier": "P2",
+      "why": "Moderation backend isn't demoed. A link to a stub 'Thanks, we'll look into it' is enough."
+    },
+    {
+      "feature": "Product videos / VIDEOS tab",
+      "tier": "P2",
+      "why": "Needs video assets and a player; a native <video> works if assets exist."
+    },
+    {
+      "feature": "Sponsored product carousels, video ads, 'Brands related to this category'",
+      "tier": "skip",
+      "why": "Ad inventory with no user value in a rebuild; leaving it out is a deliberate quality gain."
+    },
+    {
+      "feature": "Financing ('Or $47.50/mo'), Prime Visa gift card upsell, Affirm",
+      "tier": "skip",
+      "why": "Needs a credit product; fake financing copy is misleading."
+    },
+    {
+      "feature": "Protection plans / Asurion add-ons and interstitial",
+      "tier": "skip",
+      "why": "Third-party insurance flow; adds friction to add-to-cart."
+    },
+    {
+      "feature": "Subscribe & Save, Buy Now Turbo checkout modal, gift receipt / gift options",
+      "tier": "skip",
+      "why": "Each needs its own recurring-order or payment state. Standard checkout covers gifting later."
+    },
+    {
+      "feature": "Used/renewed offers, trade-in, 'Sell on Amazon'",
+      "tier": "skip",
+      "why": "Marketplace/seller side is out of scope."
+    },
+    {
+      "feature": "Rufus / Alexa for Shopping chat, 'Ask' suggested questions, 'Hear the highlights' audio summaries",
+      "tier": "skip",
+      "why": "LLM chat with live latency and cost doesn't fit 24h; 'Search this page' covers the need."
+    },
+    {
+      "feature": "AR 'View in your room', 360 view, A+ 'From the manufacturer' rich modules",
+      "tier": "skip",
+      "why": "Needs 3D and brand assets; the description plus images carry the information."
+    },
+    {
+      "feature": "Top reviews from other countries + translation, Vine labels, reviewer profiles, Top Contributor badges",
+      "tier": "skip",
+      "why": "US-only demo; needs a translation pipeline and profile pages."
+    },
+    {
+      "feature": "Price-hidden MAP 'See price in cart', pre-order flow, Climate Pledge/Small Business badges",
+      "tier": "skip",
+      "why": "Edge-case merchandising rules; not part of the core loop."
+    }
+  ],
+  "better_than_original": [
+    "Sticky compact buy bar: on scroll past the buy box, show a slim bar (thumb, selected variant, price, delivery date, Add to Cart) on desktop and a bottom bar on mobile. Amazon's buy box scrolls away.",
+    "Instant variant switching: load all child-ASIN data with the parent and swap price, stock and images client-side with history.replaceState, instead of Amazon's dimming AJAX reload and layout shift.",
+    "Explain unavailable options: a greyed swatch gets a tooltip or inline note like 'Blue is out of stock in size XL - available in S, M'. Amazon silently strikes it through and dumps you on 'Currently unavailable.'",
+    "One reference price, labelled honestly: show at most one strike price, with an (i) saying what it is (List Price = MSRP, Typical price = 90-day median) and optionally a small 90-day price sparkline, instead of stacking List/Typical/Was/Deal badges.",
+    "Actual return date: 'Free returns until Oct 16, 2026' instead of '30-day refund/replacement' plus a popover.",
+    "De-duplicate specs: Amazon repeats attributes in the top spec table, Technical Details, Additional Information and Product details. Use one table with the 5 key rows pinned at the top and 'Show all specs' expanding in place.",
+    "One recommendations row instead of 4-6 overlapping carousels (Products related Sponsored, Customers also viewed, also bought, Brands in this category). No sponsored units, so the page is roughly 40% shorter.",
+    "Reviews stay readable signed-out, and histogram bars are real buttons that filter inline with a visible 'Showing 1-star reviews (812) - Clear' chip and focus kept in place. No page navigation or login wall for reading.",
+    "Show review counts truthfully: '62,345 ratings - 8,120 written reviews - 4.7 average', plus a variant filter chip 'Only reviews for White' on by default when variants differ materially.",
+    "Aspect chips show counts upfront ('Battery life 60 positive / 27 negative'), so there's no clicking just to learn whether a chip is good or bad. Clearly label AI-generated text.",
+    "'Search this page' without AI: instant local search over title, bullets, specs, description and loaded reviews, with highlighted matches and jump links. Faster and more predictable than Rufus/Alexa round-trips.",
+    "Add-to-cart feedback in place: the button turns into 'Added - 2 in cart' with a -/+ stepper and a small toast linking to the cart and checkout. No navigation to an upsell page and no protection-plan interstitial.",
+    "Quantity control that respects stock: stepper capped at available stock with a hint 'Only 3 left'. Never lets you select 30 and then fails in the cart.",
+    "Accessible gallery and selectors: thumbnails and swatches as radio groups with names (aria-checked, 'Color: Midnight Blue'), arrow-key navigation, click/tap-to-zoom instead of hover-only zoom, pinch zoom on mobile, visible focus rings, alt text from the variant name, WCAG AA contrast (Amazon's grey #565959 small text on white and orange-on-yellow buttons are borderline).",
+    "Performance: images served in AVIF/WebP with width and height set (zero CLS), the main image preloaded, below-fold sections lazy-rendered, zero third-party ad scripts. Target LCP under 1.5s on 4G, versus Amazon's heavy JS bundle.",
+    "Fewer interruptions: no Prime upsell line, no financing line, no 'Report an issue' clutter, no 'Have one to sell?' in the buy box. The buy box keeps only price, delivery, stock, qty, the two CTAs, sold by/returns, and save to list.",
+    "Clear delivery wording: one line 'FREE delivery Tue, Sep 16 - order within 5h 30m', the zip visible and editable in place, and the same component in the header and buy box.",
+    "Mobile: price and the primary CTA inside the first viewport under the image (Amazon puts them below the brand, rating, title and a tall carousel), swatch rows that show the color name under each swatch, and a sticky bottom CTA."
+  ],
+  "data": [
+    {
+      "entity": "Product (parent)",
+      "fields": [
+        "parentAsin",
+        "title",
+        "brand",
+        "brandSlug",
+        "categoryPath[] (breadcrumb: id, name)",
+        "bullets[] (About this item)",
+        "description (text/markdown)",
+        "specs {key: value} ordered, with topSpecKeys[] for compact table",
+        "bestSellersRank[] {rank, categoryName, categoryId}",
+        "dateFirstAvailable",
+        "manufacturer",
+        "badges {bestSellerCategory?, amazonsChoice: bool, limitedTimeDeal?: {endsAt}}",
+        "boughtPastMonth (int, bucketed on display: 50+,100+,500+,1K+,5K+,10K+)",
+        "ratingAvg (1 decimal)",
+        "ratingsCount",
+        "reviewsCount",
+        "histogram {1..5: count}",
+        "variationDimensions[] (e.g. ['Color','Size'])",
+        "defaultChildAsin",
+        "fbtAsins[]",
+        "relatedAsins[]",
+        "customersSay? {summary, aspects[] {name, sentiment: positive|negative|mixed, mentions, positive, negative, snippetReviewIds[]}}"
+      ]
+    },
+    {
+      "entity": "Variant (child ASIN / offer)",
+      "fields": [
+        "asin",
+        "parentAsin",
+        "attributes {Color: 'Black', Size: 'M'}",
+        "swatchImageUrl",
+        "images[] {url, hiResUrl, alt, width, height}",
+        "videos[] {url, posterUrl, title, durationSec}",
+        "price (cents)",
+        "listPrice? (cents)",
+        "typicalPrice? (cents)",
+        "unitPrice? {amountCents, unit: 'Count'|'Ounce'}",
+        "coupon? {type: amount|percent, value, terms, expiresAt}",
+        "stockQty (int; 0 = unavailable)",
+        "availability: in_stock|low_stock|backorder|unavailable|preorder",
+        "maxQtyPerCustomer?",
+        "shipsFrom",
+        "soldBy",
+        "returnWindowDays (30)",
+        "freeReturns: bool",
+        "handlingDays / shipping speed tiers {standardDays, fastDays, cutoffLocalTime}",
+        "primeEligible: bool",
+        "shippableRegions? (zip prefixes)"
+      ]
+    },
+    {
+      "entity": "Review",
+      "fields": [
+        "id",
+        "parentAsin",
+        "variantAsin",
+        "variantLabel ('Color: White | Size: M')",
+        "userId",
+        "displayName",
+        "avatarUrl?",
+        "rating (1-5)",
+        "headline",
+        "body",
+        "images[]",
+        "country ('United States')",
+        "createdAt",
+        "verifiedPurchase: bool",
+        "helpfulCount",
+        "status: pending|published|rejected"
+      ]
+    },
+    {
+      "entity": "ReviewHelpfulVote",
+      "fields": [
+        "reviewId",
+        "userId",
+        "createdAt",
+        "UNIQUE(reviewId, userId)"
+      ]
+    },
+    {
+      "entity": "ReviewReport",
+      "fields": [
+        "reviewId",
+        "userId",
+        "reason",
+        "createdAt"
+      ]
+    },
+    {
+      "entity": "DeliveryLocation (session/user)",
+      "fields": [
+        "zip",
+        "city",
+        "state",
+        "source: ip|manual|address",
+        "addressId?"
+      ]
+    },
+    {
+      "entity": "List / ListItem",
+      "fields": [
+        "listId",
+        "userId",
+        "name ('Shopping List')",
+        "isDefault",
+        "items[] {asin, addedAt, priceAtAdd}"
+      ]
+    },
+    {
+      "entity": "CartItem (shared with cart surface)",
+      "fields": [
+        "cartId (user or guest cookie)",
+        "asin",
+        "qty",
+        "addedAt",
+        "giftReceipt: bool"
+      ]
+    },
+    {
+      "entity": "BrowsingHistory",
+      "fields": [
+        "userId or localStorage",
+        "asin",
+        "viewedAt",
+        "cap 20-50 most recent, deduped"
+      ]
+    },
+    {
+      "entity": "User (subset used by PDP)",
+      "fields": [
+        "id",
+        "firstName (for 'Deliver to Mikey')",
+        "isPrime: bool",
+        "defaultAddressId",
+        "hasPurchased(asin) for Verified Purchase / review eligibility"
+      ]
+    },
+    {
+      "entity": "Derived at render (not stored)",
+      "fields": [
+        "savingsPct = round((listPrice - price)/listPrice*100)",
+        "deliveryDate = next business day after now + days (skip Sun), label 'Tomorrow'/'Today' when applicable",
+        "orderWithin = cutoff - now ('5 hrs 30 mins')",
+        "stockText: qty>20 'In Stock'; 1..20 'Only N left in stock - order soon.'; 0 'Currently unavailable.'",
+        "histogram percents (round, then force the sum to 100)",
+        "qtyOptions = 1..min(stockQty, maxQtyPerCustomer, 30)"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/dp/B0D1XD1ZV3",
+      "verified": false,
+      "note": "Fetched: only <head> metadata came back (title 'Amazon.com: Apple AirPods Pro 2 Wireless Earbuds...: Electronics', canonical https://www.amazon.com/clp/B0D1XD1ZV3). Body not rendered (bot/JS gated). All PDP layout and microcopy here is from memory."
+    },
+    {
+      "url": "https://www.amazon.com/gp/aw/d/B0D1XD1ZV3",
+      "verified": false,
+      "note": "Mobile PDP fetch: body empty/blocked. Mobile layout from memory."
+    },
+    {
+      "url": "https://www.amazon.com/product-reviews/B0D1XD1ZV3",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked). All-reviews filters and URL params from memory."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GQ7VAKHDF6LUA9RH",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked)."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD",
+      "verified": false,
+      "note": "Strike-Through Pricing and Savings help page; HTTP 503. Its existence was confirmed via search result."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/amazon-ai-generated-review-highlights",
+      "verified": true,
+      "note": "Fetched. Confirms the 'Customers say' paragraph at the top of the reviews section; clickable feature chips; green check = mostly positive, orange minus = negative, grey = mixed; tapping a chip shows mention counts and positive/negative snippets; built from text reviews on verified purchases; only shown with enough review volume."
+    },
+    {
+      "url": "https://sentrykit.com/blog/amazon-reviews-login-wall-ai-strategy/",
+      "verified": true,
+      "note": "Fetched (published July 23, 2026). Logged-out sessions sometimes see 'Customer reviews require account verification. Sign in.'; histogram and Customers say stay visible; the article calls it an A/B test, not confirmed policy."
+    },
+    {
+      "url": "https://sellercentral.amazon.com/seller-forums/discussions/t/0fea4900-a6d9-4ac5-ab44-a9766c1ce3b9",
+      "verified": false,
+      "note": "Search snippet only: users unable to see more than 8 reviews (logged-out limit)."
+    },
+    {
+      "url": "https://www.stackline.com/news/rufus-is-gone-what-it-means-and-what-it-doesnt",
+      "verified": true,
+      "note": "Fetched. Rufus replaced by Alexa for Shopping; AI summaries now appear on PDPs and search. No exact PDP UI labels."
+    },
+    {
+      "url": "https://perpetua.io/blog-alexa-for-shopping-amazon-rufus-the-complete-guide-for-brands-and-sellers/",
+      "verified": false,
+      "note": "Search snippet: Rufus renamed Alexa for Shopping in the US as of May 13, 2026; 'Ask Alexa' passes selected listing text into chat."
+    },
+    {
+      "url": "https://sell.amazon.com/blog/amazon-list-price",
+      "verified": false,
+      "note": "Search snippet: List Price = MSRP provided by manufacturer/supplier/seller; Typical Price = 90-day median price paid on Amazon; List Price validation rules effective April 23, 2026."
+    },
+    {
+      "url": "https://www.emarketer.com/content/amazon-tightens-pricing-rules-sellers-ahead-of-prime-day",
+      "verified": false,
+      "note": "Search snippet: typical price calculation changed May 18 to weight discount history."
+    },
+    {
+      "url": "https://easyparser.com/blog/amazon-bought-in-past-month-explained",
+      "verified": false,
+      "note": "Search snippet: 'X bought in past month' bucketed (50+,100+,500+,1K+,5K+,10K+), rolling 30 days, refreshed daily, excludes returns/cancellations, >50 sales threshold, can't be turned off."
+    },
+    {
+      "url": "https://channelx.world/2026/02/amazon-frequently-returned-item-badge/",
+      "verified": false,
+      "note": "Search snippet: 'Frequently returned item' warning badge shown on listings with above-category-average returns (2026)."
+    },
+    {
+      "url": "https://www.geekwire.com/2025/amazons-ai-generated-shopping-experts-summarize-product-details-in-new-audio-feature/",
+      "verified": false,
+      "note": "Search snippet: 'Hear the highlights' AI audio summaries tested on select PDPs (2025)."
+    },
+    {
+      "url": "https://tracefuse.ai/blog/how-to-sort-amazon-reviews/",
+      "verified": true,
+      "note": "Fetched. Generic only: sort by top/most recent, star, verified, keyword filters; notes desktop vs app differences. No exact labels."
+    },
+    {
+      "url": "https://www.intentwise.com/blog/ai-product-detail-page-amazon",
+      "verified": true,
+      "note": "Fetched. 2023 article; confirms review highlights exist; no UI detail."
+    },
+    {
+      "url": "https://www.sellerlabs.com/knowledge-base/ai-generated-review-highlights-what-amazon-shows-and-why-it-matters/",
+      "verified": true,
+      "note": "Fetched. No UI microcopy; conceptual only."
+    },
+    {
+      "url": "memory://amazon.com-desktop-and-mobile-web-PDP",
+      "verified": false,
+      "note": "Most layout, section order, button labels (Add to Cart/Buy Now colors #FFD814/#FFA41C), stock/delivery microcopy, location modal, AOD side sheet, FBT, product information tables, review card fields, all-reviews URL params, write-review and 404 copy come from detailed prior knowledge of amazon.com through 2025-2026, NOT fetched. Items flagged 'uncertain' in the text (mobile zoom hint wording, sticky mobile ATC, report-review reason labels, inline histogram filtering vs navigation, pagination vs 'Show more') vary by A/B test."
+    }
+  ]
+}

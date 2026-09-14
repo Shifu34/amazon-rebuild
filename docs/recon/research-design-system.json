@@ -1,0 +1,520 @@
+{
+  "colors": [
+    {
+      "name": "Header belt (nav top)",
+      "hex": "#131921",
+      "usage": "Top header bar behind the logo, Deliver to, search, Account & Lists, Returns & Orders and Cart. VERIFIED: inline :root --nav-desktop-header-tbg:#131921 and #nav-belt{background:#131921} on the PDP HTML. White text on it is about 17:1. Text inside: line 1 is #CCCCCC 12px, line 2 is #FFFFFF 14px bold. Belt links rest at #d6d6d6 and turn #fff on hover (verified)."
+    },
+    {
+      "name": "Sub-nav / footer navy",
+      "hex": "#232F3E",
+      "usage": "Second nav row (All, Today's Deals, Customer Service, Registry, Gift Cards, Sell), the hamburger side-sheet profile header (#hmenu-customer-profile, 50px tall), the main footer band, and the Amazon's Choice / Overall Pick badge background. VERIFIED: --nav-desktop-header-bbg:#232f3e; #hmenu-customer-profile background #232f3e; #232F3E found in the AUI bundle."
+    },
+    {
+      "name": "Footer bottom band / pressed navy",
+      "hex": "#131A22",
+      "usage": "Lowest footer strip (Conditions of Use, Privacy Notice, (c) 1996-2026 Amazon.com, Inc. or its affiliates) and the hamburger profile header's :active state. VERIFIED as #hmenu-customer-profile:active. Footer usage is from memory."
+    },
+    {
+      "name": "Back to top / mobile location strip",
+      "hex": "#37475A",
+      "usage": "The Back to top bar above the footer (white 13px, about 50px tall). On mobile web it is also the Deliver to strip under the search bar. From memory, not found in the fetched CSS. Hover is #485769."
+    },
+    {
+      "name": "Search submit button",
+      "hex": "#FEBD69",
+      "usage": "Magnifier button at the right of the search bar. The icon is #0F1111/#333. Radius 0 4px 4px 0. VERIFIED: --nav-go-button-bg:#febd69."
+    },
+    {
+      "name": "Search submit hover",
+      "hex": "#F3A847",
+      "usage": "Hover state of the search submit. VERIFIED: --nav-go-button-hbg:#f3a847."
+    },
+    {
+      "name": "Search focus ring / brand orange",
+      "hex": "#FF9900",
+      "usage": "Ring around the whole search bar (scope + input + button) while focused, about box-shadow 0 0 0 2px #f90 plus a 3px outer glow. Also the 'Choice' word in the Amazon's Choice badge, the Prime check mark and the logo smile. VERIFIED: --nav-search-border-shadow:#ff9900."
+    },
+    {
+      "name": "Search category scope",
+      "hex": "#E6E6E6",
+      "usage": "The 'All' category dropdown on the left of the search bar. Text #555 12px, caret, radius 4px 0 0 4px. Hover #D4D4D4. VERIFIED: --nav-search-scope:#e6e6e6 and --nav-search-scope-hover:#d4d4d4."
+    },
+    {
+      "name": "Cart count",
+      "hex": "#F08804",
+      "usage": "The number drawn over the cart icon (bold, about 16px rendered, centered over the basket). VERIFIED: --nav-cart-count:#f08804 and #nav-cart-count{color:#f08804}."
+    },
+    {
+      "name": "Nav dropdown caret",
+      "hex": "#A7ACB2",
+      "usage": "Small 4px CSS triangle after 'Account & Lists', 'EN' and 'All'. VERIFIED: --nav-dropdown-arrows:#a7acb2 and .nav-arrow{border:4px solid transparent;border-top-color:#a7acb2}."
+    },
+    {
+      "name": "Sub-nav link active",
+      "hex": "#CCCCCC",
+      "usage": "Pressed/active sub-nav link text. Resting links are #FFFFFF. VERIFIED: --nav-x-shop-links:#fff and --nav-x-shop-links-active:#ccc."
+    },
+    {
+      "name": "Primary button (Add to Cart, Sign in, Proceed to checkout, Place your order)",
+      "hex": "#FFD814",
+      "usage": "Yellow primary CTA with #0F1111 text (13.6:1). Hover #FFCE12, pressed #F8BD19. VERIFIED as AUI tokens (#ffd814 / #ffce12 / #f8bd19). The border is #FCD200 (memory, legacy AUI; not found in current CSS, which draws tokens without a visible border). Sept-Nov 2025 A/B tests briefly showed orange, green and holiday variants; rebuild with the yellow default."
+    },
+    {
+      "name": "Primary button border (legacy)",
+      "hex": "#FCD200",
+      "usage": "1px border of the yellow button. Legacy hover was #F7CA00 with border #F2C200. From memory; not present in the 2026 CSS bundles."
+    },
+    {
+      "name": "Buy Now button",
+      "hex": "#FFA41C",
+      "usage": "Orange Buy Now pill under Add to Cart, #0F1111 text. Hover #FF8400, pressed #FF6E21. VERIFIED tokens. Legacy border #FF8F00, hover #FA8900 (memory)."
+    },
+    {
+      "name": "Blue CTA token (Buy with Prime / test variant)",
+      "hex": "#0064F9",
+      "usage": "Blue filled button with white text. Hover #0045A5, pressed #143075. VERIFIED as a current AUI token. The Sept 2025 seller-forum thread reports a darker blue Buy Now in tests. Use only if you want a secondary brand CTA (P2)."
+    },
+    {
+      "name": "Secondary button (Add to List, Go to Cart, Qty dropdown base)",
+      "hex": "#FFFFFF",
+      "usage": "White button with 1px border #888C8C (current AUI; legacy #D5D9D9) and #0F1111 text. Hover #F7FAFA. Pressed background #EDF8FF with border #1C89E3. Disabled background #F0F2F2. VERIFIED: .a-button rules and tokens."
+    },
+    {
+      "name": "Body text",
+      "hex": "#0F1111",
+      "usage": "Default text on body, product titles, regular (non-deal) prices and button labels. VERIFIED: body{color:var(--...,#0f1111)} and .a-color-base."
+    },
+    {
+      "name": "Secondary text",
+      "hex": "#565959",
+      "usage": "Small print: breadcrumbs, 'List Price:' strikethrough, 'bought in past month', 'Sponsored', ratings count captions, 'Ships from' labels. 7.07:1 on white. VERIFIED: .a-color-secondary,.a-color-tertiary{#565959}."
+    },
+    {
+      "name": "Tertiary / disabled text",
+      "hex": "#6F7373",
+      "usage": "Pressed/disabled secondary text token (#303333 rest, #0F1111 hover, #6F7373 disabled). VERIFIED tokens. Use for placeholder and disabled labels (4.9:1)."
+    },
+    {
+      "name": "Link",
+      "hex": "#007185",
+      "usage": "Links: 'Visit the Apple Store', ratings count, 'See more', 'Change', 'Delete', 'Save for later', filter 'See more'. 5.68:1 on white. VERIFIED present in the detail-page CSS bundle. The core AUI bundles now expose #2162A1 as the interaction blue, so newer pages may show a bluer link. Rebuild: #007185."
+    },
+    {
+      "name": "Link hover",
+      "hex": "#C7511F",
+      "usage": "Hover color for links and product titles on search/cards, underline on hover. 4.54:1. From memory (widely used 2020-2025); the current AUI fallback is #C45500 (below)."
+    },
+    {
+      "name": "Link hover / state (current AUI)",
+      "hex": "#C45500",
+      "usage": "VERIFIED: a:hover{color:var(--aok-sfs-color-retail-aspects-negative-fg,#c45500)} and .a-color-state{color:var(--aok-sfs-color-link-hover-fg,#c45500)}. Also the quoted search term in '1-48 of over 10,000 results for \"wireless earbuds\"'. 4.52:1. Recommended Best Seller badge background for AA."
+    },
+    {
+      "name": "Interaction / selected blue",
+      "hex": "#2162A1",
+      "usage": "Current AUI selected-toggle border (swatches, size toggles: inset 0 0 0 2px #2162a1) and keyboard focus ring (box-shadow 0 0 0 2px #fff, 0 0 0 5px #2162a1). Also the info token. VERIFIED in the AUI component CSS and inline on the homepage."
+    },
+    {
+      "name": "Input focus glow (legacy AUI)",
+      "hex": "#C8F3FA",
+      "usage": "Outer glow on focused inputs and dropdown buttons: border-color #007185 plus box-shadow 0 0 0 3px #C8F3FA, 0 1px 2px rgba(15,17,17,.15) inset. From memory (sign-in, address forms). Not in the current core bundle, which uses the #2162A1 double ring. Either works; pick one."
+    },
+    {
+      "name": "Price / urgency red",
+      "hex": "#C10015",
+      "usage": ".a-color-price and .a-color-error. Used for 'Only 3 left in stock - order soon.', 'Currently unavailable.', error text and error alert borders. VERIFIED: .a-color-price{color:var(--...,#c10015)}, .a-color-error #c10015, .a-alert-error border #c10015. Legacy value #B12704 (not found in current CSS)."
+    },
+    {
+      "name": "Deal red",
+      "hex": "#CC0C39",
+      "usage": "'Limited time deal' badge background (white text, 5.71:1), the savings '-24%' next to the PDP price, and 'Prime Big Deal' / 'With Prime' deal text. VERIFIED as a current AUI token (--__dChF3j-Wyw4B:#cc0c39); the usage mapping is from memory."
+    },
+    {
+      "name": "Success green (In Stock)",
+      "hex": "#007600",
+      "usage": "'In Stock' (18px) and the 'Order within 4 hrs 22 mins' countdown on the PDP (legacy color, 5.85:1). The current AUI .a-color-success is #0B7B3C (VERIFIED, 5.37:1), and the detail-page CSS also contains #067D62 (VERIFIED hex, used for checkmark/success alerts). Rebuild: #007600 for text."
+    },
+    {
+      "name": "Success green (current token)",
+      "hex": "#0B7B3C",
+      "usage": "VERIFIED .a-color-success and .a-alert-success border. Use for 'Added to Cart' check and 'Order placed, thanks!'."
+    },
+    {
+      "name": "Warning",
+      "hex": "#FFB14A",
+      "usage": "Warning alert border (.a-alert-warning). VERIFIED. Pair with a #0F1111 text and an icon; never text color."
+    },
+    {
+      "name": "Info alert",
+      "hex": "#246FB6",
+      "usage": "Info alert border (.a-alert-info). VERIFIED in the AUI component and detail-page CSS."
+    },
+    {
+      "name": "Star fill",
+      "hex": "#FFA41C",
+      "usage": "Star rating glyph fill (search, PDP, histogram bars in legacy). About 2:1 on white, so it fails 3:1 non-text contrast by itself; Amazon relies on the numeric '4.7' label. From memory (sprite image, not CSS)."
+    },
+    {
+      "name": "Star outline / histogram bar",
+      "hex": "#DE7921",
+      "usage": "Star glyph stroke and the newer rating-histogram fill ('5 star 72%'). 3.06:1, so it passes non-text contrast. Track #F0F2F2 with 1px #D5D9D9 border. From memory."
+    },
+    {
+      "name": "Best Seller badge (legacy orange)",
+      "hex": "#E47911",
+      "usage": "'#1 Best Seller' flag background with white 12px text and a notched right edge. VERIFIED hex in the detail-page CSS; the usage mapping is from memory. White on it is only 2.98:1 (fails AA), so a rebuild should use #C45500."
+    },
+    {
+      "name": "Amazon's Choice badge",
+      "hex": "#232F3E",
+      "usage": "Dark navy pill/flag. 'Amazon's' in white and 'Choice' in #FF9900 (6.35:1), 12px bold, followed by secondary text 'for \"wireless earbuds\"'. 'Overall Pick' uses the same navy. From memory (navy VERIFIED as a token)."
+    },
+    {
+      "name": "Prime blue",
+      "hex": "#00A8E1",
+      "usage": "'prime' wordmark next to the orange #FF9900 check in the Prime badge (sprite .a-icon-prime 53x15px, VERIFIED dimensions). Hex from memory/brand. On white it is only about 2.6:1, so pair it with the check mark and alt text 'Amazon Prime'."
+    },
+    {
+      "name": "Coupon chip",
+      "hex": "#7FDA69",
+      "usage": "'Coupon:' label chip (dark text) before 'Save 10% with coupon' / 'Apply $10 coupon' checkbox on search and PDP. From memory."
+    },
+    {
+      "name": "Home page background",
+      "hex": "#E3E6E6",
+      "usage": "Grey canvas behind the home card grid, and the hero-image fade target. VERIFIED inline on the amazon.com homepage (#E3E6E6 and a gradient to #E3E6E6)."
+    },
+    {
+      "name": "Alternate background / popover header",
+      "hex": "#F0F2F2",
+      "usage": ".a-color-alternate-background, disabled buttons, grey dropdown pill (Qty: 1, Sort by: Featured), modal/popover header band, skeleton blocks, histogram track. VERIFIED token and rule."
+    },
+    {
+      "name": "Card / box border",
+      "hex": "#D5D9D9",
+      "usage": ".a-box border (buy box, cart subtotal box, sign-in box), hr/dividers, pagination pills, grey dropdown pill border. VERIFIED: .a-box border-color #d5d9d9 and hr{border-color:#d5d9d9}."
+    },
+    {
+      "name": "Hover surface",
+      "hex": "#F7FAFA",
+      "usage": "Hover background of secondary buttons and list rows. VERIFIED token."
+    },
+    {
+      "name": "Thumbnail border",
+      "hex": "#A2A6AC",
+      "usage": "PDP alt-image thumbnails 1px border. The selected thumbnail uses about #E77600 border plus glow rgba(228,121,17,.5). VERIFIED hex in the detail-page CSS; usage from memory."
+    },
+    {
+      "name": "Flyout border",
+      "hex": "#DDDDDD",
+      "usage": "Nav flyouts (Account & Lists, language): white panel, 1px #ddd, shadow 0 1px 3px rgba(0,0,0,.2), radius 3px. From WebFetch summary of the nav CSS (not a verbatim quote). The footer link color is also #DDDDDD with secondary #999999 (summary)."
+    },
+    {
+      "name": "Page overlay (nav-cover)",
+      "hex": "#000000",
+      "usage": "rgba(0,0,0,.6) dim behind open nav flyouts and the hamburger side sheet (summary of nav CSS). Side-sheet canvas #FFFFFF with box-shadow 4px 0 10px 0 rgba(0,0,0,.4) (VERIFIED verbatim)."
+    }
+  ],
+  "typography": [
+    "FAMILY: The AUI declares a font-family variable that falls back to 'Amazon Ember', with a second variable falling back to Arial (VERIFIED). Body fallback is Arial, sans-serif at 14px/20px (verified summary). Amazon Ember Modern Display/Text replaced parts of the wordmark in 2024 (search result). Ember is proprietary; do not ship it. Rebuild stack: font-family: 'Amazon Ember', Arial, 'Helvetica Neue', Helvetica, system-ui, sans-serif. For less CLS use system-ui first if you don't care about exact Arial metrics. Tier: P0.",
+    "TYPE SCALE (.a-size-*, VERIFIED from AUI CSS): mini 12px/16px; small 12px/16px; base 14px/20px (body, links, buttons, filter labels); base-plus 16px/24px (search result titles, About this item bullets on newer PDP); medium 18px/24px ('In Stock', cart item titles, subtotal); medium-plus 20px/1.4 (section headings like 'Customers also bought'); large 24px/32px (PDP title, VERIFIED #titleSection h1{font-size:24px}); extra-large 28px/36px (Shopping Cart h1, Sign in h1, PDP price whole).",
+    "HEADINGS (VERIFIED h*.aui-primitive): h1 1.75rem/2rem (28/32), h2 1.5rem/1.75rem (24/28), h3 1.125rem/1.5rem (18/24), h4 1rem/1.25rem (16/20), h5 .875rem/1.25rem (14/20), h6 .75rem/1rem (12/16). Weights: h2-h4 700 (summary). PDP title and 'Shopping Cart' h1 are weight 400 (memory); home card headlines are 21px/27px 700 (memory).",
+    "WEIGHTS: 400 for body and titles; 700 for delivery dates ('FREE delivery **Wed, Sep 17**'), nav line 2 ('Account & Lists', 'Cart' 14px 700, VERIFIED .nav-line-2), headings, badge text, 'Order within' countdown; 300 light for the PDP savings '-24%' (memory). No italics anywhere.",
+    "NAV TYPE (VERIFIED): .nav-line-1 12px 400 (e.g. 'Hello, sign in', 'Deliver to', 'Returns'); .nav-line-2 14px 700 (e.g. 'Account & Lists', 'New York 10001', '& Orders'); search input 14-15px (39px tall field); cart count bold (#nav-cart-count 11px/16px in CSS, renders about 16px); sub-nav links 14px 400 white.",
+    "PRICE MARKUP (class names VERIFIED on PDP: a-price-symbol, a-price-whole, a-price-fraction; values from memory): <span class='a-price' data-a-size='xl'><span class='a-offscreen'>$189.99</span><span aria-hidden='true'><span class='a-price-symbol'>$</span><span class='a-price-whole'>189<span class='a-price-decimal'>.</span></span><span class='a-price-fraction'>99</span></span></span>. The decimal point is hidden visually. Symbol and cents render at about 13px with position:relative; top:-.75em (superscript), whole dollars at 28px (PDP apex / buy box xl) or 21px (search, l size) or 18px (cards, m size). Screen readers get the a-offscreen '$189.99' string. Rebuild CSS: .price{font-size:28px;line-height:1} .price sup{font-size:.46em;position:relative;top:-.75em;vertical-align:baseline}; add font-variant-numeric: tabular-nums.",
+    "PRICE SUPPORT TEXT (memory): savings '-24%' 28px weight 300 #CC0C39 left of the price; 'List Price: $249.00' / 'List: $49.99' / 'Typical: $59.99' 12px #565959 with line-through (VERIFIED .a-text-strike = text-decoration-line:line-through); unit price '($0.45/Count)' 12px #565959; 'Lowest price in 30 days' 12px secondary.",
+    "SMALL PRINT (memory): 12px #565959 for breadcrumbs ('Electronics › Headphones, Earbuds & Accessories › Earbud Headphones'), 'Sponsored ⓘ', '10K+ bought in past month' (number bold), 'Ships from / Sold by' labels, 'Roll over image to zoom in', legal lines on sign-in ('By continuing, you agree to Amazon's Conditions of Use and Privacy Notice.'), and the footer copyright 12px #999/#DDD.",
+    "BUTTON TEXT (VERIFIED .a-button-text): 14px/20px, padding 5px 11px, white-space:nowrap, color #0F1111; small buttons 12px with padding 3px 11px. Search result 'Add to cart' is sentence case; PDP 'Add to Cart' / 'Buy Now' is title case; checkout 'Place your order' is sentence case (memory).",
+    "TRUNCATION (memory): search grid titles clamp to 4 lines (base-plus 16px) in grid view and 2-3 lines on home rails; cart titles clamp 2 lines; hover on the title turns it #C7511F with underline.",
+    "LINE-HEIGHT AND RHYTHM: 20px for 14px text and 16px for 12px text, i.e. about a 4px baseline grid. Spacing classes (memory): a-spacing-micro 4px, mini 6px, small 10px, base 14px, medium 18px, large 22px, extra-large 26px. VERIFIED: .a-box-inner padding 14px 18px matches base/medium."
+  ],
+  "layout": [
+    "GLOBAL: body margin 0, background #FFFFFF except the home page (#E3E6E6, VERIFIED). Desktop #navbar and #nav-cover have min-width:1000px (VERIFIED verbatim), so amazon.com desktop does not reflow below 1000px. It scrolls horizontally, and phones get a separate mobile DOM by user agent.",
+    "HEADER BELT (row 1): background #131921. CSS: #nav-belt .nav-left/.nav-fill/.nav-right height 43px (VERIFIED verbatim). Rendered belt is about 60px including padding (memory), and #nav-search has padding 10px 4px 10px 3px around a 39-40px field (summary). Order, left to right (memory plus verified labels): [amazon logo .us about 97x30, #nav-logo padding 13px 17px 0 27px] [pin icon + 'Deliver to' / 'New York 10001' (signed-out: 'Delivering to New York 10001' / 'Update location')] [search: 'All ▾' scope | input placeholder 'Search Amazon' | orange magnifier] [US flag 'EN ▾'] ['Hello, sign in' / 'Account & Lists ▾'] ['Returns' / '& Orders'] [cart icon with count + 'Cart']. Every clickable item has a 1px solid white hover border with about 2px radius and roughly 9px padding (memory).",
+    "SUB-NAV (row 2): background #232F3E, rendered height about 39px (CSS max-height 56px, VERIFIED). Items: '☰ All' (bold) then 'Today's Deals', 'Prime Video', 'Registry', 'Customer Service', 'Gift Cards', 'Sell' (VERIFIED labels on the homepage), 14px white, 8-9px horizontal padding, same 1px white hover outline. A promo slot on the right (e.g. 'Shop Holiday Deals').",
+    "HOME (VERIFIED from inline CSS): hero carousel #gw-desktop-herotator at full width. Its image (about 600px, memory) fades into #E3E6E6 through a 350px gradient, and the first row of cards overlaps the lower half of the hero. Card grid .gw-card-layout[data-flow-dir=h]{display:flex;flex-flow:row wrap}; each .gw-col is flex:1 0 290px, height 420px, padding 0 10px (20px gutters). The .a-cardui is white with padding-top 20px and body padding 0 20px 56px (56px bottom reserves room for the absolutely positioned 'See more' / 'Shop now' link). 4 columns at >=1240px, 3 columns (33.33%) at <=1239px, adjusted again <=1571px when the docked cart rail is visible. Content max-width about 1500px, centered (memory). Below the card rows come full-width white horizontal product rails ('Best Sellers in Home & Kitchen', 'Related to items you've viewed'), each with 20px padding and a 21px bold title plus 'See more' link.",
+    "HOME CARD TYPES (memory, labels VERIFIED): single-image card (headline 21px bold, one large image, 'Shop now' link); quad card (2x2 image grid, each with a 12px caption, 'See more' link); sign-in card ('Sign in for the best experience' + full-width yellow 'Sign in securely' button); deal card (image + red 'Up to 30% off' badge + 'Limited time deal' + 'See all deals').",
+    "SEARCH RESULTS (desktop, memory; fetch returned 503): below the header comes a full-width white bar with a bottom border and shadow, holding '1-48 of over 10,000 results for \"wireless earbuds\"' (term in #C45500 bold) on the left and 'Sort by: Featured ▾' grey pill on the right (options: Featured, Price: Low to High, Price: High to Low, Avg. Customer Review, Newest Arrivals, Best Sellers). Two columns: left refinement rail about 240px wide (sg-col-4-of-* family), results area fluid. Results either as list rows (image about 200-250px left, info right) for most electronics, or a grid of 3-5 cards per row depending on width (sg-col-4-of-12/16/20/24 system: 12-col <1100px, 16-col 1100-1299, 20-col 1300-1599, 24-col >=1600, approx). Gutters about 12-16px. Pagination centered at the bottom. Then 'Need help? Visit the help section or contact us' plus related searches and a 'Your browsing history' rail.",
+    "SEARCH REFINEMENT RAIL (memory): section headings 14px 700 #0F1111 ('Delivery Day', 'Customer Reviews', 'Brands', 'Price', 'Deals & Discounts', 'Condition', 'Seller'), items 14px with 13x13 checkboxes, star rows '★★★★☆ & Up', 'See more ▾' teal link, Price section = dual-thumb slider '$20 – $500+' with a 'Go' grey button. Sections separated by about 18px spacing (no dividers).",
+    "PDP (desktop): three columns. #leftCol image block floats left and is sticky (#ppd #leftCol{position:sticky;top:4px}, VERIFIED): vertical thumbnail strip about 40x40px on the far left, main image capped at max-height 700px (VERIFIED). #centerCol holds title, rating, price, variations, 'About this item'. #rightCol is the buy box (VERIFIED #rightCol.rightCol{width:275px} with #centerCol margin-right 300px; some templates use 244px). Rough widths at 1500px: image about 40%, center about 35%, buy box 244-275px fixed. Above the columns: breadcrumb 12px. Below: full-width sections ('Products related to this item' sponsored rail, 'Product information' tables, 'From the manufacturer' A+ images, 'Customer reviews' with the histogram left at about 300px and reviews right).",
+    "CART (memory): #F0F2F2-ish light grey page ground (legacy #EAEDED) with a large white left box (h1 'Shopping Cart' 28px 400, 'Deselect all items' link, 'Price' right-aligned column header, 1px #D5D9D9 row dividers, 'Subtotal (2 items): $214.98' right-aligned 18px). A right rail about 300px holds a white box with 'Subtotal (2 items): $214.98', a checkbox 'This order contains a gift', and a full-width yellow 'Proceed to checkout' pill, plus a 'Customers who bought...' mini rail. Saved for later sits below as a grid of cards.",
+    "CHECKOUT (memory): simplified header (no search, no sub-nav): logo left, 'Secure checkout' with lock icon or 'Checkout (2 items)' centered, cart link right, on a light grey/white bar with bottom border. Body is two columns: left about 70% with stacked sections (1 Delivery address / 2 Payment method / 3 Review items and shipping; newer version shows 'Delivering to Mikey Z' + 'Change', 'Paying with Visa 1234' + 'Change', 'Arriving Sep 17' item groups with delivery-speed radios). Right about 300px sticky summary .a-box: yellow 'Place your order' pill, legal 12px, then 'Order Summary' rows (Items:, Shipping & handling:, Total before tax:, Estimated tax to be collected:, then 'Order total:' 18px bold).",
+    "FOOTER (VERIFIED headings on the homepage): 'Back to top' full-width bar #37475A (50px, 13px white). Then the #232F3E band with 4 link columns centered, max about 1000px wide: 'Get to Know Us', 'Make Money with Us', 'Amazon Payment Products', 'Let Us Help You'. Headings 16px 700 white, links 14px #DDD, row gap about 8px. A 1px #3A4553 divider, then logo + outlined language/currency/country buttons (1px #848688, radius 3px). Then the #131A22 band with a dense 5-7 column grid of services (12px #DDD title + #999 description, e.g. 'Amazon Music / Stream millions of songs') and legal links + '(c) 1996-2026, Amazon.com, Inc. or its affiliates'.",
+    "GRID PRIMITIVES (memory): AUI .a-row/.a-column with .a-span1-12 (12-col; e.g. a-span6 width 48.82%, margin-right 2.35%). .a-box radius 8px border 1px #D5D9D9, inner padding 14px 18px (VERIFIED). Rebuild with CSS grid and gap instead of floats.",
+    "RADII (VERIFIED distinct values in AUI CSS): 0, .125rem (2px, button-inner legacy), .25rem (4px, search bar ends), 3px (legacy .a-button, flyouts, inputs), 7px (toggle buttons), 8px/.5rem (boxes, cards, popovers, grey dropdown pills), .75rem, 1rem, 6.25rem (100px pill: Add to Cart/Buy Now in buy box and search, quantity stepper).",
+    "SHADOWS (VERIFIED): 0 2px 5px 0 rgba(213,217,217,.5) (secondary/dropdown buttons); 0 2px 5px rgba(15,17,17,.15) (raised controls); 0 0 14px rgba(15,17,17,.5) (popovers/modals); 0 -1px 2px rgba(15,17,17,.08) (sticky bottom bars on mobile); 0 1px 2px 0 rgba(0,0,0,.1) (cards); focus 0 0 0 2px #fff, 0 0 0 5px #2162a1; hamburger canvas 4px 0 10px 0 rgba(0,0,0,.4)."
+  ],
+  "components": [
+    {
+      "name": "TIERING SUMMARY (24h rebuild, design-system surface)",
+      "spec": "P0: tokens (the colors above as CSS custom properties, type scale, 8px/pill radii, 4 shadows); header belt (logo, Deliver to, search with category scope, Hello sign in/Account & Lists, Returns & Orders, cart with live count); primary/Buy Now/secondary buttons with hover/active/focus/disabled; text input + select + checkbox + radio with focus and error states; price component with superscript cents; star rating; product card (search grid/list); PDP 3-column layout with buy box; cart line item with quantity stepper and subtotal box; checkout 2-column with sections and Place your order box; alert boxes (error/success/info); empty/loading/error patterns; responsive mobile header + 1-col layouts + sticky mobile Add to Cart; slim footer. P1: sub-nav row; badges (Best Seller, Amazon's Choice, Limited time deal, Prime); grey dropdown pill; hamburger side sheet; Account & Lists hover/click flyout with caret and page dim; home card grid + hero; product rail carousel with arrows; location modal; Added to Cart side sheet; skeleton loaders; rating histogram popover; pagination; filter rail. P2: image hover-zoom pane; thumbnail hover swap; variation swatches; persistent right cart rail (ewc); coupon chips; deal countdown; full footer directory; language/currency picker; dark mode (Amazon has none, but tokens make it cheap). SKIP: Amazon Ember/Ember Modern webfonts (proprietary licence), image sprites (use inline SVG), seasonal/A-B button colors (orange/green/blue variants seen Sept-Nov 2025, just noise), Sponsored/ads placements and brand stores, Rufus AI shopping assistant panel, A+ manufacturer content modules, video and 360/AR viewers, Prime Video/Music chrome, IE fallbacks."
+    },
+    {
+      "name": "Primary button (yellow pill) [P0]",
+      "spec": "Labels: 'Add to Cart' (PDP), 'Add to cart' (search), 'Proceed to checkout', 'Place your order', 'Sign in', 'Continue', 'Use this address', 'Sign in securely'. Background #FFD814, border 1px #FCD200, text #0F1111 13-14px 400. Radius 100px in the buy box, search and cart (pill); 8px on sign-in forms and modals. Height: 29-31px desktop (AUI .a-button-inner height 30px VERIFIED, small 22px VERIFIED), 36px for buy box stacked buttons on newer PDP, 44-48px full width on mobile. Padding 5px 11px (VERIFIED). Shadow 0 2px 5px 0 rgba(213,217,217,.5). Hover #FFCE12 (VERIFIED; legacy #F7CA00 with border #F2C200). Active #F8BD19 (VERIFIED). Focus: 2px outline offset 2px (VERIFIED .a-button:focus-visible) or rebuild ring 0 0 0 2px #fff, 0 0 0 5px #007185. Disabled: background #F0F2F2, text #6F7373, no shadow. Loading: keep width, swap label for 16px spinner, aria-busy. In the buy box it is full width and stacked, with Buy Now 8px below."
+    },
+    {
+      "name": "Buy Now button (orange pill) [P0]",
+      "spec": "Label 'Buy Now'. Background #FFA41C, border #FF8F00 (legacy), text #0F1111, pill 100px, same size as Add to Cart, stacked directly under it. Hover #FF8400, active #FF6E21 (VERIFIED tokens). Signed-out click leads to the sign-in page. Signed-in click goes to checkout with only that item (buy box also shows 'Deliver to Mikey - New York 10001'). Hide when out of stock."
+    },
+    {
+      "name": "Secondary button [P0]",
+      "spec": "Labels: 'Add to List', 'Go to Cart', 'See All Buying Options', 'Sign up now', 'Create your Amazon account', 'Go' (price filter), 'Apply', 'Done'. Background #FFFFFF, border 1px #888C8C (current, VERIFIED) or #D5D9D9 (legacy), text #0F1111 14px, radius 8px (100px in buy box), shadow 0 2px 5px 0 rgba(213,217,217,.5). Hover #F7FAFA. Pressed #EDF8FF with border #1C89E3 (VERIFIED). Disabled #F0F2F2. Focus ring as primary."
+    },
+    {
+      "name": "Grey dropdown pill (Qty / Sort by) [P1]",
+      "spec": "Examples: 'Qty: 1 ▾' (cart, search stepper fallback), 'Quantity: 1 ▾' (buy box), 'Sort by: Featured ▾'. Background #F0F2F2, border 1px #D5D9D9, radius 8px, shadow 0 2px 5px rgba(15,17,17,.15), text 13px #0F1111, label prefix normal and value normal, caret icon right 8px. Hover #E3E6E6. Focus border #007185 + 0 0 0 3px #C8F3FA. Amazon hides a native <select> and opens an AUI popover list (white, radius 8px, 0 0 14px rgba(15,17,17,.5) shadow, items 13px 30px tall, hover #F0F2F2, selected row bold with teal left accent). Quantity lists 1-9 then '10+' which turns into a text input + 'Update' button. REBUILD: style a real <select> with appearance:none and an SVG caret. Same look, native keyboard and mobile pickers for free."
+    },
+    {
+      "name": "Quantity stepper (search + cart, newer) [P0]",
+      "spec": "After 'Add to cart' on search/cart, the button turns in place into a pill with a 2-3px #FFD814 border and white fill: [trash icon when qty=1, else '−'] [count bold 14px] ['+']. Height 32px, radius 100px, icons 16px #0F1111. Count changes update the cart badge instantly. Rebuild: <button aria-label='Decrease quantity'>, output with aria-live=polite, <button aria-label='Increase quantity'>. Min 1 (the trash button removes the item), max 30 or stock (at max, disable '+' and show 12px #565959 'Limit 30 per customer' or 'Only 3 left')."
+    },
+    {
+      "name": "Search bar [P0]",
+      "spec": "Full height about 40px (field 39px VERIFIED), flex:1 between location and language. Parts: scope button 'All ▾' (#E6E6E6, hover #D4D4D4, #555 12px, radius 4px 0 0 4px; width grows to fit the chosen department like 'Electronics'), input (white, no border, 15px #0F1111, placeholder 'Search Amazon' #6F7373 / legacy #767676, padding-left 10px), submit 45px wide (#FEBD69, hover #F3A847, radius 0 4px 4px 0, 20px dark magnifier). Focus: whole bar gets box-shadow 0 0 0 2px #FF9900 (plus 3px outer #F90 at 50% in legacy). Autocomplete dropdown: white panel flush under the bar, full bar width, shadow 0 2px 4px rgba(0,0,0,.2), rows 30-32px with bold typed prefix and non-bold completion (e.g. 'wireless **earbuds for iphone**'), optional 'in Electronics' department suggestion 12px teal; arrow keys move a #F0F2F2 highlight; Esc closes. Empty submit: Amazon does nothing / reloads the department; rebuild keeps focus and doesn't navigate."
+    },
+    {
+      "name": "Location / Deliver to [P1]",
+      "spec": "Header item: 15x18 white outline pin + two lines (signed-in 'Deliver to Mikey' / 'New York 10001'; signed-out 'Delivering to New York 10001' / 'Update location'). Click opens modal 'Choose your location' (width about 375px, header #F0F2F2 16px bold, close X): 12px #565959 'Delivery options and delivery speeds may vary for different locations'; yellow full-width 'Sign in to see your addresses'; divider 'or enter a US zip code'; input (5-digit) + secondary 'Apply'; divider 'or'; select 'Ship outside the US'; bottom-right yellow 'Done'. Validation: 'Please enter a valid US zip code' in #C10015 12px with warning icon, input border #C10015. After Apply, the header updates and the PDP delivery dates recompute."
+    },
+    {
+      "name": "Account & Lists flyout [P1]",
+      "spec": "Trigger: hover (with about 150ms intent delay) or click on 'Hello, sign in / Account & Lists ▾'. Page behind dims with rgba(0,0,0,.6) nav-cover (summary). Panel: white, 1px #DDD, radius 3px, shadow 0 1px 3px rgba(0,0,0,.2), about 480px wide, anchored under the trigger with a white CSS triangle caret (about 22px wide, top border matching panel) pointing at the trigger. Signed-out top block: centered yellow 'Sign in' button (about 200px), 11px 'New customer? Start here.' (teal link). Two columns below, separated by 1px #EEE: 'Your Lists' (Create a List, Find a List or Registry) | 'Your Account' (Account, Orders, Recommendations, Browsing History, Watchlist, Video Purchases & Rentals, Kindle Unlimited, Content & Devices, Subscribe & Save Items, Memberships & Subscriptions, Music Library, Sign Out). Headings 16px 700, links 13px #444 hover #C7511F underline. Rebuild: make it click/Enter-toggle with aria-expanded, Esc closes, focus returns to trigger."
+    },
+    {
+      "name": "Hamburger side sheet ('All') [P1]",
+      "spec": "Trigger '☰ All' in sub-nav (desktop) or hamburger (mobile). #hmenu-container fixed full-screen overlay rgba(0,0,0,.8)-ish. #hmenu-canvas white, fixed, 100% height, box-shadow 4px 0 10px 0 rgba(0,0,0,.4) (VERIFIED), width about 365px desktop / 80vw mobile, slides in from the left over about 250ms. Header #hmenu-customer-profile #232F3E 50px (VERIFIED) with avatar icon + 'Hello, sign in' 19px bold white. White close X 20x20 (VERIFIED size) floats outside the canvas at top right. Sections: 'Trending' (Best Sellers, New Releases, Movers & Shakers), 'Digital Content & Devices', 'Shop by Department' (Electronics, Computers, Smart Home, Arts & Crafts, 'See all ⌄'), 'Programs & Features', 'Help & Settings' (Your Account, English, United States, Customer Service, Sign in). Section headings 18px 700 #111 with padding 13px 20px 13px 36px. Rows 14px #111, about 45px tall, right chevron #767676, hover #EAEDED. Drill-in slides the sub-panel left with a '← MAIN MENU' header. Dividers 1px #D5DBDB."
+    },
+    {
+      "name": "Cart icon with count [P0]",
+      "spec": "Outline cart glyph about 38x26px white. The count sits centered over the basket (#F08804, bold, VERIFIED color), and 'Cart' is 14px 700 white to the right, bottom-aligned (#nav-cart-count-container flex column justify-content:flex-end, VERIFIED). Counts 0-99; above 99 shows '99+' (smaller font). Hover: 1px white outline. aria-label 'Cart, 3 items'. Count animates only by value change (no bounce)."
+    },
+    {
+      "name": "Product card, search grid [P0]",
+      "spec": "Top to bottom: optional 'Sponsored ⓘ' 12px #565959; image box (square-ish, object-fit contain, light #F7F7F7 background in newer search, about 200-260px tall, hover does nothing); optional badge row (one of '#1 Best Seller', 'Amazon's Choice', 'Overall Pick', 'Limited time deal'); brand line 14px bold (fashion/brand queries); title 16px #0F1111 4-line clamp, hover #C7511F underline, whole title is the link; rating row: '4.4' 14px + small stars 80x16 + '▾' (opens histogram popover) + '(12,345)' teal link; '10K+ bought in past month' 12px #565959; price (whole about 21px, sup 13px) + 'List: $49.99' 12px strike or 'Typical: $59.99'; coupon chip row; delivery: 'FREE delivery **Wed, Sep 17** on $35 of items shipped by Amazon' 14px / 'Or fastest delivery **Tomorrow, Sep 16**'; Prime check 'prime' logo row (newer 'prime Two-Day'); 'Add to cart' yellow pill small; '+3 other colors/patterns'; 'More Buying Choices $12.34 (5 used & new offers)' 12px. Card has no border or radius on Amazon (white on white, 8-16px gap). Out of stock: no price or ATC, shows 'Currently unavailable.' or 'No featured offers available' + '$24.99 (3 new offers)' link."
+    },
+    {
+      "name": "Product card, home/rail mini [P1]",
+      "spec": "Image only (about 150-200px tall), optional red 'Up to 23% off' badge + 'Limited time deal' 12px #CC0C39 bold, price (m size 18px/sup 12px), 'List: $' strike, 2-line title 14px. Rail tile width about 160-200px, gap 10px, no borders."
+    },
+    {
+      "name": "Star rating [P0]",
+      "spec": "Five-star glyph strip. Sizes (VERIFIED .a-icon-star 80x18px; .a-star-mini 60x12px). Fill #FFA41C with #DE7921 stroke (memory), half-star supported (4.5 shows 4 full + 1 half; Amazon rounds to the nearest .5). Always paired with a text number ('4.7') and a count link '(98,412)' or '98,412 ratings'. Hover on '▾' or the stars opens popover: title '4.7 out of 5', '98,412 global ratings', five rows '5 star [bar] 76%' as teal links (bar 20px tall, track #F0F2F2 border 1px #D5D9D9 radius 4px, fill #DE7921), footer link 'See customer reviews ›'. Rebuild: inline SVG with clipPath width = rating/5, role='img' aria-label='4.7 out of 5 stars'."
+    },
+    {
+      "name": "Price component [P0]",
+      "spec": "See typography for markup. States: regular (#0F1111); deal (the '-24%' savings in #CC0C39 light 28px left of price + red 'Limited time deal' badge above + 'List Price: $249.00' strike below with ⓘ popover 'The List Price is the suggested retail price...'); range '$12.99 - $24.99' (both halves with sups); unavailable (no price, shows 'Currently unavailable.'); 'See price in cart' teal link for MAP items; unit price '($0.33 / Ounce)' 12px secondary. Accessible: the visual number is aria-hidden and an offscreen '$189.99' is read."
+    },
+    {
+      "name": "Badges [P1]",
+      "spec": "Best Seller: '#1 Best Seller' white 12px 700 on orange (#E47911 legacy; rebuild #C45500 for 4.5:1). Rectangle with a notched/arrow right edge (clip-path polygon), height 20-22px, padding 0 8px, followed by 'in Earbud & In-Ear Headphones' 12px teal link. Amazon's Choice: #232F3E background, 'Amazon's' white + 'Choice' #FF9900, 12px 700, same flag shape, followed by 12px #565959 'for \"wireless earbuds\"'; click opens popover 'Amazon's Choice highlights highly rated, well-priced products available to ship immediately.' Overall Pick: same navy, white 'Overall Pick'. Limited time deal: #CC0C39 rectangle, radius 2-4px, white 12px 700 'Limited time deal', often with 'Ends in 05:12:33' 12px #565959. Prime: SVG check (#FF9900 or #F90) + 'prime' (#00A8E1), sprite 53x15px (VERIFIED size), alt 'Amazon Prime'. Coupon: '#7FDA69 chip 'Coupon:' + checkbox 'Apply 15% coupon' + ' Terms' link; applied state 'Coupon applied' #007600 with check. Small Business, Climate Pledge Friendly (green leaf + teal text) = P2. Rule for rebuild: max one merchandising badge per card."
+    },
+    {
+      "name": "PDP center column [P0]",
+      "spec": "Order (memory): breadcrumb 12px #565959 with '›'; 'Visit the Apple Store' 14px teal link; title 24px/32px 400 (VERIFIED 24px); rating row '4.7 ★★★★★ ▾ (98,412) | Search this page'; badge row ('#1 Best Seller in Earbud & In-Ear Headphones' or 'Amazon's Choice'); '10K+ bought in past month' 14px #565959; hr #D5D9D9 1px; price block (savings %, xl price, 'List Price:' strike, 'Typical price', 'FREE Returns ▾' teal link, Prime logo row, coupon, 'Available at a lower price from other sellers that may not offer free Prime shipping.'); 'Color: White' label (14px, value bold) + swatch grid (image tiles about 60x60 or text toggles; 1px #D5D9D9, radius 7-8px; selected inset 0 0 0 2px #2162A1 VERIFIED or 2px #007185; unavailable swatches dashed border + greyed image 40% opacity); product overview table (2 columns 14px: 'Brand | Apple', 'Model Name | AirPods Pro', label bold); hr; 'About this item' 16px 700 then bullets 14px/20px list-style disc; 'See more product details' teal link."
+    },
+    {
+      "name": "PDP image block [P0 main image, P2 zoom]",
+      "spec": "Thumbnail strip: vertical, 40x40px thumbs, 1px #A2A6AC border, radius 8px (newer), 10px gap; the last thumb reads '5+ VIDEOS' overlay. Hover on a thumb swaps the main image (no click needed); selected thumb gets border about #E77600 + glow 0 0 3px 2px rgba(228,121,17,.5). Main image about 450-550px, object-fit contain, max-height 700px (VERIFIED). Caption under it 12px #565959 'Roll over image to zoom in' (desktop) / 'Click to see full view'. Hover shows a grey lens over the image and a large zoom pane overlaying the center + buy columns. Click opens a full-screen image modal with tabs 'VIDEOS | IMAGES'. Rebuild: click-to-open lightbox, skip the hover lens."
+    },
+    {
+      "name": "Buy box [P0]",
+      "spec": ".a-box: border 1px #D5D9D9, radius 8px, background #FFF, padding 14px 18px (VERIFIED). Width 244-275px (VERIFIED 275px). Contents, in order (memory): optional tabs 'One-time purchase' / 'Subscribe & Save' as radio rows; price (xl); 'FREE delivery **Tuesday, September 16**. Order within **4 hrs 22 mins**' 14px (countdown green #007600); 'Or fastest delivery **Tomorrow, September 15**'; pin icon + 'Deliver to Mikey - New York 10001' 12px teal; 'In Stock' 18px #007600 (or 'Only 3 left in stock - order soon.' 18px #C10015, or 'Currently unavailable.' 18px #C10015 + 'We don't know when or if this item will be back in stock.' 14px); 'Quantity: 1 ▾' grey pill; 'Add to Cart' yellow pill; 'Buy Now' orange pill; lock icon + 'Secure transaction' 12px; key-value table 12px (label #565959 left column about 80px): 'Ships from | Amazon.com', 'Sold by | Amazon.com', 'Returns | Returnable until Jan 31, 2026', 'Payment | Secure transaction', 'Support | Product support included' with '▾ See more'; checkbox 'Add a gift receipt for easy returns'; hr; 'Add to List' secondary full-width; separate box below 'Have one to sell? Sell on Amazon'. Signed-out: identical except 'Deliver to' reads 'Delivering to New York 10001 - Update location'. Out of stock: remove Qty/ATC/Buy Now, keep 'Add to List' and show 'See All Buying Options' secondary when third-party offers exist."
+    },
+    {
+      "name": "Added to Cart confirmation [P1]",
+      "spec": "Amazon desktop, two patterns. (a) If the persistent cart rail (ewc) is enabled on wide screens: right-docked 130-140px white column with 'Subtotal $189.99' 14px #C10015-bold, 'Go to Cart' secondary pill, item thumbnails each with a Qty dropdown and trash icon. The home grid shrinks (VERIFIED media query mentions docked panel at <=1571px). (b) Otherwise the page navigates to 'smart-wagon': green check + 'Added to Cart' 18px 700 #007600, product thumb, 'Cart subtotal (1 item): $189.99' bold, yellow 'Proceed to checkout (1 item)', secondary 'Go to Cart', then recommendation rails. A protection-plan side sheet may slide from the right first ('Add to your order' / 'No thanks' / 'Add protection'). REBUILD: no navigation; right side sheet 360px (mobile: bottom sheet) with the check, item, subtotal, 'Proceed to checkout' + 'Go to Cart', focus trapped, Esc/overlay closes. Plus the header count updates."
+    },
+    {
+      "name": "Modal / popover [P1]",
+      "spec": "AUI popover: white, radius 8px, shadow 0 0 14px rgba(15,17,17,.5) (VERIFIED token), z-index 1010 (VERIFIED .a-popover). Header band #F0F2F2 with bottom border 1px #D5D9D9, title 16px 700 #0F1111, close 'X' icon button right (hit area 44px). Body padding 16-24px 14px text. Footer right-aligned buttons (secondary then primary). Modal scrim rgba(15,17,17,.5)-ish. Hover popovers (rating histogram, 'List Price' ⓘ, Amazon's Choice info) have a 12-16px triangle arrow matching the border, open on hover after about 100ms and on click/tap. Rebuild: native <dialog> with ::backdrop, showModal() for modals and a positioned div for hover popovers."
+    },
+    {
+      "name": "Nav flyout caret [P1]",
+      "spec": "Pure-CSS triangle. The small inline dropdown indicator is border:4px solid transparent; border-top-color:#A7ACB2 (VERIFIED). The flyout tail is a white triangle (about 11px tall) with a 1px #DDD outline triangle behind it, placed at the top of the panel under the trigger's center."
+    },
+    {
+      "name": "Inputs (text, email, password, zip) [P0]",
+      "spec": "Height 31px desktop / 44px mobile, padding 3px 7px, 1px border #888C8C (legacy top border #949494), radius 3px (8px on newer forms), inner shadow 0 1px 0 rgba(255,255,255,.5), 0 1px 0 rgba(0,0,0,.07) inset, text 13-14px #0F1111. Label above 13px 700 ('Enter mobile number or email', 'Password', 'Full name (First and Last name)', 'ZIP Code'). Focus: border #007185 + box-shadow 0 0 0 3px #C8F3FA, 0 1px 2px rgba(15,17,17,.15) inset (memory) or the current AUI ring #2162A1. Error: border #C10015 (legacy #D00), glow 0 0 0 3px rgba(193,0,21,.15), message below 12px #C10015 with 'ⓘ' red icon. Validation copy: 'Enter your mobile number or email', 'Enter your password', 'Your password is incorrect', 'Minimum 6 characters required' (hint 'Passwords must be at least 6 characters.'), 'Passwords must match', 'Enter your name', 'Please enter a ZIP or postal code.', 'Please enter a valid US zip code', 'Please enter a phone number so we can call if there are any issues with delivery.' Password field has a 'Show password' checkbox. Page-level alert box for auth: 'There was a problem' 17px 700 #C10015 + 'We cannot find an account with that email address', border 1px #C10015, radius 8px, inset 0 0 0 4px #FCF4F4, red triangle icon."
+    },
+    {
+      "name": "Checkbox / radio [P0]",
+      "spec": "13x13px. Checkbox border 1px #888C8C, radius 2px, white. Checked: #007185 fill (legacy) or #2162A1 (current) with white check. Radio 13px circle, checked with a 5px dot in the same blue. Label 14px (filter rail) / 12px (buy box gift option) with 4-6px gap; whole label is clickable. Delivery-option radio rows in checkout: 'Wednesday, Sep 17' bold + 'FREE Prime Delivery' secondary. Focus ring 0 0 0 3px #C8F3FA. Rebuild: native inputs with accent-color:#007185; mobile hit area 44px via label padding."
+    },
+    {
+      "name": "Alerts [P0]",
+      "spec": "Box with 1px border + left icon + title 17px 700 + body 14px, radius 8px, padding 14px 18px 14px 63px (icon column). Success border #0B7B3C (VERIFIED) with title 'Added to Cart' / 'Order placed, thanks!'. Error border #C10015 (VERIFIED) with title 'There was a problem'. Warning border #FFB14A (VERIFIED) with title 'Important message'. Info border #246FB6 (VERIFIED) with title 'Note'. Inline variant (.a-alert-inline VERIFIED: no border, no radius) = icon + colored 12px text, used under inputs. Rebuild with role='alert' (error) and role='status' (success)."
+    },
+    {
+      "name": "Toast [P2]",
+      "spec": "Amazon doesn't use toasts on desktop web. Cart feedback is in-place (stepper) or a sheet/page. Optional rebuild: bottom-center (mobile) / top-right under header (desktop) dark #232F3E pill, white 14px text 'Added to cart' + teal-on-dark 'View cart' link (#7FD4E0 for contrast), 4s auto-dismiss, pause on hover, role='status'. Use only for 'Saved for later', 'Item removed. Undo'."
+    },
+    {
+      "name": "Carousel (home hero + product rails) [P1]",
+      "spec": "Hero: auto-rotates about every 5-8s (memory), left/right tall transparent click zones about 80px wide x 250px tall with a big dark chevron icon, focus shows a white border ring; no dots on desktop. Product rail (.a-carousel): header 21px 700 + 'See more' teal link + right-aligned 'Page 1 of 20' 12px #565959 + 'Start over' link; tiles scroll by page. Arrow buttons are white, about 45px wide x 100px tall, vertically centered on the image band, 1px #D5D9D9 border, radius 8px on the outer side, shadow 0 2px 5px rgba(15,17,17,.15), chevron 18px #0F1111; hidden until the rail is hovered on desktop. Disabled arrow at start/end hides. Mobile: horizontal scroll-snap with no arrows. Rebuild: overflow-x:auto + scroll-snap-type:x mandatory + two buttons calling scrollBy; no auto-rotate (or pause on hover/focus and under prefers-reduced-motion)."
+    },
+    {
+      "name": "Pagination [P1]",
+      "spec": "Centered group: '‹ Previous' (disabled grey #6F7373 text on page 1) | '1' (current: bold, 1px #0F1111 or #D5D9D9 border, radius 8px) | '2' | '3' | '…' | '20' | 'Next ›'. Each cell 1px #D5D9D9 border, 14px, padding 8px 14px, hover #F7FAFA. Newer search uses separate rounded pills with 4px gaps. Rebuild: <nav aria-label='Pagination'> with aria-current='page'."
+    },
+    {
+      "name": "Cart line item [P0]",
+      "spec": "Row: checkbox (selects for checkout subtotal), image 180x180 (mobile 100px), center column: title 18px 2-line clamp link, 'In Stock' 12px #007600, 'FREE delivery **Wed, Sep 17**' 12px, 'prime' logo, checkbox 'This is a gift ⓘ Learn more' 12px, 'Color: White' 12px bold label; controls row: quantity stepper pill (trash/−, n, +) then 12px teal links separated by 1px #D5D9D9 vertical bars: 'Delete | Save for later | Compare with similar items | Share'. Price right-aligned 18px 700 #0F1111. Divider 1px #D5D9D9 between rows. Deleted state: row collapses to 'Wireless Earbuds... was removed from Shopping Cart.' 14px with no undo on Amazon (rebuild: add 'Undo'). Subtotal line 'Subtotal (2 items): **$214.98**' 18px right-aligned."
+    },
+    {
+      "name": "Empty cart [P0]",
+      "spec": "White box: left illustration (about 270px), right: 'Your Amazon Cart is empty' 28px 700, 'Shop today's deals' 14px teal link. Signed-out adds yellow 'Sign in to your account' + secondary 'Sign up now'. Below: 'The price and availability of items at Amazon.com are subject to change. The shopping cart is a temporary place to store a list of your items and reflects each item's most recent price.' 12px #565959, then 'Your Items' tabs (Saved for later / Buy it again) and 'Your Browsing History' rail."
+    },
+    {
+      "name": "Checkout stepper and summary [P0]",
+      "spec": "Legacy SPC: numbered sections '1 Shipping address', '2 Payment method', '3 Offers', '4 Review items and shipping'. Each is a row with the number 18px 700 in a left column, heading 18px 700, collapsed summary 14px (e.g. 'Mikey Z, 123 Main St, New York, NY 10001'), and a right teal 'Change' link. The active section expands into a .a-box with radio lists (addresses/cards) with 1px #D5D9D9 border, selected row background #FCF5EE with border #FBD8B4 (legacy highlight), and a yellow 'Use this address' / 'Use this payment method' button. Completed sections collapse. Newer (2024+): unnumbered cards 'Delivering to Mikey Z' / 'Paying with Visa ****1234' / 'Arriving Sep 17' + 'Change', no explicit stepper. Summary box (sticky top 20px): yellow 'Place your order' full width; 12px 'By placing your order, you agree to Amazon's privacy notice and conditions of use.'; hr; 'Order Summary' 18px 700; rows 12-14px flex space-between 'Items: $214.98', 'Shipping & handling: $0.00', 'Total before tax: $214.98', 'Estimated tax to be collected: $19.08'; hr; 'Order total: $234.06' 18px 700 (legacy #B12704). Rebuild: 3 numbered sections with a visual stepper (done = green check, current = navy number, upcoming = grey) + sticky summary; disable 'Place your order' until address + payment are valid."
+    },
+    {
+      "name": "Order confirmation [P0]",
+      "spec": "White box with left green check icon + 'Order placed, thanks!' 18px 700 #007600 (current #0B7B3C), 'Confirmation will be sent to your email.' 14px, '**Shipping to Mikey Z**, 123 Main St, New York, NY 10001' 14px, delivery date bold 'Wednesday, Sep 17', item thumbnails, teal 'Review or edit your orders ›'. Right: 'Continue shopping' secondary or recommendation rail."
+    },
+    {
+      "name": "Sign-in page [P0]",
+      "spec": "No global header: centered black amazon logo (about 103x31) on white. Card width 350px, border 1px #DDD, radius 8px, padding 20px 26px. h1 'Sign in or create account' 28px 400 (2025 unified flow; legacy 'Sign in'). Label 'Enter mobile number or email' 13px 700, input, yellow full-width 'Continue', 12px 'By continuing, you agree to Amazon's Conditions of Use and Privacy Notice.' (teal links), '▸ Need help?' disclosure. Divider, then 'Buying for work?' 13px 700 + 'Shop on Amazon Business' teal link. Password step shows the email + 'Change' link, 'Password' label with 'Forgot password?' right, input, yellow 'Sign in', checkbox 'Keep me signed in. Details ▾'. Footer: gradient divider, 12px links 'Conditions of Use  Privacy Notice  Help', '© 1996-2026, Amazon.com, Inc. or its affiliates'."
+    },
+    {
+      "name": "Loading / skeleton states [P1]",
+      "spec": "Amazon renders server-side, so there are few visible loaders. The homepage has a #navbar-skeleton progressive nav (VERIFIED id). Images lazy-load onto white. AUI spinner (.a-spinner): 24px grey circular gif. Search refinement clicks do a full page load (list fades to 50% opacity while pending). Rebuild: skeleton blocks #F0F2F2 with radius 8px matching card geometry (image square, 2 title lines 16px, 1 price line 60% width), subtle shimmer disabled under prefers-reduced-motion; reserve image aspect-ratio to prevent CLS; buttons show inline spinner and keep width."
+    },
+    {
+      "name": "Empty / error states [P0]",
+      "spec": "No search results: 'No results for **\"xqzv\"**.' 20px 700 + 'Try checking your spelling or use more general terms' 14px, then 'Need help? Visit the help section or contact us' and suggested rails. Partial: 'Showing results for **wireless earbuds**. Search instead for wirless earbuds' (teal). Filters with zero matches: rail items greyed. Error page (dog page): 'Sorry! Something went wrong on our end. Please go back and try again or go to Amazon's home page.' with a dog photo ('Meet the dogs of Amazon'). 404: 'SORRY / we couldn't find that page / Try searching or go to Amazon's home page.' Out of stock PDP: see Buy box. Rebuild: same copy tone, centered 400px block, primary action button, no dog photos needed."
+    },
+    {
+      "name": "Footer [P0 slim, P2 full]",
+      "spec": "P0 rebuild: 'Back to top' #37475A bar (button scrolling to top, 13px white, 50px) + #232F3E band with 4 columns ('Get to Know Us', 'Make Money with Us', 'Amazon Payment Products', 'Let Us Help You' with 4-6 links each: Your Account, Your Orders, Shipping Rates & Policies, Returns & Replacements, Help) + #131A22 legal strip ('Conditions of Use', 'Privacy Notice', '© 1996-2026 ...'). P2: logo/language/country pill row and the dense service grid."
+    },
+    {
+      "name": "Icon set [P0]",
+      "spec": "All Amazon nav icons come from a PNG sprite (VERIFIED nav-sprite-global-1x-reorg-privacy PNG). Rebuild as inline SVG, currentColor, 1.5-2px stroke: cart (38x26 with count slot), location pin 15x18, hamburger 3 bars 20x16 (2px bars, 4px gaps), search magnifier 20px, caret-down 8x5 (#A7ACB2), chevron-left/right 18px, close X 20px, trash 16px, plus/minus 16px, lock 12px (Secure transaction), check-circle 20px green, warning-triangle 16px (#C10015 / #FFB14A), info ⓘ 12px #565959, star/half-star, Prime check + wordmark (P1), US flag 20x15 (P2), user avatar circle (hamburger header)."
+    }
+  ],
+  "responsive": [
+    "AMAZON'S REAL APPROACH: desktop DOM has #navbar min-width:1000px (VERIFIED), so it scrolls horizontally below 1000px. Phones get a separate mobile-web DOM (nav-mobile, 'a-mobile' AUI) served by user agent, not CSS media queries. The only real reflow found is the home card grid (4 cols >=1240px, 3 cols <=1239px, docked-rail adjustment <=1571px, VERIFIED). A rebuild should be one responsive codebase instead.",
+    "REBUILD BREAKPOINTS: xs <640px (phone: 1-col, stacked header), sm 640-767 (2-col cards), md 768-1023 (tablet: search 3-col grid with filters in a drawer, PDP 2-col image|info with buy box below info), lg 1024-1279 (desktop: header single row, filter rail visible, 3-col search grid, PDP 3-col with 244px buy box, home 3 cols), xl >=1280 (4-5 col search grid, home 4 cols 290px min). Content max-width 1500px centered with 16px side gutters <1024 and 20px >=1024.",
+    "MOBILE HEADER (memory of amazon.com on phone): row 1 (#232F3E or #131921, about 48px): hamburger 24px left, amazon logo, spacer, 'Sign in ›' + user icon (signed-in: 'Mikey ›'), cart icon with count. Row 2 search (about 52px band, same navy): full-width white input radius 8px, height 44px, placeholder 'Search Amazon', orange #FEBD69 magnifier segment at the right (radius 0 8px 8px 0). There is no 'All' scope on mobile. Row 3: #37475A strip about 36px with pin + 'Deliver to Mikey - New York 10001' 13px white (signed-out 'Deliver to New York 10001' / 'Update location'). Row 4: horizontally scrollable text links on #232F3E ('Deals', 'Amazon Basics', 'Best Sellers', 'Livestreams', 'Video', 'New Releases', 'Home', 'Books') 14px white, no scrollbar. Only the search row stays sticky on scroll. The Amazon Shopping app uses a light teal gradient header, which mobile web sometimes A/B tests; not recommended for a rebuild.",
+    "MOBILE HOME: #E3E6E6 ground, full-bleed hero image, then stacked full-width white cards with 10px gaps (quad cards stay 2x2), rails become horizontal scroll-snap with about 40% peek of the next tile.",
+    "MOBILE SEARCH: sticky subheader under search with 'Filters (2) ▾' button (opens full-screen filter sheet with 'Sort by', 'Delivery Day', 'Customer Reviews', 'Brand', 'Price' sections and a sticky yellow 'Show 1,000+ results' button + 'Clear filters' link) and a 'Prime' toggle chip. Results as list rows: image column about 40% width on #F7F7F7 with padding, info column 60% (title 14-15px 3-line clamp, rating, price m-size, delivery 12px, 'Add to cart' yellow pill full width of the info column, 36-40px tall). Rows separated by 1px #D5D9D9 or 8px grey gaps. Infinite 'Next' pagination button at bottom.",
+    "MOBILE PDP: order = 'Visit the Apple Store' link + rating (top), title 14px, full-width swipe image carousel with dot indicators and '1/7' counter, share icon; price block; variation chips (horizontal scroll); 'FREE delivery Tuesday...'; 'In Stock'; quantity pill; 'Add to Cart' and 'Buy Now' full-width pills 48px tall with 8px gap; 'Add to List'; 'About this item' collapsible sections. Rebuild: once the in-flow ATC scrolls out of view, show a sticky bottom bar (white, shadow 0 -1px 2px rgba(15,17,17,.08) VERIFIED token, padding 8px 16px + safe-area-inset-bottom) with the price and a yellow 'Add to Cart'.",
+    "MOBILE CART / CHECKOUT: 'Subtotal $214.98' 20px 700 at top + full-width yellow 'Proceed to checkout (2 items)' (also sticky at bottom once scrolled). Items stacked with image 100px left. Checkout sections become full-width cards; 'Place your order' button pinned at bottom with total above it.",
+    "SIDE SHEETS ON MOBILE: hamburger canvas width about 80vw max 365px; Account flyout is not used (link goes to /gp/css/homepage); Added-to-Cart becomes a bottom sheet (radius 16px 16px 0 0, drag handle 36x4 #D5D9D9, max-height 90vh); modals become full-screen sheets under 640px.",
+    "TOUCH AND TYPE ON MOBILE: minimum 44x44px hit areas (Amazon's desktop 29-31px buttons and 12px links are too small); inputs >=16px font-size to prevent iOS zoom; no hover-dependent UI (thumbnail hover swap becomes swipe, rating histogram opens on tap, flyouts become pages/sheets).",
+    "PERFORMANCE ON MOBILE: responsive images via srcset (Amazon image URLs use size tokens like ._AC_SL1500_ / ._AC_UY218_; a rebuild can use width params) with aspect-ratio boxes; the system font stack avoids webfont load; below-the-fold rails lazy-load.",
+    "DARK MODE (Amazon has none, P2): only if tokens exist from the start. Belt #131921 and sub-nav #232F3E stay as they are, page #0F1111, card #1B1F1F, border #3A3F3F, text #E6E6E6, secondary #A8ADAD, link #4FC1D6, yellow/orange buttons unchanged (text stays #0F1111). Guard under prefers-color-scheme."
+  ],
+  "better_than_original": [
+    "ONE RADIUS SYSTEM: Amazon's CSS ships radii of 2px, 3px, 4px, 7px, 8px, .75rem, 1rem and 100px (VERIFIED), which gives mismatched buttons across pages. Rebuild uses 8px for boxes, inputs, cards, popovers and dropdowns, and 100px for every action button and stepper, consistently.",
+    "ONE FOCUS/SELECTION COLOR: Amazon mixes the teal #007185 + #C8F3FA glow, the #2162A1 double ring and the #888C8C outline (all VERIFIED). Rebuild uses a single 2px #FFF + 4px #007185 :focus-visible ring on all interactive elements (visible on navy header too) and #007185 for selected swatches, checkboxes and radios.",
+    "FIX CONTRAST FAILURES: the legacy Best Seller orange #E47911 with white text is 2.98:1, so use #C45500 (4.52:1). Star fill #FFA41C is 1.99:1, so add a #DE7921 stroke (3.06:1) and always print the numeric rating. Prime blue #00A8E1 is about 2.6:1, so treat it as decorative with a text label. Placeholder text should be #6F7373 (4.9:1) instead of light grey.",
+    "KEYBOARD AND SCREEN-READER FIRST: flyouts and histogram popovers open on click/Enter (not hover-only) with aria-expanded, Esc closes and focus returns; side sheets and dialogs trap focus (native <dialog>); price has one spoken string ('$189.99, was $249.00, 24% off'); stars are role=img with an aria-label; cart count changes are announced via aria-live.",
+    "TRULY RESPONSIVE: one layout that reflows from 360px to 2560px, instead of a 1000px min-width desktop plus a separate user-agent mobile DOM. Sticky mobile Add to Cart bar and a sticky checkout summary.",
+    "LESS CLUTTER ON CARDS: at most one merchandising badge, no interleaved 'Sponsored' tiles, 2-line title clamp on the grid (4 on Amazon), and a fixed information order: image, title, rating, price (with strike list price), delivery date, Add to cart. Hide 'More Buying Choices', '+3 other colors' and repeated Prime logos behind the PDP.",
+    "CLEARER PRICE AND DELIVERY HIERARCHY: regular prices in #0F1111 and only real deals in #CC0C39; show the delivered total ('$189.99 + FREE delivery Wed, Sep 17') on one line; use tabular-nums so prices align in cart and summary; show unit price consistently where relevant.",
+    "NO-NAVIGATION ADD TO CART: the button morphs into the quantity stepper in place, the header count updates immediately (optimistic), and a right side sheet (bottom sheet on mobile) shows subtotal + 'Proceed to checkout'. Amazon still sometimes full-page redirects to smart-wagon.",
+    "UNDO INSTEAD OF DEAD ENDS: 'Item removed from cart. Undo' toast; 'Save for later' reversible; the out-of-stock PDP still shows similar in-stock alternatives above the fold.",
+    "FASTER: system font stack (no Ember download), inline SVG icons instead of PNG sprites, CSS custom-property tokens (dozens of lines instead of Amazon's 50+ concatenated CSS files, VERIFIED bundle sizes), aspect-ratio image boxes (zero CLS), skeletons matching real geometry, and prefetch of the PDP on card hover/viewport.",
+    "CALMER MOTION: no auto-rotating hero (or pause on hover/focus and fully off under prefers-reduced-motion); carousels use native scroll-snap with visible arrow buttons that are always keyboard reachable, not hover-revealed.",
+    "CHECKOUT CLARITY: an explicit 3-step stepper (Address, Payment, Review) with completed checkmarks, inline validation messages under each field (Amazon's copy tone kept), and 'Place your order' disabled with a reason ('Add a payment method to continue') until valid.",
+    "CONSISTENT CASE AND COPY: pick one casing ('Add to cart' everywhere; Amazon uses 'Add to Cart' on PDP and 'Add to cart' on search), and keep Amazon's efficient microcopy: 'FREE delivery', 'Order within', 'Only 3 left in stock - order soon.'",
+    "LARGER HIT TARGETS: 44px minimum on touch for buttons, stepper, filter checkboxes (via label padding) and the carousel arrows. Amazon's 29-31px buttons and 12px inline links ('Delete | Save for later') are hard to tap.",
+    "OPTIONAL DARK MODE for free: tokens make it trivial and Amazon offers none (P2, only after P0/P1 are done)."
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/",
+      "verified": true,
+      "note": "Fetched OK (no captcha). VERIFIED: inline #E3E6E6 home ground and gradient, #2162a1, rgba(15,17,17,.6); ids gw-desktop-herotator, navbar-skeleton, gw-card-layout; inline card-grid CSS (.gw-col flex:1 0 290px, height 420px, padding 0 10px; .a-cardui padding-top 20px, body 0 20px 56px; 4 cols >=1240, 3 cols <=1239; hero viewport 300px, 350px gradient). Labels VERIFIED via summarizer: Deliver to, Hello, sign in, Account & Lists, Returns & Orders, Cart, Search Amazon, All, Today's Deals, Customer Service, Registry, Gift Cards, Sell, Shop now, See more, Discover more, Sign in for the best experience, Get to Know Us, Make Money with Us, Amazon Payment Products, Let Us Help You, Back to top."
+    },
+    {
+      "url": "https://www.amazon.com/dp/B0CHWRXH8B",
+      "verified": true,
+      "note": "Fetched OK (AirPods Pro 2 PDP), head only; body truncated by the fetcher. VERIFIED verbatim :root nav tokens: --nav-desktop-header-tbg #131921, -bbg #232f3e, --nav-go-button-bg #febd69, -hbg #f3a847, --nav-search-border-shadow #ff9900, --nav-search-scope #e6e6e6, -hover #d4d4d4, --nav-x-shop-links #fff, -active #ccc, --nav-cart-count #f08804, --nav-dropdown-arrows #a7acb2; price class names a-price-symbol/whole/fraction; stylesheet URLs."
+    },
+    {
+      "url": "https://www.amazon.com/gp/aw/d/B0CHWRXH8B",
+      "verified": false,
+      "note": "Fetched OK but only head/meta returned. No mobile body content; mobile layouts are from memory."
+    },
+    {
+      "url": "https://www.amazon.com/s?k=wireless+earbuds",
+      "verified": false,
+      "note": "BLOCKED: HTTP 503. Search page specs are from memory."
+    },
+    {
+      "url": "https://www.amazon.com/s?k=usb+c+cable",
+      "verified": false,
+      "note": "BLOCKED: HTTP 503 (second and final attempt, no further retries)."
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/214aTrUk8lL._RC|51nfWTBkewL.css_.css?AUIClients/AmazonUI",
+      "verified": true,
+      "note": "AUI base token CSS. VERIFIED verbatim tokens: primary #ffd814/#ffce12/#f8bd19; secondary #fff border #888c8c, hover #f7fafa, pressed #edf8ff/#1c89e3; Buy Now #ffa41c/#ff8400/#ff6e21; blue CTA #0064f9/#0045a5/#143075; text #0f1111, #565959, #303333, #6f7373; success #0b7b3c; warning #ffb14a; error #c10015; info #2162a1; #cc0c39; #d14900; #d5d9d9; #f0f2f2. Heading rem sizes h1-h6; font-family vars falling back to Amazon Ember and Arial; radii .125/.25/.5/.75/1/6.25rem; shadows 0 2px 5px rgba(15,17,17,.15), 0 0 14px rgba(15,17,17,.5), 0 -1px 2px rgba(15,17,17,.08). NOT FOUND there: #007185, #C7511F, #B12704, #007600, #FCD200, #C8F3FA."
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/11WsGYSItxL._RC|01DE6WSvLKL.css,...,013-xYw+SRL.css_.css?AUIClients/AmazonUI#us.not-trident",
+      "verified": true,
+      "note": "AUI component bundle (full URL is on the PDP). VERIFIED rules: body #0f1111 on #fff; .a-color-base #0f1111; .a-color-secondary/tertiary #565959; .a-color-state #c45500; a:hover #c45500; .a-color-price #c10015; .a-color-error #c10015; .a-color-alternate-background #f0f2f2; .a-button radius 3px, bg #fff, border #888c8c, hover #f7fafa, disabled #f0f2f2, focus-visible 2px outline #888c8c offset 2px; .a-button-inner height 30px (small 22px); .a-button-text 14px/20px padding 5px 11px; toggle radius 7px; .a-box border #d5d9d9 radius .5rem, inner padding 14px 18px; alerts success #0b7b3c / error #c10015 / warning #ffb14a / info #246fb6; .a-icon-prime 53x15; .a-icon-star 80x18, .a-star-mini 60x12; .a-size-* scale; shadows 0 2px 5px 0 rgba(213,217,217,.5), 0 0 0 2px #fff + 0 0 0 5px #2162a1, inset 0 0 0 2px #2162a1; hr #d5d9d9. An early summary claiming #FCD814 was contradicted by a strict string search and discarded."
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/51waPb-h-9L._RC|71HIp7smmYL.css,...,01NLp3ZKNoL.css_.css?AUIClients/NavDesktopUberAsset",
+      "verified": true,
+      "note": "Desktop nav CSS. VERIFIED verbatim: #navbar and #nav-cover min-width 1000px; #nav-belt .nav-left/.nav-fill/.nav-right height 43px; belt .nav-a #d6d6d6, hover #fff; #nav-main max-height 56px padding-top 1px; hmenu canvas #fff with box-shadow 4px 0 10px 0 rgba(0,0,0,.4); #hmenu-customer-profile #232f3e 50px, :active #131a22; close icon 20x20; cart count container flex column. Via summary (less certain): search field 39px/14px, scope radius 4px 0 0 4px, submit radius 0 4px 4px 0, flyout #fff/1px #ddd/3px radius/0 1px 3px rgba(0,0,0,.2), .nav-arrow 4px #a7acb2, nav-cover rgba(0,0,0,.6), footer #232f3e with #ddd/#999 links, .nav-line-1 12px/400 and .nav-line-2 14px/700."
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/11RsPeALgOL._RC|01Z3lE5tzaL.css,...,01FZbuFtbhL.css_.css?AUIClients/",
+      "verified": true,
+      "note": "Detail-page CSS. VERIFIED: #rightCol.rightCol width 275px; #centerCol margin-right 300px; #ppd #leftCol sticky top 4px; #main-image-container max-height 700px; #titleSection h1 24px; .a-popover z-index 1010. Hex present: #007185, #067D62, #008296, #0F1111, #E47911, #A2A6AC, #246FB6, #0F6C68, #F3F3F3, #DDD."
+    },
+    {
+      "url": "https://sellersasksellers.com/t/amazon-color-change-buyer-side/6550",
+      "verified": true,
+      "note": "Fetched. Sept 30 - Nov 2, 2025 posts report A/B tests of Add to Cart turning orange or green, a darker blue Buy Now, gold/royal blue combos and holiday variants, then reverting to yellow. Basis for skipping A/B color variants."
+    },
+    {
+      "url": "https://newlee.com/amazon-test-round-buttons-ux-design/",
+      "verified": false,
+      "note": "Fetch failed (TLS certificate error). The search snippet says Amazon tested rounded, higher-saturation yellow/orange buttons with icons removed."
+    },
+    {
+      "url": "https://medium.com/swlh/learn-from-amazon-suddenly-making-their-buttons-flat-keep-your-ui-design-fresh-915a53050e2f",
+      "verified": false,
+      "note": "Search result only. Reports Add to Cart / Buy Now moving from gradient 3D to flat."
+    },
+    {
+      "url": "https://1000logos.net/news/more-than-logo-update-amazon-rebrands-with-new-font/",
+      "verified": false,
+      "note": "Search result only. Amazon Ember Modern introduced in 2024; amazon.com uses Arial, Amazon Ember Modern Display/Text and Amazon Ember."
+    },
+    {
+      "url": "https://design.withfudge.com/share/amazon.com-design",
+      "verified": true,
+      "note": "Fetched; third-party teardown with low precision (Ember sizes 0.75-3.25rem, 'low-radius controls', dark utility header, white card grid, chevron rails). Used only as a qualitative cross-check."
+    },
+    {
+      "url": "https://www.productphotohelp.com/amazon-badge-colors/",
+      "verified": true,
+      "note": "Fetched; qualitative only: Best Seller orange ribbon, Amazon's Choice black/dark grey, New Release green/teal, Limited Time Deal red. No hex values; badge hex values come from memory and the verified CSS."
+    },
+    {
+      "url": "https://www.designpieces.com/palette/amazon-color-palette-hex-and-rgb/",
+      "verified": false,
+      "note": "Search result only. Brand palette #FF9900, #146EB4, #232F3E, #37475A, #FEBD69, #131A22 (brand colors, not UI tokens)."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/amazon-homepage-redesign-features",
+      "verified": false,
+      "note": "Search result only. 2025 homepage redesign is mostly about the app and ad placements; no desktop token changes found."
+    },
+    {
+      "url": "memory",
+      "verified": false,
+      "note": "From Amazon desktop/mobile web knowledge up to 2025-2026 (labeled 'memory' throughout): link #007185 with hover #C7511F usage, #FCD200/#F7CA00/#FF8F00 legacy borders, #C8F3FA focus glow, #007600 In Stock, #FFA41C/#DE7921 stars, badge shapes and colors, price superscript sizes, flyout/hamburger contents, microcopy for buy box, cart, checkout, sign-in, errors, mobile web header rows, spacing classes, search sg-col breakpoints. Verify visually before pixel-matching."
+    }
+  ]
+}

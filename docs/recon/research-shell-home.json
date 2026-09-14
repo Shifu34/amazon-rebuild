@@ -1,0 +1,944 @@
+{
+  "area": "shell-home",
+  "screens": [
+    {
+      "name": "Desktop global header (nav-belt)",
+      "purpose": "Persistent top bar on every page: brand/home link, delivery location, scoped search, account entry, orders, cart. The single most-used navigation surface on Amazon.",
+      "url_pattern": "Rendered on every route; logo -> / (ref=nav_logo)",
+      "layout": "Desktop (>=1000px): one dark row (#131921, ~60px tall), left to right: [amazon logo + '.com' smile, links home] [pin icon + two-line 'Deliver to' block] [search bar flex-grow: 'All' department select | text input | orange magnifier button] [US flag + 'EN' caret] [two-line 'Hello, sign in / Account & Lists' caret] [two-line 'Returns / & Orders'] [cart icon with orange count + 'Cart']. Every item is a hit area with a 1px white outline + 2px radius on hover/focus. Below it, the sub-nav strip (separate screen). Header is NOT sticky on desktop; it scrolls away. Between ~1000px and 1250px the flag/language item hides first and the search bar shrinks. Below ~1000px on a desktop browser the layout squeezes (search goes min-width); on phones Amazon serves the separate mobile web header (see mobile screen).",
+      "elements": [
+        "Logo: white 'amazon' wordmark with orange smile arrow and small '.com'; Prime members see 'prime' under the wordmark (memory)",
+        "Deliver-to block: location pin icon; signed-out line1 small grey 'Delivering to Seattle 98109' (IP-geolocated city + ZIP) / line2 bold white 'Update location'; older/alternate signed-out copy 'Hello' / 'Select your address'; signed-in line1 'Deliver to Mikey' / line2 bold 'Seattle 98109'",
+        "Search department select: grey (#e6e6e6) left segment with rounded left corners, label 'All' + caret; native <select> whose visible width auto-resizes to the selected label (e.g. 'Books', 'Electronics'); aria-label 'Select the department you want to search in'",
+        "Department options (in order, memory, list changes): All Departments, Alexa Skills, Amazon Autos, Amazon Devices, Amazon Global Store, Amazon Haul, Amazon One Medical, Amazon Pharmacy, Amazon Resale, Apps & Games, Arts, Crafts & Sewing, Audible Books & Originals, Automotive Parts & Accessories, AWS Courses, Baby, Beauty & Personal Care, Books, CDs & Vinyl, Cell Phones & Accessories, Clothing, Shoes & Jewelry, (indented) Women, Men, Girls, Boys, Baby, Collectibles & Fine Art, Computers, Credit and Payment Cards, Digital Music, Electronics, Garden & Outdoor, Gift Cards, Grocery & Gourmet Food, Handmade, Health, Household & Baby Care, Home & Business Services, Home & Kitchen, Industrial & Scientific, Just for Prime, Kindle Store, Luggage & Travel Gear, Luxury Stores, Magazine Subscriptions, Movies & TV, Musical Instruments, Office Products, Pet Supplies, Premium Beauty, Prime Video, Smart Home, Software, Sports & Outdoors, Subscribe & Save, Subscription Boxes, Tools & Home Improvement, Toys & Games, Under $10, Video Games, Whole Foods Market",
+        "Search input: white, placeholder 'Search Amazon', 15px text, no clear button; since May 2026 signed-in US users also get Alexa for Shopping prompts in the suggestion dropdown (search/press sources)",
+        "Search submit: #febd69 square button with dark magnifier icon, rounded right corners, hover #f3a847, input value 'Go' (aria-label 'Go')",
+        "Whole search bar gets a 3px orange (#f90) focus ring when input is focused",
+        "Language item: small US flag icon + 'EN' + caret (hover flyout, see Language flyout)",
+        "Account item: line1 small 'Hello, sign in' (signed-in: 'Hello, Mikey'), line2 bold 'Account & Lists' + caret",
+        "Orders item: line1 small 'Returns', line2 bold '& Orders'",
+        "Cart item: outline cart icon with count number in bold orange (#f08804) centered above the basket, bold 'Cart' label right of icon; count shows 0 when empty; caps display (large counts show '99+')",
+        "Hidden 'Skip to main content' link visible on first Tab focus; adjacent 'Keyboard shortcuts' popover listing Search (Alt + /), Cart (Shift + Alt + C), Home (Shift + Alt + H), Your orders (Shift + Alt + O), Show/Hide shortcuts (Shift + Alt + Z)",
+        "Signed-out first-visit tooltip: small white popover under Account & Lists with yellow 'Sign in' button and 'New customer? Start here.' link; appears after load and dismisses on outside click/scroll"
+      ],
+      "states": [
+        "Signed-out: 'Delivering to <City> <ZIP>' / 'Update location'; 'Hello, sign in'; cart count 0 (guest cart persists in cookie session)",
+        "Signed-in: 'Deliver to <FirstName>' / '<City> <ZIP>' from default address; 'Hello, <FirstName>'",
+        "Signed-in Prime: logo shows prime variant",
+        "Location unknown / non-US IP: 'Deliver to' / country name (e.g. 'Canada'), plus on first visit a popover 'We're showing you items that ship to Canada. To see items that ship to a different country, change your delivery address.' with 'Dismiss' and 'Change Address' buttons",
+        "Cart count 0 / 1-99 / '99+'; increments without reload after Add to Cart from PDP or add-to-cart side sheet",
+        "Search focused: orange ring, suggestion dropdown opens once a character is typed (signed-in with history: recent searches shown on focus with empty input)",
+        "Loading: header is server-rendered HTML, so it paints before JS; flyouts and suggestions only work after nav JS loads; before that, links navigate normally",
+        "Error: if suggestions call fails, dropdown simply does not appear; search still submits"
+      ],
+      "interactions": [
+        "Logo click -> home",
+        "Deliver to click -> opens 'Choose your location' modal",
+        "Department select change -> changes search scope (query param i=, e.g. i=stripbooks for Books); select width re-measures",
+        "Type in search -> autocomplete dropdown (see Search suggestions screen); Enter or button -> /s?k=<query>&i=<alias>&ref=nb_sb_noss (or nb_sb_ss_* when a suggestion was chosen)",
+        "Empty query + 'All' submit -> no navigation; empty query + a department selected -> goes to that department landing page",
+        "Language/flag hover -> language/currency flyout; click -> /customer-preferences/edit",
+        "Account & Lists hover (desktop) -> flyout opens after ~200ms intent delay and dims the page below the header with a translucent dark overlay; click -> Your Account (signed-in) or sign-in page (signed-out)",
+        "Returns & Orders click -> /gp/css/order-history; signed-out redirects to sign-in with return_to",
+        "Cart click -> /cart (gp/cart/view.html)",
+        "Alt+/ focuses search; Shift+Alt+C opens cart"
+      ],
+      "microcopy": [
+        "Delivering to Seattle 98109",
+        "Update location",
+        "Deliver to Mikey",
+        "Search Amazon",
+        "All",
+        "EN",
+        "Hello, sign in",
+        "Hello, Mikey",
+        "Account & Lists",
+        "Returns",
+        "& Orders",
+        "Cart",
+        "Skip to main content",
+        "Keyboard shortcuts"
+      ]
+    },
+    {
+      "name": "Choose your location modal",
+      "purpose": "Lets shoppers set delivery ZIP (signed-out) or pick a saved address (signed-in) so prices, availability and delivery dates on every page reflect their location.",
+      "url_pattern": "No URL change; modal over current page (AJAX glow endpoint). Triggered from header 'Deliver to' and PDP 'Deliver to' link",
+      "layout": "Centered modal ~375px wide, white body, header bar light grey (#f0f2f2) with bold title 'Choose your location' and close X at right. Body top: grey 13px explainer. Signed-out: full-width yellow 'Sign in to see your addresses' button; horizontal rule with centered 'or enter a US zip code'; row = ZIP text input (flex) + grey 'Apply' button; rule with centered 'or'; full-width dropdown 'Ship outside the US' listing countries; footer right-aligned yellow 'Done' button (appears when country chosen). Signed-in: vertical list of address cards (bold name, street, city/state ZIP, 'Default address' tag on default) with selected card outlined; link 'Add an address or pick-up point' and 'Manage address book'; then the same ZIP and country blocks. Mobile web: same content as a bottom sheet.",
+      "elements": [
+        "Title 'Choose your location'",
+        "Explainer 'Delivery options and delivery speeds may vary for different locations'",
+        "Yellow button 'Sign in to see your addresses' (signed-out)",
+        "Divider text 'or enter a US zip code'",
+        "ZIP input (5 digits; accepts ZIP+4 in practice), prefilled with current ZIP",
+        "Secondary button 'Apply'",
+        "Divider text 'or'",
+        "Country dropdown 'Ship outside the US'",
+        "Yellow button 'Done'",
+        "Signed-in address cards with 'Default address' label",
+        "Link 'Manage address book'",
+        "Link 'Add an address or pick-up point'",
+        "Close X (aria-label 'Close')"
+      ],
+      "states": [
+        "Signed-out default: sign-in button + ZIP entry + country select",
+        "Signed-in with addresses: address cards first, current selection highlighted",
+        "Signed-in with no addresses: only 'Add an address or pick-up point' link + ZIP + country",
+        "Invalid ZIP (letters, fewer than 5 digits, non-existent ZIP): red inline message under input 'Please enter a valid US zip code' (message text corroborated by a Seller Central forum thread titled with it)",
+        "Applying: Apply button shows spinner/disabled",
+        "Success: modal shows 'Your location' confirmation briefly or closes; page reloads so header reads 'Delivering to <City> <ZIP>' and prices/dates update",
+        "International selection: 'Done' closes and header shows country name; products that do not ship are marked on PDP"
+      ],
+      "interactions": [
+        "Open: click header 'Deliver to'; focus moves into modal; background dimmed",
+        "Close: X, Escape, or click overlay (no change saved)",
+        "Enter key in ZIP input = Apply",
+        "Selecting an address card applies immediately and reloads",
+        "Sign in button -> /ap/signin with return to current page",
+        "Country select + Done -> sets country, reloads"
+      ],
+      "microcopy": [
+        "Choose your location",
+        "Delivery options and delivery speeds may vary for different locations",
+        "Sign in to see your addresses",
+        "or enter a US zip code",
+        "Apply",
+        "or",
+        "Ship outside the US",
+        "Done",
+        "Please enter a valid US zip code",
+        "Manage address book",
+        "Add an address or pick-up point",
+        "Default address"
+      ]
+    },
+    {
+      "name": "Search suggestions dropdown (header autocomplete)",
+      "purpose": "Speeds query entry and funnels to high-converting queries; scoped suggestions push department filtering.",
+      "url_pattern": "No URL; AJAX completion.amazon.com/api/2017/suggestions",
+      "layout": "White panel attached flush under the search input, same width as input+button, max ~10 rows, 1px grey border, subtle shadow. Each row: magnifier or clock icon (recent) + suggestion text where the typed prefix is normal weight and the completion is bold. The top suggestion is sometimes followed by indented scoped rows 'in Electronics', 'in Cell Phones & Accessories'. Signed-in recent searches appear first with a purple/grey color and a right-aligned 'Remove' link. Since 2026 some rows are Alexa for Shopping prompts (question-style) that open the assistant rather than a SERP.",
+      "elements": [
+        "Suggestion rows with bolded completion",
+        "Scoped department rows 'in <Department>'",
+        "Recent search rows with 'Remove' link (signed-in)",
+        "Alexa for Shopping question prompts (signed-in US, 2026)"
+      ],
+      "states": [
+        "Hidden when input empty (signed-out) / recent searches on focus (signed-in)",
+        "Typing: updates per keystroke, debounced",
+        "No suggestions: dropdown closes",
+        "Network error: silently absent"
+      ],
+      "interactions": [
+        "ArrowUp/ArrowDown moves highlight and writes suggestion into the input",
+        "Enter submits highlighted suggestion; Escape closes and restores typed text",
+        "Mouse hover highlights grey; click submits",
+        "Click 'Remove' deletes a recent search without submitting",
+        "Blur closes dropdown"
+      ],
+      "microcopy": [
+        "in Electronics",
+        "Remove"
+      ]
+    },
+    {
+      "name": "Account & Lists hover flyout",
+      "purpose": "Primary sign-in entry and hub for account destinations and lists without leaving the page.",
+      "url_pattern": "No URL; flyout anchored under 'Account & Lists'",
+      "layout": "White flyout ~500px wide, small caret pointing to the Account item, right-aligned to it; page behind dimmed. Signed-out top block centered: full-width-ish yellow 'Sign in' button (~200px), below it small text 'New customer? Start here.' (link part 'Start here.'). Signed-in top block: grey bar 'Who's shopping? Select a profile.' with 'Manage Profiles ›' (households with profiles). Then a 1px rule and two columns separated by a vertical rule: left 'Your Lists', right 'Your Account'. Signed-in right column ends with 'Switch Accounts' and 'Sign Out'.",
+      "elements": [
+        "Yellow primary button 'Sign in' (#ffd814, rounded, dark text) - signed-out only",
+        "'New customer? Start here.' - signed-out only",
+        "Column heading 'Your Lists': Create a List, Find a List or Registry (signed-in adds named lists such as 'Shopping List', 'Your Saved Books', 'Your Idea Lists')",
+        "Column heading 'Your Account': Account, Orders, Keep Shopping For, Recommendations, Browsing History, Watchlist, Video Purchases & Rentals, Kindle Unlimited, Content & Devices, Subscribe & Save Items, Memberships & Subscriptions, Prime Membership, Amazon Credit Cards, Music Library, Start a Selling Account, Register for a free Business Account, Customer Service",
+        "Signed-in: 'Switch Accounts', 'Sign Out'",
+        "Signed-in households: 'Who's shopping? Select a profile.' / 'Manage Profiles'"
+      ],
+      "states": [
+        "Signed-out: sign-in block + both columns (every account link routes through sign-in)",
+        "Signed-in: no sign-in block; profile bar optional; Sign Out at bottom",
+        "Closed by default; opens on hover intent; stays open while pointer travels from trigger into panel"
+      ],
+      "interactions": [
+        "Hover trigger opens; mouse-out of both trigger and panel closes after short delay",
+        "Keyboard: Enter on trigger navigates (does not open flyout); a hidden 'Expand Account and Lists' button is focusable next to it for screen readers",
+        "Touch devices: first tap opens flyout, second tap navigates",
+        "'Sign in' -> /ap/signin?openid.return_to=<current page>",
+        "'Start here.' -> /ap/register",
+        "'Sign Out' -> signs out and lands on sign-in page"
+      ],
+      "microcopy": [
+        "Sign in",
+        "New customer? Start here.",
+        "Your Lists",
+        "Create a List",
+        "Find a List or Registry",
+        "Your Account",
+        "Account",
+        "Orders",
+        "Recommendations",
+        "Browsing History",
+        "Switch Accounts",
+        "Sign Out",
+        "Who's shopping? Select a profile.",
+        "Manage Profiles"
+      ]
+    },
+    {
+      "name": "Language / currency / country flyout",
+      "purpose": "Changes UI language and display currency on amazon.com; links to other country sites.",
+      "url_pattern": "Flyout on hover; full page /customer-preferences/edit",
+      "layout": "White flyout under the flag item: section 'Change language' with radio list, 'Learn more' link; rule; 'Change currency' with current '$ - USD - US Dollar' and 'Learn more'; rule; flag + 'You are shopping on Amazon.com'; 'Change country/region.' link.",
+      "elements": [
+        "Radio: English - EN (checked), espanol - ES, Arabic - AR, Deutsch - DE, Hebrew - HE, Korean - KO, portugues - PT, Chinese (Simplified) - ZH, Chinese (Traditional) - ZH",
+        "'$ - USD - US Dollar'",
+        "'You are shopping on Amazon.com'",
+        "'Change country/region.'"
+      ],
+      "states": [
+        "Default English/USD",
+        "Non-English selected: header shows e.g. 'ES' and site copy translated"
+      ],
+      "interactions": [
+        "Clicking a language radio reloads site in that language",
+        "'Change country/region.' -> country picker page"
+      ],
+      "microcopy": [
+        "Change language",
+        "Learn more",
+        "Change currency",
+        "You are shopping on Amazon.com",
+        "Change country/region."
+      ]
+    },
+    {
+      "name": "Sub-nav strip (nav-main)",
+      "purpose": "Second header row exposing the full category menu plus merchandised shortcuts (deals, service, gift cards, sell).",
+      "url_pattern": "Every page; links to /deals (Today's Deals), /gp/help/customer/display.html (Customer Service), /registries, /gift-cards, /sell",
+      "layout": "Dark row (#232f3e, ~39px) under the belt. Left: hamburger icon + bold 'All'. Then single-line text links 14px white with 1px outline on hover: Today's Deals, Prime Video, Registry, Customer Service, Gift Cards, Sell (plus rotating/personalized links). Signed-in adds '<Name>'s Amazon.com', 'Buy Again', 'Browsing History' (with caret and hover flyout). Right end: a promotional text/image slot (e.g. event banner 'Shop Prime Big Deal Days'). Links that do not fit are clipped, not wrapped, as width shrinks.",
+      "elements": [
+        "'All' with hamburger icon (button opens side menu)",
+        "Today's Deals",
+        "Prime Video",
+        "Registry",
+        "Customer Service",
+        "Gift Cards",
+        "Sell",
+        "Rotating/tested links: Amazon Haul, Amazon Basics, Groceries, Livestreams, Coupons, Shop By Interest, Amazon Business, Whole Foods, Pharmacy, Prime (with caret)",
+        "Signed-in: '<Name>'s Amazon.com', 'Buy Again', 'Browsing History' caret",
+        "Right-side promo slot (image or text)"
+      ],
+      "states": [
+        "Signed-out: generic links",
+        "Signed-in: personalized links added; 'Browsing History' flyout shows recently viewed product thumbnails with 'View or edit your browsing history' link, or empty copy when none",
+        "Prime caret flyout (Prime link): promo for Prime with 'Try Prime' button (non-members)",
+        "Narrow widths: trailing links clipped"
+      ],
+      "interactions": [
+        "Click 'All' -> left side menu slides in",
+        "Hover 'Browsing History' / 'Prime' -> flyout with page dim",
+        "Plain links navigate"
+      ],
+      "microcopy": [
+        "All",
+        "Today's Deals",
+        "Prime Video",
+        "Registry",
+        "Customer Service",
+        "Gift Cards",
+        "Sell",
+        "Buy Again",
+        "Browsing History",
+        "View or edit your browsing history"
+      ]
+    },
+    {
+      "name": "'All' hamburger side menu (hmenu) with drill-down",
+      "purpose": "Full catalog and program navigation in a left drawer; replaced the old 'Departments' dropdown after a 2019 A/B test (hamburger with sign-in call first and multi-level drill-down won).",
+      "url_pattern": "No URL; drawer over current page",
+      "layout": "Left drawer ~365px wide, full viewport height, white, own vertical scroll; rest of page covered by a dark translucent overlay (rgba(0,0,0,.8)) with a white X close button floating just right of the drawer's top edge. Drawer header: navy (#232f3e) bar with user-circle icon + bold 'Hello, sign in' (signed-out) or 'Hello, Mikey'. Body: sections separated by thick grey rules; each section has a bold 18px heading and 14px rows (~45px tall) with a right chevron '>' on rows that drill down. Sections in order: Trending; Digital Content & Devices; Shop by Department; Programs & Features; Help & Settings. Drill-down: the main list slides out left and a submenu slides in from right, headed by '< MAIN MENU' row (bold, with left arrow) then a bold department title and its links.",
+      "elements": [
+        "Header 'Hello, sign in' / 'Hello, <Name>' (links to sign-in/account)",
+        "Trending: Best Sellers, New Releases, Movers & Shakers",
+        "Digital Content & Devices (all drill down): Prime Video, Amazon Music, Kindle E-readers & Books, Amazon Appstore, Echo & Alexa, Fire Tablets, Fire TV, Amazon Photos, Audible Books & Originals",
+        "Shop by Department (drill down): Clothing, Shoes, Jewelry & Watches; Amazon Fresh; Books; Electronics; then 'See all' with down caret",
+        "Shop by Department expanded: Computers, Smart Home, Arts & Crafts, Automotive, Baby, Beauty and Personal Care, Women's Fashion, Men's Fashion, Girls' Fashion, Boys' Fashion, Health and Household, Home and Kitchen, Industrial and Scientific, Luggage, Movies & Television, Pet Supplies, Software, Sports and Outdoors, Tools & Home Improvement, Toys and Games, Video Games, then 'See less' with up caret",
+        "Programs & Features: Gift Cards, Shop By Interest, Amazon Live, International Shopping, 'See all' -> Amazon Second Chance, Handmade, Amazon Business, Subscribe & Save, Amazon Haul, etc.",
+        "Help & Settings: Your Account, globe icon + 'English', US flag + 'United States', Customer Service, 'Sign in' (signed-out) / 'Sign Out' (signed-in)",
+        "Example Electronics submenu: TV & Video, Home Audio & Theater, Camera & Photo, Wearable Technology, Computers & Accessories, Car Electronics & GPS, Cell Phones & Accessories, Headphones, Portable Audio & Video, Video Game Consoles & Accessories, Office Electronics, Musical Instruments",
+        "Close X button (aria-label 'Close menu')"
+      ],
+      "states": [
+        "Closed (default)",
+        "Opening: drawer slides in ~250ms, overlay fades in",
+        "Loading: on first open the section content is fetched lazily; a spinner shows inside drawer if slow",
+        "Main list / submenu level",
+        "'See all' collapsed vs expanded",
+        "Signed-out vs signed-in header and Sign in/Sign Out row"
+      ],
+      "interactions": [
+        "Open via 'All' click; body scroll locked",
+        "Close via X, overlay click, or Escape; focus returns to 'All'",
+        "Row with '>' click -> slide to submenu; '< MAIN MENU' slides back",
+        "'See all' toggles inline expansion in place (no navigation)",
+        "Leaf links navigate to browse node (/b?node=...) or search (/s?i=...&rh=n:...)",
+        "Keyboard: Tab/Shift+Tab through rows, Enter to drill"
+      ],
+      "microcopy": [
+        "Hello, sign in",
+        "Trending",
+        "Best Sellers",
+        "New Releases",
+        "Movers & Shakers",
+        "Digital Content & Devices",
+        "Shop by Department",
+        "See all",
+        "See less",
+        "Programs & Features",
+        "Help & Settings",
+        "Your Account",
+        "Customer Service",
+        "Sign in",
+        "Sign Out",
+        "MAIN MENU"
+      ]
+    },
+    {
+      "name": "Home page desktop (gateway)",
+      "purpose": "Landing page that merchandises categories, deals and personalized products; mostly a navigation hub into search/browse/PDP rather than a place to buy directly.",
+      "url_pattern": "/ (also /ref=nav_logo, /gp/homepage.html)",
+      "layout": "Page background light grey (#e3e6e6). 1) Hero carousel (id gw-desktop-herotator, confirmed in fetched HTML): full-bleed banner, max content width 1500px, image ~600px tall whose lower portion fades via gradient into the grey background. Tall transparent left/right arrow buttons at the edges (chevron icons, the whole side strip is clickable, 2px focus outline). No visible dots. 2) Card grid (gw-card-layout, confirmed): starts overlapping the hero (cards begin roughly 250-300px down the hero). 4 equal columns at >=1280px, 3 at ~1000-1280px, gap 20px, white cards, 20px padding, ~420px tall. Card title 21px bold dark (#0f1111) at top; content (single image or 2x2 quad of images with 12px captions); bottom link 13px teal (#007185, hover #c7511f underlined). First row usually includes the signed-out 'Sign in for the best experience' card in column 4. 3) After 1-2 rows of cards, full-width white 'shoveler' carousel rows (title left in 21px bold, optional 'See more' link beside it). Pattern continues: card row, carousel, carousel, card row, carousel... ~8-15 blocks total, some marked 'Sponsored'. 4) Bottom: horizontal rules around a centered signed-out prompt 'See personalized recommendations' + yellow 'Sign in' button + 'New customer? Start here.' Signed-in instead: 'Your browsing history' row. 5) 'Back to top' bar. 6) Footer.",
+      "elements": [
+        "Hero slides (6-8): campaign images (e.g. Prime Video show, 'Shop deals', seasonal); each whole image is a link; prev/next buttons aria-labels 'Previous slide' / 'Next slide'",
+        "Single-image card: title (e.g. 'Get your game on'), one image, link 'Shop gaming'",
+        "Quad card (2x2 with captions): e.g. 'Shop deals in Fashion' -> Jeans under $50 / Tops under $25 / Dresses under $30 / Shoes under $50, link 'See all deals'",
+        "Quad card examples: 'Refresh your space' -> Dining / Home / Kitchen / Health and Beauty, link 'See more'; 'New home arrivals under $50' -> Kitchen & dining / Home improvement / Decor / Bedding & bath, link 'Shop the latest from Home'; 'Top categories in Kitchen appliances' -> Cooker / Coffee / Pots and Pans / Kettles, link 'Explore all products in Kitchen'; 'Shop for your home essentials' -> Cleaning Tools / Home Storage / Home Decor / Bedding, link 'Discover more in Home'",
+        "Single-image card examples: 'Toys under $25' 'Shop now'; 'Deals in PCs' 'Shop now'; 'Fashion trends you like' 'Explore more'; 'Most-loved travel essentials' 'Discover more'; 'Level up your PC here' 'Shop now'; 'Beauty steals under $25' 'Shop now'",
+        "Signed-out card: title 'Sign in for the best experience', yellow button 'Sign in securely', below it an ad/promo image",
+        "Deal card variant: product image, red badge 'Up to 38% off' + red text 'Limited time deal' (or 'Deal'), product caption, 'See all deals'",
+        "Product carousel (shoveler): row of product images only (~200px tall, no titles or prices on most home carousels), left/right chevron buttons as grey full-height tabs that appear on row hover, scroll one page at a time; optional pagination text 'Page 1 of 4' + 'Start over'",
+        "Carousel titles: 'Best Sellers in Clothing, Shoes & Jewelry', 'Best Sellers in Home & Kitchen', 'Best Sellers in Books', 'Best Sellers in Sports & Outdoors', 'Top Sellers in Beauty & Personal Care for you', 'International top sellers', 'Popular products in Wireless internationally', 'Min. 50% off | Unique kitchen finds | Amazon Brands', 'Today's Deals' (deal carousel with price and % off), 'Related to items you've viewed' + 'See more', 'Inspired by your browsing history', 'Customers who viewed items in your browsing history also viewed'",
+        "'Sponsored' label with small info icon on ad cards/carousels",
+        "Bottom signed-out prompt: 'See personalized recommendations', yellow 'Sign in', 'New customer? Start here.'"
+      ],
+      "states": [
+        "Signed-out, no history: generic category cards, 'Sign in for the best experience' card, best-seller carousels, bottom sign-in prompt",
+        "Signed-out with session history (guest viewed items): 'Related to items you've viewed' and 'Inspired by your browsing history' rows appear even without sign-in (history stored against session cookie)",
+        "Signed-in: sign-in card replaced by personalized cards such as 'Pick up where you left off' (quad of recently viewed products with truncated titles), 'Keep shopping for', 'Buy again', 'Deals for you', 'Hi, Mikey - Recommended deal for you' (account card with shortcuts Your Orders / Buy Again / Your Lists / Your Account); bottom sign-in prompt removed and replaced by 'Your browsing history' strip ('View or edit your browsing history' link)",
+        "Signed-in, no history: history rows omitted; bottom shows 'After viewing product detail pages, look here to find an easy way to navigate back to pages you are interested in.'",
+        "Loading: hero and first card row are server-rendered; below-the-fold rows lazy-load as you scroll (blank space then images pop in; noticeable layout shift on slow connections); images fade in over grey placeholders",
+        "Error/partial: any widget that fails to render is omitted silently; page never shows an error block",
+        "Event mode (Prime Day / Big Deal Days): hero and first cards replaced by event takeover with countdown and 'Shop now'"
+      ],
+      "interactions": [
+        "Hero auto-advances every ~5-7s, pauses on hover; arrows advance manually; loops",
+        "Card title/image/caption/link all navigate to a browse node, search with filters (e.g. /s?i=fashion&rh=p_36:-5000) or store page",
+        "Carousel arrows scroll a page of items; trackpad/shift-wheel horizontal scroll also works; clicking product image -> PDP /dp/<ASIN>",
+        "'See more' on history rows -> /gp/history",
+        "'Sign in securely' / 'Sign in' -> /ap/signin returning to /"
+      ],
+      "microcopy": [
+        "Sign in for the best experience",
+        "Sign in securely",
+        "Shop deals in Fashion",
+        "Get your game on",
+        "Shop gaming",
+        "See more",
+        "See all deals",
+        "Shop now",
+        "Discover more",
+        "Best Sellers in Home & Kitchen",
+        "Related to items you've viewed",
+        "Inspired by your browsing history",
+        "Pick up where you left off",
+        "Keep shopping for",
+        "Buy again",
+        "Limited time deal",
+        "Up to 38% off",
+        "Sponsored",
+        "Page 1 of 4",
+        "Start over",
+        "See personalized recommendations",
+        "New customer? Start here.",
+        "Your browsing history",
+        "View or edit your browsing history"
+      ]
+    },
+    {
+      "name": "Back to top + desktop footer",
+      "purpose": "Closes every page: quick return to top, corporate/help link directory, locale selectors, sister-brand directory, legal line.",
+      "url_pattern": "Every page",
+      "layout": "1) Full-width 'Back to top' bar (#37475a, ~50px, centered 13px white text, hover #485769). 2) Footer body (#232f3e): 4 link columns centered with generous side gutters; heading 16px bold white, links 14px light grey (#ddd), hover underline. 3) Thin rule, then centered row: small amazon logo + three outlined buttons: globe 'English' with up/down caret, '$ USD - U.S. Dollar', US flag 'United States'. 4) Darker band (#131a22): dense grid of sister services (bold white name + grey one-line description), ~7 columns. 5) Legal line centered 12px: links + copyright.",
+      "elements": [
+        "'Back to top'",
+        "Get to Know Us: Careers, Amazon Newsletter (Blog), About Amazon, Accessibility, Sustainability, Press Center, Investor Relations, Amazon Devices, Amazon Science",
+        "Make Money with Us: Sell on Amazon, Sell apps on Amazon, Supply to Amazon, Protect & Build Your Brand, Become an Affiliate, Become a Delivery Driver, Start a Package Delivery Business, Advertise Your Products, Self-Publish with Us, Become an Amazon Hub Partner, '> See More Ways to Make Money'",
+        "Amazon Payment Products: Amazon Visa, Amazon Store Card, Amazon Secured Card, Amazon Business Card, Shop with Points, Credit Card Marketplace, Reload Your Balance, Gift Cards, Amazon Currency Converter",
+        "Let Us Help You: Your Account, Your Orders, Shipping Rates & Policies, Amazon Prime, Returns & Replacements, Manage Your Content and Devices, Recalls and Product Safety Alerts, Registry & Gift List, Help",
+        "Locale buttons: 'English', '$ USD - U.S. Dollar', 'United States'",
+        "Services grid examples: Amazon Music / Stream millions of songs; Amazon Ads / Reach customers wherever they spend their time; 6pm / Score deals on fashion brands; AbeBooks / Books, art & collectibles; ACX / Audiobook Publishing Made Easy; Sell on Amazon / Start a Selling Account; Veeqo / Shipping Software Inventory Management; Amazon Business / Everything For Your Business; AmazonGlobal / Ship Orders Internationally; Amazon Web Services / Scalable Cloud Computing Services; Audible / Listen to Books & Original Audio Performances; Box Office Mojo / Find Movie Box Office Data; Goodreads / Book reviews & recommendations; IMDb / Movies, TV & Celebrities; IMDbPro / Get Info Entertainment Professionals Need; Kindle Direct Publishing / Indie Digital & Print Publishing Made Easy; Prime Video Direct / Video Distribution Made Easy; Shopbop / Designer Fashion Brands; Woot! / Deals and Shenanigans; Zappos / Shoes & Clothing; Ring / Smart Home Security Systems; eero WiFi / Stream 4K Video in Every Room; Blink / Smart Security for Every Home; Neighbors App / Real-Time Crime & Safety Alerts; Amazon Subscription Boxes / Top subscription boxes - right to your door; PillPack / Pharmacy Simplified; Amazon Renewed / Like-new products you can trust",
+        "Legal line: Conditions of Use - Privacy Notice - Consumer Health Data Privacy Disclosure - Your Ads Privacy Choices (with small toggle icon) - '(c) 1996-2026, Amazon.com, Inc. or its affiliates'"
+      ],
+      "states": [
+        "Identical signed-in and signed-out (Your Account/Orders links route through sign-in when signed-out)",
+        "Checkout and sign-in pages use a stripped footer (legal line only)"
+      ],
+      "interactions": [
+        "'Back to top' smooth-scrolls to page top",
+        "Locale buttons open the same preference pages as the header flag",
+        "All other items are plain links"
+      ],
+      "microcopy": [
+        "Back to top",
+        "Get to Know Us",
+        "Make Money with Us",
+        "Amazon Payment Products",
+        "Let Us Help You",
+        "Conditions of Use",
+        "Privacy Notice",
+        "Consumer Health Data Privacy Disclosure",
+        "Your Ads Privacy Choices",
+        "(c) 1996-2026, Amazon.com, Inc. or its affiliates"
+      ]
+    },
+    {
+      "name": "Mobile web shell and home (phone browsers)",
+      "purpose": "Phone version of the header/home served on amazon.com to mobile browsers; built around a full-width search and a single-column feed.",
+      "url_pattern": "/ (same URL, mobile template chosen by user agent)",
+      "layout": "Header (not sticky; scrolls with page; an 'Open in the Amazon app' smart banner can appear above it): Row 1 on a dark navy-to-teal gradient: hamburger icon left, amazon smile logo, right side person icon + 'Sign in >' (signed-out) or '<Name> >' (signed-in), cart icon with count. Row 2: full-width rounded search field with placeholder 'Search Amazon' and a magnifier submit at right (no department dropdown). Row 3: horizontally scrollable text-link strip, no scrollbar (e.g. Prime, Video, Deals, Music, Books, Fresh, Registry, Gift Cards, Livestreams, Amazon Basics). Row 4: lighter teal bar with pin icon 'Deliver to <Name> - <City> <ZIP>' or 'Delivering to <City> <ZIP> - Update location' + down caret. Home body: signed-out top block 'Sign in for the best experience' with yellow 'Sign in' button and 'Create an account' link; then hero banner (swipe carousel with dots); then 2-column category tile grids inside white cards with titles; deal carousels with price, % off badge and 'Limited time deal'; best-seller carousels (swipe, show scroll snap); repeated. Bottom: 'Back to top' / 'Top of page' bar; compact footer with 2-column links (Your Amazon.com, Your Orders, Amazon Prime, Your Lists, Registry, Your Account, Customer Service, Sell, Browsing History, Your Recalls and Product Safety Alerts, Sign Out); locale row 'English' / 'United States'; 'Already a customer? Sign in' (signed-out); legal line + copyright. There is no persistent bottom tab bar on mobile web (that exists only in the native app: Home, You, Cart, Menu, and on newer builds a Rufus/Alexa entry).",
+      "elements": [
+        "Hamburger icon (opens full-height left drawer: header 'Browse Amazon' + 'Hello, sign in', sections Trending, Top Departments (Home, Health & Household, Books, PC, 'See All Departments'), Programs & Features, Help & Settings)",
+        "Logo",
+        "'Sign in >' / '<Name> >' account link",
+        "Cart icon with count",
+        "Search field 'Search Amazon' with magnifier",
+        "Scrollable link strip",
+        "Deliver-to bar (opens bottom sheet 'Choose your location')",
+        "'Sign in for the best experience' + 'Sign in' + 'Create an account'",
+        "Swipe hero with dots",
+        "Category tile cards and swipe carousels",
+        "'Back to top'",
+        "Compact footer + legal line"
+      ],
+      "states": [
+        "Signed-out vs signed-in (account label, deliver-to text, top sign-in block present/absent)",
+        "Search focus: suggestions list covers page below the search field, full width, with an up-left arrow on each row to copy the suggestion into the input",
+        "Drawer open: dark overlay, X close, body scroll locked",
+        "Location sheet open: bottom sheet with drag handle",
+        "Loading: skeleton-free; images pop in"
+      ],
+      "interactions": [
+        "Tap hamburger -> left drawer; tap overlay/X closes",
+        "Tap deliver-to bar -> bottom sheet with ZIP input and 'Apply'",
+        "Tap search -> keyboard opens, suggestions show; search submits to /s?k=",
+        "Horizontal swipe on link strip and carousels",
+        "Tap 'Back to top' scrolls to top"
+      ],
+      "microcopy": [
+        "Sign in >",
+        "Search Amazon",
+        "Deliver to Mikey - Seattle 98109",
+        "Sign in for the best experience",
+        "Sign in",
+        "Create an account",
+        "Back to top",
+        "Already a customer? Sign in",
+        "See All Departments"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Signed-out first visit to home",
+      "steps": [
+        "Open / -> header server-renders with 'Delivering to <IP city> <ZIP>' / 'Update location', 'Hello, sign in', cart 0",
+        "Sign-in tooltip pops under Account & Lists with yellow 'Sign in' and 'New customer? Start here.'",
+        "Hero carousel shows first slide and auto-advances; card grid overlaps the hero with 'Sign in for the best experience' card in column 4",
+        "User scrolls: best-seller carousels lazy-load; bottom shows 'See personalized recommendations' sign-in prompt, 'Back to top', footer"
+      ]
+    },
+    {
+      "name": "Set delivery ZIP",
+      "steps": [
+        "Click header 'Update location' / 'Deliver to'",
+        "Modal 'Choose your location' opens with focus in dialog",
+        "Type ZIP in input under 'or enter a US zip code', press Enter or 'Apply'",
+        "Invalid -> inline red 'Please enter a valid US zip code', stays open",
+        "Valid -> page reloads; header reads 'Delivering to <City> <ZIP>'; PDP delivery dates/prices now use that ZIP",
+        "Signed-in alternative: click a saved address card -> applies and reloads; header 'Deliver to <Name>' / '<City> <ZIP>'"
+      ]
+    },
+    {
+      "name": "Scoped search from header",
+      "steps": [
+        "Change 'All' select to 'Electronics' (select widens to fit)",
+        "Type 'wireless ear' -> suggestions: 'wireless earbuds', 'wireless earbuds in Electronics', ...",
+        "ArrowDown to highlight, Enter",
+        "Navigate to /s?k=wireless+earbuds&i=electronics; header keeps query text in input and 'Electronics' selected"
+      ]
+    },
+    {
+      "name": "Browse via All menu",
+      "steps": [
+        "Click 'All' in sub-nav -> drawer slides in, page dims",
+        "Under 'Shop by Department' click 'See all' -> list expands inline",
+        "Click 'Electronics >' -> panel slides to submenu with '< MAIN MENU' and 'Electronics' heading",
+        "Click 'Headphones' -> navigate to browse/search results for that node; drawer closes"
+      ]
+    },
+    {
+      "name": "Sign in from home and return personalized",
+      "steps": [
+        "Hover 'Account & Lists' -> flyout; click yellow 'Sign in' (or 'Sign in securely' card, or bottom 'Sign in')",
+        "/ap/signin with return_to=/ ; enter email -> Continue -> password -> Sign in",
+        "Redirect back to /: header shows 'Hello, <Name>', 'Deliver to <Name>' with default address ZIP, guest cart items merged into account cart (count updated)",
+        "Home replaces sign-in card with 'Pick up where you left off' / 'Keep shopping for'; bottom prompt replaced by 'Your browsing history'"
+      ]
+    },
+    {
+      "name": "Home -> product -> back, history personalizes home",
+      "steps": [
+        "Click product image in 'Best Sellers in Home & Kitchen' -> /dp/<ASIN>",
+        "Viewed ASIN recorded to browsing history (session or account)",
+        "Return to / -> 'Related to items you've viewed' and 'Inspired by your browsing history' rows now appear; sub-nav 'Browsing History' flyout (signed-in) lists the item"
+      ]
+    },
+    {
+      "name": "Cart count stays in sync",
+      "steps": [
+        "On PDP click 'Add to Cart'",
+        "Header cart count increments immediately (no page reload) and persists across pages",
+        "Click cart icon -> /cart"
+      ]
+    },
+    {
+      "name": "Sign out",
+      "steps": [
+        "Hover 'Account & Lists' -> click 'Sign Out' at bottom of 'Your Account' column",
+        "Land on sign-in page; header reverts to 'Hello, sign in'; cart count reverts to guest cart (usually 0)"
+      ]
+    },
+    {
+      "name": "Mobile web navigation",
+      "steps": [
+        "Tap hamburger -> left drawer 'Browse Amazon' with Trending / Top Departments",
+        "Tap overlay to close; tap 'Deliver to' bar -> bottom sheet ZIP entry -> 'Apply'",
+        "Tap search -> suggestions overlay -> submit -> results",
+        "Scroll to bottom -> 'Back to top'"
+      ]
+    },
+    {
+      "name": "Keyboard-only shell navigation",
+      "steps": [
+        "First Tab reveals 'Skip to main content'; Enter jumps past header",
+        "Alt+/ focuses search; Shift+Alt+C opens cart; Shift+Alt+Z shows shortcut list",
+        "Tab to 'All' + Enter opens drawer; Escape closes and returns focus"
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "feature": "Header: logo home link, search input + submit (Enter/button) to /s?k=",
+      "tier": "P0",
+      "why": "Search is the main entry point of the shopping loop; nothing works end to end without it."
+    },
+    {
+      "feature": "Header cart icon with live count (0, n, 99+) updating after add-to-cart without reload",
+      "tier": "P0",
+      "why": "Proves the loop visibly and is cheap (count read from cart state)."
+    },
+    {
+      "feature": "Header account entry: 'Hello, sign in' vs 'Hello, <Name>' linking to sign-in or account, plus Sign Out",
+      "tier": "P0",
+      "why": "Needed to show auth state and reach sign-in before checkout."
+    },
+    {
+      "feature": "'Returns & Orders' link to order history (sign-in gated)",
+      "tier": "P0",
+      "why": "Where the user confirms an order was placed; it's just a link to a page checkout already needs."
+    },
+    {
+      "feature": "Home page: category card grid (single + quad cards) linking to filtered search",
+      "tier": "P0",
+      "why": "Makes the home page a working browse hub instead of a dead end; static data, fast to build."
+    },
+    {
+      "feature": "Home page: 2-4 'Best Sellers in <Category>' product carousels linking to PDP",
+      "tier": "P0",
+      "why": "Direct path from home to product; reuses the product data and card component the search page already needs."
+    },
+    {
+      "feature": "Responsive mobile header (logo, account, cart row; full-width search row; deliver-to row)",
+      "tier": "P0",
+      "why": "Judges will check phone width; stacking one header is cheap, a broken mobile header costs heavily on UX score."
+    },
+    {
+      "feature": "Skip to main content link, visible focus rings, labelled icon buttons",
+      "tier": "P0",
+      "why": "Basic accessibility; a few lines of markup."
+    },
+    {
+      "feature": "Deliver-to header block + 'Choose your location' modal with ZIP validation ('Please enter a valid US zip code')",
+      "tier": "P1",
+      "why": "Iconic Amazon element and feeds PDP delivery estimates; ZIP kept in a cookie with a regex check is under an hour. Can use a native <dialog>."
+    },
+    {
+      "feature": "Search department 'All' dropdown (native select, ~20 departments we actually stock)",
+      "tier": "P1",
+      "why": "Native select costs almost nothing; only list departments with products so no scope returns empty results."
+    },
+    {
+      "feature": "Search autocomplete suggestions (prefix match on product titles/categories, keyboard nav, 'in <Department>' row)",
+      "tier": "P1",
+      "why": "Strongly expected on Amazon and makes search much faster; a simple API route plus an ARIA combobox."
+    },
+    {
+      "feature": "Account & Lists flyout (Sign in button, 'New customer? Start here.', short Your Account list)",
+      "tier": "P1",
+      "why": "Recognizable and cheap with CSS hover plus click/keyboard toggle; trim the links to pages that exist."
+    },
+    {
+      "feature": "Sub-nav strip with 'All', Today's Deals, Best Sellers, Customer Service",
+      "tier": "P1",
+      "why": "Static links; Today's Deals can point to a discounted-items search filter we already have."
+    },
+    {
+      "feature": "'All' side drawer: Trending (Best Sellers, New Releases) + Shop by Department with one drill-down level and 'See all' expand",
+      "tier": "P1",
+      "why": "Main way to browse the catalog; one drawer component driven by the category tree."
+    },
+    {
+      "feature": "Hero banner (2-3 slides, manual arrows, pause, respects reduced motion)",
+      "tier": "P1",
+      "why": "Sets the Amazon look above the fold; a single static hero is the P0 fallback."
+    },
+    {
+      "feature": "'Related to items you've viewed' / 'Pick up where you left off' from browsing history (guest via cookie/localStorage, account via DB)",
+      "tier": "P1",
+      "why": "Signature Amazon personalization; just a list of recently viewed product IDs, cheap and it makes the home page feel alive."
+    },
+    {
+      "feature": "Signed-out 'Sign in for the best experience' card and bottom 'See personalized recommendations' prompt; swapped for personalized cards when signed in",
+      "tier": "P1",
+      "why": "Shows the signed-out vs signed-in difference clearly with a conditional render."
+    },
+    {
+      "feature": "'Back to top' bar + simplified footer (4 columns trimmed to real pages, legal line)",
+      "tier": "P1",
+      "why": "Static markup; completes the Amazon frame."
+    },
+    {
+      "feature": "Loading skeletons with fixed aspect ratios for hero, cards and carousels",
+      "tier": "P1",
+      "why": "Avoids layout shift, which is visible on Amazon; mostly CSS."
+    },
+    {
+      "feature": "Mobile left drawer and bottom-sheet location picker",
+      "tier": "P1",
+      "why": "Reuses the desktop drawer and modal with different CSS."
+    },
+    {
+      "feature": "Keyboard shortcuts (Alt+/ search, Shift+Alt+C cart) with shortcut help popover",
+      "tier": "P2",
+      "why": "Nice power-user touch, a few lines, but judges will rarely notice."
+    },
+    {
+      "feature": "Sub-nav 'Browsing History' hover flyout with thumbnails",
+      "tier": "P2",
+      "why": "Duplicates the home history row; build only if time allows."
+    },
+    {
+      "feature": "Page dimming overlay while header flyouts are open",
+      "tier": "P2",
+      "why": "Polish only."
+    },
+    {
+      "feature": "Deal cards with '% off' badge and 'Limited time deal' on home",
+      "tier": "P2",
+      "why": "Cheap if product data has listPrice, but not required for the loop."
+    },
+    {
+      "feature": "Signed-in address cards inside location modal",
+      "tier": "P2",
+      "why": "Needs the address book from checkout; ZIP entry covers the need."
+    },
+    {
+      "feature": "Recent searches with 'Remove' in suggestions",
+      "tier": "P2",
+      "why": "Requires per-user search log; low value in a demo."
+    },
+    {
+      "feature": "Language/currency/country flyout and translations",
+      "tier": "skip",
+      "why": "US English/USD only; a flag that does nothing is dead UI, so leave it out."
+    },
+    {
+      "feature": "'Ship outside the US' country selector",
+      "tier": "skip",
+      "why": "No international shipping logic in scope."
+    },
+    {
+      "feature": "Digital Content & Devices menu (Prime Video, Music, Kindle, Echo, Fire TV, Appstore) and Programs & Features",
+      "tier": "skip",
+      "why": "Separate businesses with no catalog behind them; links would be dead ends."
+    },
+    {
+      "feature": "Registry, Gift Cards, Sell, Prime Video sub-nav links",
+      "tier": "skip",
+      "why": "Whole products of their own; no destination pages in 24h."
+    },
+    {
+      "feature": "Alexa for Shopping / Rufus prompts in search and AI overviews",
+      "tier": "skip",
+      "why": "LLM assistant is a separate project; it adds cost and latency and doesn't help the core loop. Revisit only if everything else ships."
+    },
+    {
+      "feature": "Household profiles ('Who's shopping?'), Switch Accounts",
+      "tier": "skip",
+      "why": "Multi-profile auth is out of scope."
+    },
+    {
+      "feature": "Sponsored ad cards/carousels and right-side promo slot",
+      "tier": "skip",
+      "why": "Ad inventory is Amazon's business, not the user's; removing it is an improvement."
+    },
+    {
+      "feature": "Footer sister-services grid (AbeBooks, IMDb, Woot!, Zappos, ...)",
+      "tier": "skip",
+      "why": "27 outbound brand links, pure clutter for a rebuild."
+    },
+    {
+      "feature": "Prime logo variant and Prime flyouts",
+      "tier": "skip",
+      "why": "No membership system."
+    },
+    {
+      "feature": "First-visit sign-in tooltip auto-popover",
+      "tier": "skip",
+      "why": "Intrusive and repeats the account link and home sign-in card."
+    },
+    {
+      "feature": "Open-in-app smart banner on mobile",
+      "tier": "skip",
+      "why": "There is no app."
+    }
+  ],
+  "data": [
+    {
+      "entity": "Session/User",
+      "fields": [
+        "id",
+        "firstName",
+        "email",
+        "isSignedIn",
+        "createdAt"
+      ]
+    },
+    {
+      "entity": "DeliveryLocation (cookie for guests, user field when signed in)",
+      "fields": [
+        "zip",
+        "city",
+        "state",
+        "country ('US')",
+        "source ('ip'|'zip'|'address')",
+        "addressId (nullable)"
+      ]
+    },
+    {
+      "entity": "Department/Category",
+      "fields": [
+        "id",
+        "name",
+        "slug",
+        "parentId",
+        "searchAlias (e.g. 'electronics')",
+        "imageUrl",
+        "sortOrder",
+        "showInSearchDropdown",
+        "showInMenu"
+      ]
+    },
+    {
+      "entity": "HomeCard (static JSON)",
+      "fields": [
+        "id",
+        "title",
+        "type ('single'|'quad'|'signin'|'history')",
+        "items[{label, imageUrl, href}]",
+        "ctaLabel",
+        "ctaHref",
+        "audience ('all'|'signedOut'|'signedIn')",
+        "position"
+      ]
+    },
+    {
+      "entity": "HomeCarousel",
+      "fields": [
+        "id",
+        "title",
+        "source ('bestSellers'|'deals'|'viewedRelated'|'history')",
+        "categoryId",
+        "productIds[]",
+        "seeMoreHref",
+        "audience",
+        "position"
+      ]
+    },
+    {
+      "entity": "HeroSlide",
+      "fields": [
+        "id",
+        "imageUrl",
+        "mobileImageUrl",
+        "alt",
+        "href",
+        "position"
+      ]
+    },
+    {
+      "entity": "Product (fields the shell/home read)",
+      "fields": [
+        "id/asin",
+        "title",
+        "imageUrl",
+        "price",
+        "listPrice",
+        "rating",
+        "reviewCount",
+        "categoryId",
+        "salesRank",
+        "inStock"
+      ]
+    },
+    {
+      "entity": "BrowsingHistoryEntry",
+      "fields": [
+        "userId or guestId",
+        "productId",
+        "viewedAt"
+      ]
+    },
+    {
+      "entity": "Cart (header reads count only)",
+      "fields": [
+        "id",
+        "userId or guestId",
+        "items[{productId, qty}]",
+        "itemCount (sum of qty)"
+      ]
+    },
+    {
+      "entity": "SearchSuggestion (derived)",
+      "fields": [
+        "text",
+        "departmentAlias (nullable)",
+        "type ('query'|'scoped'|'recent')"
+      ]
+    }
+  ],
+  "better_than_original": [
+    "Sticky compact header on scroll (desktop and mobile): keep search and cart one tap away. Amazon's desktop and mobile web headers scroll away, so a shopper deep in a feed has to scroll back up to search.",
+    "Location update in place, no page reload: validate ZIP as you type (5 digits, inputmode=numeric), show the city it resolves to before Apply, update header and delivery estimates instantly. Amazon reloads the whole page.",
+    "Header flyouts that work by click, tap and keyboard, not hover only. Real buttons with aria-expanded, focus moved into the panel, Escape to close. No accidental hover-open that dims the whole page as the pointer crosses the header.",
+    "Department dropdown lists only departments we stock (about 15, not 60+), so a scope never returns an empty result. Use a fixed-width select so the search box does not jump in width when the scope changes.",
+    "Show price, rating and a short title on home carousel items. Amazon's 'Best Sellers in ...' rows are image-only, forcing a click just to learn the price.",
+    "Put Shop by Department first in the All drawer. Amazon leads with Trending and Digital Content (its own streaming/device businesses) before departments. Move focus correctly on drill-down and back.",
+    "Hero that respects prefers-reduced-motion, has a visible pause control and position dots, and no autoplay by default. Or a single static hero, which is less banner-blind and loads faster.",
+    "Much shorter home page: about 6-8 purposeful blocks (hero, 1-2 card rows, best sellers, deals, recently viewed) instead of 15+ rows including sponsored and near-duplicate 'inspired by / customers also viewed' rows.",
+    "No ads, no 'Sponsored' tiles, no promo slot in the sub-nav, no first-visit sign-in popover, no 27-brand sister-site footer grid. Footer trimmed to links that go somewhere.",
+    "No layout shift: fixed aspect-ratio boxes and skeletons for hero, cards and carousels, server-rendered first screen, lazy-loaded below-the-fold images with width/height. Aim for LCP under ~1.5s and CLS near 0; Amazon visibly pops content in on slower connections.",
+    "Recently viewed row with per-item remove and 'Clear history' inline, instead of a separate browsing-history page.",
+    "Guest personalization that survives sign-in: merge guest viewed items and guest cart into the account on sign-in and say so in a small toast ('We added 2 items from your guest cart').",
+    "Scroll-snap carousels with visible arrow buttons on focus as well as hover (Amazon's arrows appear only on hover, so keyboard and touch users cannot find them), plus aria-live 'Showing items 7-12 of 30'.",
+    "Consistent, accessible contrast and 44px touch targets on mobile. Amazon's mobile scroll strip and small grey header text are tight and low-contrast.",
+    "Theme-aware (light/dark) palette in the same navy/yellow/orange brand language. Amazon has no dark mode on web."
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/",
+      "verified": true,
+      "note": "Fetched: HTTP 200, real home page HTML (not a captcha), but content is JS-rendered and the fetch was truncated during nav setup. Verified: hero carousel element id 'gw-desktop-herotator' (300px, collapsible to 230px) and 'gw-card-layout' responsive card grid. Header/footer labels not in the fetched portion; they come from memory."
+    },
+    {
+      "url": "https://www.amazon.com/gp/homepage.html/",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked)."
+    },
+    {
+      "url": "https://www.amazon.com/gp/site-directory",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked); department lists come from memory."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GXPU3YPMBZQRWZK2",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked)."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=202206600",
+      "verified": false,
+      "note": "HTTP 503 on fetch. Search snippet: delivery location selector sits next to the search bar and near Add to Cart on PDPs; choosing 'Deliver to' shows addresses from the address book."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked)."
+    },
+    {
+      "url": "https://web.archive.org/web/2026/https://www.amazon.com/",
+      "verified": false,
+      "note": "Fetch tool not permitted for web.archive.org."
+    },
+    {
+      "url": "https://sellercentral.amazon.com/seller-forums/discussions/t/820897d10d930b4bddd42cd61ea3e16e",
+      "verified": false,
+      "note": "Search result titled 'Please enter a valid US zip code', which corroborates the ZIP validation message. Not fetched."
+    },
+    {
+      "url": "https://tinygrab.com/how-to-change-your-location-on-amazon",
+      "verified": false,
+      "note": "Search snippet: location shown top-left as city/state or 'Deliver to [Name]'; pop-up asks for address or ZIP; 'Apply' refreshes the page. Not fetched."
+    },
+    {
+      "url": "https://www.amazon.com/privacyprefs?ref_=footer_iba",
+      "verified": false,
+      "note": "Search summary gave the legal line 'Conditions of Use · Privacy Notice · Consumer Health Data Privacy Disclosure · Your Ads Privacy Choices · © 1996-2026, Amazon.com, Inc.' and footer column headings Get to Know Us / Make Money with Us / Amazon Payment Products / Let Us Help You. Not fetched."
+    },
+    {
+      "url": "https://goodui.org/leaks/amazons-loaded-hamburger-menu-beats-its-older-dropdown-in-this-a-b-test/",
+      "verified": true,
+      "note": "Fetched: 2019 A/B test replaced the 'Department' dropdown with a hamburger in the upper left; strong sign-in call as first option; multi-level drill-down (e.g. 'Echo & Alexa' opens another level); full-height scrollable menu; hamburger won."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/amazon-homepage-redesign-features",
+      "verified": true,
+      "note": "Fetched: app-focused homepage redesign (being tested, US): 'Window Display' personalized top section, topic/interest product groupings with horizontal scrolling, 'Buy Again' hub. App only, not desktop web."
+    },
+    {
+      "url": "https://www.amalytix.com/en/knowledge/ai/amazon-rufus-guide-2026/",
+      "verified": true,
+      "note": "Fetched: Alexa for Shopping surfaces 'Alexa prompts' in the desktop search bar before the results page; 'Researched by AI' and 'Customers Ask' modules on search results; 'Ask Alexa' on highlighted PDP text."
+    },
+    {
+      "url": "https://www.axios.com/2026/05/13/amazon-alexa-ai-shopping-assistant",
+      "verified": false,
+      "note": "Search snippet (with canopymanagement.com and felloai.com): Rufus retired May 13, 2026 and replaced by Alexa for Shopping, which sits in the main search bar and is the default for signed-in US customers on app and web."
+    },
+    {
+      "url": "https://www.geekwire.com/2026/amazon-unifies-alexa-and-rufus-as-ai-rivals-move-into-online-shopping/",
+      "verified": false,
+      "note": "HTTP 403 on fetch."
+    },
+    {
+      "url": "https://www.linkedin.com/pulse/ux-researcher-beta-test-heuristic-evaluation-amazons-search-white",
+      "verified": false,
+      "note": "Search snippet: Amazon tested moving the mobile search bar near the horizontal nav (Safari-style). Not fetched."
+    },
+    {
+      "url": "memory:amazon.com desktop and mobile web (through early 2026)",
+      "verified": false,
+      "note": "From memory: exact header/flyout/modal microcopy, department dropdown options, hamburger section contents, home card and carousel titles, footer column links, services grid, colors (#131921 belt, #232f3e sub-nav/footer, #37475a back-to-top, #febd69 search button, #ffd814 sign-in button, #f08804 cart count, #007185 links), keyboard shortcuts, mobile web layout. Amazon A/B tests often; treat exact link sets as representative."
+    }
+  ]
+}

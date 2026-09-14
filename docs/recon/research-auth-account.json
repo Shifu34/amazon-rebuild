@@ -1,0 +1,1387 @@
+{
+  "area": "auth-account",
+  "screens": [
+    {
+      "name": "Header account entry (Account & Lists flyout) and sign-in prompts",
+      "url_pattern": "Global nav on every page (#nav-link-accountList, flyout #nav-flyout-accountList). Rebuild: shared header component.",
+      "purpose": "The main way into sign in, create account and account pages from any page. It also shows who is signed in.",
+      "layout": "Desktop: right side of the dark nav bar, after 'Deliver to' and the language flag. A two-line link: 'Hello, sign in' (12px) above 'Account & Lists' (14px bold) with a small caret. Then 'Returns & Orders', then Cart. Hovering opens a white flyout (~480px) anchored under the link and dims the page. Signed-out flyout, top to bottom: centered yellow 'Sign in' button (~220px), the line 'New customer? Start here.', a hairline, then two columns 'Your Lists' | 'Your Account'. Signed-in flyout: a gray strip at the top reading 'Who is shopping? Select a profile.' with 'Manage Profiles ›', the same two columns, and 'Switch Accounts' and 'Sign Out' at the end of 'Your Account'. On the first signed-out desktop visit, a small tooltip under the link offers a 'Sign in' button and 'New customer? Start here.' and closes on its own. The signed-out homepage also has a card 'Sign in for the best experience' with a yellow 'Sign in securely' button. Mobile web: no flyout. The top bar shows 'Sign in ›' or 'Mikey ›' with a person icon next to the cart; tapping goes straight to sign in or to Your Account. The hamburger menu ends with 'Your Account' and 'Sign in' or 'Sign Out'.",
+      "elements": [
+        "'Hello, sign in' / 'Hello, {FirstName}' greeting line",
+        "'Account & Lists' label + caret",
+        "Flyout: yellow 'Sign in' button (signed-out)",
+        "Flyout: 'New customer? Start here.' ('Start here.' is the link, to /ap/register)",
+        "Flyout column 'Your Lists': 'Create a List', 'Find a List or Registry'",
+        "Flyout column 'Your Account': 'Account', 'Orders', 'Recommendations', 'Browsing History', 'Watchlist', 'Video Purchases & Rentals', 'Kindle Unlimited', 'Content & Devices', 'Subscribe & Save Items', 'Memberships & Subscriptions', 'Music Library'",
+        "Signed-in only: 'Who is shopping? Select a profile.' strip, 'Manage Profiles ›', 'Switch Accounts', 'Sign Out'",
+        "'Returns & Orders' two-line link next to Account & Lists (goes to sign in if signed out)",
+        "Homepage card: 'Sign in for the best experience' + 'Sign in securely'"
+      ],
+      "states": [
+        "Signed out: 'Hello, sign in'. The flyout has the Sign in button and the Start here link",
+        "Signed in: 'Hello, Mikey' (first name only). The flyout has profiles, Switch Accounts and Sign Out",
+        "Recognized but session expired ('Keep me signed in' cookie is present): still greets by name, but orders, account and checkout pages ask for the password again",
+        "First visit signed out: the auto tooltip appears once, then closes"
+      ],
+      "interactions": [
+        "Hover opens the flyout after a short delay (~200-300ms) and dims the page; moving the mouse away closes it",
+        "Clicking 'Account & Lists' goes to /gp/css/homepage.html, or to sign in with a return path to that page when signed out",
+        "'Sign in' in the flyout returns to the current page after sign in (openid.return_to = current URL)",
+        "'Sign Out' signs out right away with no confirmation and lands on the sign-in page",
+        "Keyboard: the flyout is hard to reach (a known weakness). A 'skip' style focus path is missing"
+      ],
+      "microcopy": [
+        "Hello, sign in",
+        "Account & Lists",
+        "Returns & Orders",
+        "Sign in",
+        "New customer? Start here.",
+        "Who is shopping? Select a profile.",
+        "Manage Profiles",
+        "Switch Accounts",
+        "Sign Out",
+        "Sign in for the best experience",
+        "Sign in securely"
+      ]
+    },
+    {
+      "name": "Sign in, step 1: identifier (unified 'Sign in or create account')",
+      "url_pattern": "/ap/signin?openid.return_to=<encoded URL>&openid.assoc_handle=usflex&openid.mode=checkid_setup&openid.ns=http://specs.openid.net/auth/2.0 (plus openid.pape.max_auth_age=0 when fresh auth is forced). The new-customer branch continues under /ax/claim/... (memory). Rebuild: /signin?next=/checkout",
+      "purpose": "A single email-first entry. Amazon checks whether the email or mobile number belongs to an account and sends the user to the password step or the create-account branch.",
+      "layout": "Desktop: plain white page. The Amazon smile logo (~103px wide) is centered at the top and links home. Below it, a card ~350px wide with a 1px #DDD border, 8px radius and ~20-26px padding: H1 'Sign in or create account' (28px, regular weight); bold label 'Enter mobile number or email'; a full-width input ~31px tall, autofocused; a full-width yellow rounded 'Continue' button; 12px legal line; a 'Need help?' expander with a caret. Then a hairline and 'Buying for work?' (bold) with the link 'Shop on Amazon Business'. Below the card: a gradient hairline, centered small links 'Conditions of Use', 'Privacy Notice', 'Help', and '© 1996-2026, Amazon.com, Inc. or its affiliates'. Legacy variant still seen from some entry points: H1 'Sign in', label 'Email or mobile phone number', 'Continue', legal line, 'Need help?', then a divider with centered gray text 'New to Amazon?' and a full-width gray 'Create your Amazon account' button. Mobile web: no card border, edge-to-edge with ~16px gutters, smaller logo in a light gray top bar, ~44px-tall input and button. The older mobile layout used two radio accordions: 'Create account. New to Amazon?' and 'Sign in. Already a customer?'.",
+      "elements": [
+        "Amazon logo (link to /)",
+        "H1 'Sign in or create account' (legacy: 'Sign in')",
+        "Label 'Enter mobile number or email' (legacy: 'Email or mobile phone number'). Input type=email/tel hybrid, autocomplete=username",
+        "Yellow primary button 'Continue'",
+        "Legal: 'By continuing, you agree to Amazon's Conditions of Use and Privacy Notice.' (both are links)",
+        "'Need help?' expander, which reveals 'Forgot your password?' and 'Other issues with Sign-In'",
+        "'Buying for work?' + 'Shop on Amazon Business' link",
+        "Legacy only: 'New to Amazon?' divider + 'Create your Amazon account' secondary button",
+        "Footer links: 'Conditions of Use', 'Privacy Notice', 'Help', copyright line"
+      ],
+      "states": [
+        "Default: empty field with focus",
+        "Returning browser: the field may be prefilled with the remembered email",
+        "Empty submit: inline red alert under the field (red ! icon, red field border with a light red glow): 'Enter your mobile number or email' (legacy: 'Enter your email or mobile phone number')",
+        "Bad format: 'Invalid email address.' or 'Invalid mobile number' (memory)",
+        "Known account: go to the password step (or the passkey prompt if the account has a passkey)",
+        "Unknown account, unified flow: go to 'Looks like you're new to Amazon' (the create-account branch)",
+        "Unknown account, legacy flow: a red box above the card with heading 'There was a problem' and text 'We cannot find an account with that email address' (for phone: 'We cannot find an account with that mobile number')",
+        "Suspected bot or many attempts: a puzzle or CAPTCHA page ('Solve this puzzle to protect your account')",
+        "Loading: a full-page form POST, no spinner. The button shows a pressed style only"
+      ],
+      "interactions": [
+        "Enter key submits",
+        "Clicking 'Need help?' toggles the two help links inline (no page change)",
+        "The Conditions of Use and Privacy Notice links open help pages in the same tab",
+        "return_to is carried through every step, so after success the user lands where they started"
+      ],
+      "microcopy": [
+        "Sign in or create account",
+        "Enter mobile number or email",
+        "Continue",
+        "By continuing, you agree to Amazon's Conditions of Use and Privacy Notice.",
+        "Need help?",
+        "Forgot your password?",
+        "Other issues with Sign-In",
+        "Buying for work?",
+        "Shop on Amazon Business",
+        "New to Amazon?",
+        "Create your Amazon account",
+        "Enter your email or mobile phone number",
+        "There was a problem",
+        "We cannot find an account with that email address"
+      ]
+    },
+    {
+      "name": "Sign in, step 2: password",
+      "url_pattern": "/ap/signin (POST result, same URL). Rebuild: same page, password field shown inline",
+      "purpose": "Authenticate a known account with a password, and optionally keep the session long-lived.",
+      "layout": "Same logo and card. H1 'Sign in'. A row showing the entered identifier (e.g. 'mikey@example.com') with a blue 'Change' link that goes back to step 1. Then a label row: 'Password' on the left and 'Forgot password?' on the right, same line. Password input (autocomplete=current-password). Full-width yellow 'Sign in' button. Then a checkbox 'Keep me signed in.' followed by a blue 'Details' link with a caret. Some variants add a divider and alternatives below: 'Sign in with a passkey' (seen under the password field in 2023) or 'Get an OTP on your phone'. Server errors appear in a separate red-bordered box above the card. Mobile web: the same, full width. 'Show password' checkbox on some mobile variants.",
+      "elements": [
+        "H1 'Sign in'",
+        "Identifier display + 'Change' link",
+        "Label 'Password' + right-aligned 'Forgot password?' link (to /ap/forgotpassword)",
+        "Password input",
+        "Yellow 'Sign in' button",
+        "Checkbox 'Keep me signed in.', unchecked by default",
+        "'Details' link that opens a popover",
+        "Popover heading: '“Keep Me Signed In” Checkbox'. Body: 'Choosing “Keep me signed in” reduces the number of times you're asked to Sign-In on this device.' and 'To keep your account secure, use this option only on your personal devices.'",
+        "Optional 'Sign in with a passkey' link",
+        "Error box: red triangle icon, heading 'There was a problem', message"
+      ],
+      "states": [
+        "Empty submit: inline 'Enter your password'",
+        "Wrong password: red box above the card, 'There was a problem' / 'Your password is incorrect'. The password field is cleared. Older copy (2016) read 'Your email or password was incorrect. Please try again.'",
+        "Repeated failures: an 'Important Message!' box plus an image CAPTCHA under the password ('Enter the characters as they are given in the challenge', with 'Try different image'). The user must re-enter the password and the characters",
+        "2SV enabled: goes to the Two-Step Verification OTP page",
+        "Account on hold or locked: 'Account on hold temporarily' page asking for a password reset or verification (memory)",
+        "Success: optional interstitials ('Add mobile number' / 'Keep hackers out' with 'Not now'; 'Sign in faster with passkeys'), then redirect to return_to"
+      ],
+      "interactions": [
+        "'Details' opens a small popover anchored to the link with a close X; clicking outside closes it",
+        "'Change' returns to the identifier step with the field prefilled",
+        "'Keep me signed in' sets a long-lived cookie. Without it the session ends when the browser closes. Sensitive pages still re-prompt either way"
+      ],
+      "microcopy": [
+        "Sign in",
+        "Change",
+        "Password",
+        "Forgot password?",
+        "Keep me signed in.",
+        "Details",
+        "“Keep Me Signed In” Checkbox",
+        "Choosing “Keep me signed in” reduces the number of times you're asked to Sign-In on this device.",
+        "To keep your account secure, use this option only on your personal devices.",
+        "Enter your password",
+        "There was a problem",
+        "Your password is incorrect",
+        "Sign in with a passkey",
+        "Important Message!"
+      ]
+    },
+    {
+      "name": "New-customer branch in the unified flow ('Looks like you're new to Amazon')",
+      "url_pattern": "/ax/claim/intent?... then /ax/claim/register (memory). Rebuild: /signin shows this state inline",
+      "purpose": "When the entered email or mobile has no account, confirm the user wants to create one, then collect the rest of the details with the identifier already filled in.",
+      "layout": "Card, first screen: H1 'Looks like you're new to Amazon'. Line 'Let's create an account using your email' ('...using your mobile number' for phone), then the identifier in bold with a 'Change' link. Yellow full-width 'Proceed to create an account'. Divider, then 'Already a customer?' and the link 'Sign in with another email or mobile'. Next screen (create account with the identifier locked): 'Your name' (placeholder 'First and last name'), 'Password' (placeholder 'At least 6 characters') with an info line 'Passwords must be at least 6 characters.', 'Re-enter password', a yellow 'Verify email' button, and the legal line 'By creating an account, you agree to Amazon's Conditions of Use and Privacy Notice.' Exact wording of this 2024-25 branch is from memory; medium confidence.",
+      "elements": [
+        "H1 'Looks like you're new to Amazon'",
+        "'Let's create an account using your email' + identifier + 'Change'",
+        "'Proceed to create an account' yellow button",
+        "'Already a customer?' + 'Sign in with another email or mobile'",
+        "Name / Password / Re-enter password fields",
+        "'Verify email' (or 'Verify mobile number') button"
+      ],
+      "states": [
+        "Email identifier: the next step is email OTP",
+        "Mobile identifier: the next step is SMS OTP",
+        "Validation errors are the same as the Create account form"
+      ],
+      "interactions": [
+        "'Change' or 'Sign in with another email or mobile' returns to step 1"
+      ],
+      "microcopy": [
+        "Looks like you're new to Amazon",
+        "Let's create an account using your email",
+        "Proceed to create an account",
+        "Already a customer?",
+        "Sign in with another email or mobile",
+        "Verify email"
+      ]
+    },
+    {
+      "name": "Create account form",
+      "url_pattern": "/ap/register?openid.return_to=...&openid.assoc_handle=usflex... Rebuild: /register?next=",
+      "purpose": "Full registration form: name, email or mobile, password.",
+      "layout": "Desktop: logo; card ~350px: H1 'Create account'; 'Your name' (placeholder 'First and last name'); 'Mobile number or email'; 'Password' (placeholder 'At least 6 characters') with a blue (i) info line 'Passwords must be at least 6 characters.'; 'Re-enter password'; a full-width yellow button, 'Continue' in older versions, now 'Verify email' when the value looks like an email and 'Verify mobile number' for a phone (memory); legal line; hairline; 'Buying for work?' + 'Create a free business account'; 'Already have an account? Sign in ›'. Footer the same as sign in. Mobile web: full width. Instead of 'Re-enter password' there is a 'Show password' checkbox. Label 'Create a password' in some mobile variants.",
+      "elements": [
+        "H1 'Create account'",
+        "Input 'Your name' (placeholder 'First and last name', autocomplete=name)",
+        "Input 'Mobile number or email' (older: 'Email')",
+        "Input 'Password' (placeholder 'At least 6 characters', autocomplete=new-password)",
+        "Info hint '(i) Passwords must be at least 6 characters.'",
+        "Input 'Re-enter password'",
+        "Yellow button 'Continue' / 'Verify email'",
+        "Legal 'By creating an account, you agree to Amazon's Conditions of Use and Privacy Notice.'",
+        "'Buying for work?' + 'Create a free business account'",
+        "'Already have an account? Sign in ›'"
+      ],
+      "states": [
+        "Client validation runs on submit. Each failing field gets a red border and an inline message with a red ! icon, and the info hint is swapped for the error",
+        "Name empty: 'Enter your name'",
+        "Email/mobile empty: 'Enter your email or mobile phone number'",
+        "Email/mobile malformed: 'Wrong or Invalid email address or mobile phone number. Please correct and try again.'",
+        "Password empty or under 6 characters: 'Minimum 6 characters required'",
+        "Re-enter empty: 'Type your password again'",
+        "Re-enter mismatch: 'Passwords must match'",
+        "Email already used: error box 'Email address already in use'. Text says an account already exists with that email, with a 'Sign in' link and a 'Forgot your password?' link (the help page title confirms the 'E-mail address already in use' error; body wording is memory)",
+        "Success: go to the OTP verification step"
+      ],
+      "interactions": [
+        "Errors clear on the next submit, not while typing (Amazon behavior)",
+        "'Sign in ›' goes back to /ap/signin keeping return_to"
+      ],
+      "microcopy": [
+        "Create account",
+        "Your name",
+        "First and last name",
+        "Mobile number or email",
+        "Password",
+        "At least 6 characters",
+        "Passwords must be at least 6 characters.",
+        "Re-enter password",
+        "Continue",
+        "Verify email",
+        "By creating an account, you agree to Amazon's Conditions of Use and Privacy Notice.",
+        "Already have an account?",
+        "Sign in",
+        "Enter your name",
+        "Enter your email or mobile phone number",
+        "Wrong or Invalid email address or mobile phone number. Please correct and try again.",
+        "Minimum 6 characters required",
+        "Type your password again",
+        "Passwords must match"
+      ]
+    },
+    {
+      "name": "Verify email address (OTP) during sign-up",
+      "url_pattern": "/ap/cvf/verify (memory). Rebuild: /register/verify",
+      "purpose": "Prove ownership of the email before the account is created.",
+      "layout": "Logo; card: H1 'Verify email address'; body 'To verify your email, we've sent a One Time Password (OTP) to mikey@example.com' with a '(Change)' link; label 'Enter OTP'; numeric input (6 digits, autocomplete=one-time-code); full-width yellow 'Create your Amazon account'; legal line 'By creating an account, you agree to Amazon's Conditions of Use and Privacy Notice.'; link 'Resend OTP' at the bottom. Mobile-number variant: H1 'Verify mobile number', 'A text with a One Time Password (OTP) has been sent to your mobile number: +1 555...'. Sometimes a puzzle step ('Solve this puzzle to protect your account') comes before the OTP is sent.",
+      "elements": [
+        "H1 'Verify email address'",
+        "Body with the masked or full email + '(Change)'",
+        "'Enter OTP' input",
+        "'Create your Amazon account' button",
+        "'Resend OTP' link",
+        "Legal line"
+      ],
+      "states": [
+        "Default: code sent. Email subject 'Verify your new Amazon account'. Body: 'To verify your email address, please use the following One Time Password (OTP):' followed by the large 6-digit code, then 'Do not share this OTP with anyone. Amazon takes your account security very seriously...' (memory)",
+        "Wrong code: inline 'Invalid OTP. Please check your code and try again.' (memory)",
+        "Expired code (~10 min): same invalid message. The user must resend",
+        "Resent: a small green or info line saying a new OTP has been sent (memory)",
+        "Too many attempts: temporary block, try again later",
+        "Success: account created and signed in, redirect to return_to (usually the homepage). An optional 'Add mobile number' interstitial may appear"
+      ],
+      "interactions": [
+        "'Resend OTP' sends a new code and invalidates the old one",
+        "'(Change)' returns to the create-account form with values kept (except passwords)"
+      ],
+      "microcopy": [
+        "Verify email address",
+        "To verify your email, we've sent a One Time Password (OTP) to",
+        "Enter OTP",
+        "Create your Amazon account",
+        "Resend OTP",
+        "Verify mobile number",
+        "Verify your new Amazon account"
+      ]
+    },
+    {
+      "name": "Passkey prompts (enrollment interstitial and passkey sign-in)",
+      "url_pattern": "Interstitial after sign in (/ap/... or /ax/...), setup from Login & security. Rebuild: /account/security/passkey",
+      "purpose": "Password-free sign in with WebAuthn (Face ID, Touch ID, Windows Hello, PIN).",
+      "layout": "Enrollment interstitial, a full page (not a modal) shown after a successful password (+OTP) sign-in on a device, never on the homepage: platform icon, title 'Sign in faster with passkeys', body 'Use Face ID, Touch ID, Windows Hello, or your screen lock to sign in. No password required', yellow 'Set up', link 'Not now', and an inline 'Learn more' expander. Clicking 'Set up' opens the OS or browser passkey sheet, then shows a confirmation. In Login & security the 'Passkey' row reads 'Sign in the same way you unlock your device by using your face, fingerprint, or PIN.' with a 'Set up' button; once enrolled it becomes 'Edit', leading to a list of passkeys (device or provider name, created date) with remove. Sign-in: for an account with a passkey, Continue on step 1 triggers the browser passkey sheet (default on mobile). The password path stays available ('Sign in with a passkey' used to appear under the password field).",
+      "elements": [
+        "Title 'Sign in faster with passkeys'",
+        "Body copy naming the platform authenticators",
+        "'Set up' primary button",
+        "'Not now' link",
+        "Login & security 'Passkey' row + 'Set up'",
+        "Passkey list with remove (after enrollment)"
+      ],
+      "states": [
+        "Unsupported browser: the prompt is not shown",
+        "User cancels the OS sheet: stays on the interstitial or falls back to the password",
+        "Passkey failure at sign in: 'We couldn't sign in with a passkey. You can still use your password' (third-party teardown; low confidence)",
+        "Shown once per device, stops after being dismissed about twice (teardown)"
+      ],
+      "interactions": [
+        "'Set up' calls navigator.credentials.create; 'Not now' continues to return_to",
+        "Multiple passkeys are allowed (one per device or provider ecosystem)"
+      ],
+      "microcopy": [
+        "Sign in faster with passkeys",
+        "Use Face ID, Touch ID, Windows Hello, or your screen lock to sign in. No password required",
+        "Set up",
+        "Not now",
+        "Sign in with a passkey",
+        "Passkey"
+      ]
+    },
+    {
+      "name": "Two-Step Verification challenge (sign-in OTP)",
+      "url_pattern": "/ap/mfa?... (memory)",
+      "purpose": "Second factor for accounts with 2SV turned on.",
+      "layout": "Logo; card: H1 'Two-Step Verification'. Body 'A text with a One Time Password (OTP) has been sent to your phone number ending in 23' or 'For added security, please enter the One Time Password (OTP) generated by your Authenticator App'. 'Enter OTP' input; checkbox 'Don't require OTP on this browser'; yellow 'Sign in'; link 'Didn't receive the OTP?', which expands 'Resend OTP' and other methods (call, backup authenticator). Push-approval variant: 'Approve the notification sent to...' with auto-polling.",
+      "elements": [
+        "H1 'Two-Step Verification'",
+        "Delivery explanation",
+        "'Enter OTP'",
+        "'Don't require OTP on this browser' checkbox",
+        "'Sign in' button",
+        "'Didn't receive the OTP?' link"
+      ],
+      "states": [
+        "Invalid code: 'The One Time Password (OTP) you entered is not valid. Please try again.' (memory)",
+        "Lost device: 'Two-Step Verification Recovery' path with ID upload (skip)"
+      ],
+      "interactions": [
+        "Checking 'Don't require OTP on this browser' marks the device as trusted"
+      ],
+      "microcopy": [
+        "Two-Step Verification",
+        "Enter OTP",
+        "Don't require OTP on this browser",
+        "Sign in",
+        "Didn't receive the OTP?",
+        "Resend OTP"
+      ]
+    },
+    {
+      "name": "Password assistance (reset)",
+      "url_pattern": "/ap/forgotpassword?openid.return_to=... then /ap/cvf/... then /ap/forgotpassword/reverification (memory). Rebuild: /forgot-password",
+      "purpose": "Regain access by verifying ownership of the email or phone and setting a new password.",
+      "layout": "Step 1 card: H1 'Password assistance'; 'Enter the email address or mobile phone number associated with your Amazon account.'; label 'Email or mobile phone number'; yellow 'Continue'. Below the card: bold 'Has your email address or mobile phone number changed?' and 'If you no longer use the e-mail address associated with your Amazon account, you may contact Customer Service for help restoring access to your account.' Step 2 card: H1 'Verification required'; 'To continue, complete this verification step. We've sent an OTP to the email mikey@example.com. Please enter it below to complete verification.'; 'Enter OTP'; yellow 'Continue' (older 'Submit Code'); 'Resend OTP'; option to 'Send OTP by WhatsApp' in some flows. Step 3 card: H1 'Create new password'; 'We'll ask for this password whenever you sign in.'; 'New password' (placeholder 'At least 6 characters') + info 'Passwords must be at least 6 characters.'; 'Password again'; yellow 'Save changes and sign in'. Beneath: 'Secure password tips:' bullets ('Use at least 8 characters, a combination of numbers and letters is best.', 'Do not use the same password you have used with us previously.', 'Do not use dictionary words, your name, e-mail address, mobile phone number or other personal information that can be easily obtained.', 'Do not use the same password for multiple online accounts.').",
+      "elements": [
+        "H1 'Password assistance'",
+        "Instruction line",
+        "'Email or mobile phone number' input",
+        "'Continue'",
+        "'Has your email address or mobile phone number changed?' help block",
+        "H1 'Verification required' + 'Enter OTP' + 'Continue' + 'Resend OTP'",
+        "H1 'Create new password' + 'New password' + 'Password again' + 'Save changes and sign in'",
+        "'Secure password tips:' list"
+      ],
+      "states": [
+        "Empty: 'Enter your email or mobile phone number'",
+        "Unknown: 'There was a problem' / 'We cannot find an account with that email address'",
+        "Wrong or expired OTP: invalid OTP inline error",
+        "Weak or short password: 'Minimum 6 characters required'",
+        "Mismatch: 'Passwords must match'",
+        "Reused password: rejected with a message to choose a new one (memory)",
+        "Success: signed in, redirected to return_to; a 'Your Amazon password has been changed' style email is sent"
+      ],
+      "interactions": [
+        "Reached from 'Forgot password?' (step 2 of sign in) or from 'Need help?' > 'Forgot your password?'. The identifier is prefilled when known",
+        "The whole flow keeps return_to"
+      ],
+      "microcopy": [
+        "Password assistance",
+        "Enter the email address or mobile phone number associated with your Amazon account.",
+        "Email or mobile phone number",
+        "Continue",
+        "Verification required",
+        "Enter OTP",
+        "Resend OTP",
+        "Create new password",
+        "We'll ask for this password whenever you sign in.",
+        "New password",
+        "Password again",
+        "Save changes and sign in",
+        "Secure password tips:"
+      ]
+    },
+    {
+      "name": "Sign out and account switcher",
+      "url_pattern": "/gp/flex/sign-out.html?path=%2Fgp%2Fyourstore%2Fhome&signIn=1&useRedirectOnSuccess=1&action=sign-out&ref_=nav_AccountFlyout_signout. Switcher: /ap/switchaccount (memory). Rebuild: POST /signout",
+      "purpose": "End the session. Switch between up to several remembered accounts.",
+      "layout": "No confirmation. 'Sign Out' in the flyout or mobile menu clears the session and redirects to the /ap/signin identifier step, often with the email remembered, rather than the homepage. The cart becomes the device/guest cart. Switch accounts page: H1 'Switch accounts'; a list of account rows (name, email, 'Signed in' badge on the current one); '+ Add account'; 'Manage' mode to remove accounts from the list; 'Sign out' per account.",
+      "elements": [
+        "'Sign Out' link (flyout bottom-right of 'Your Account' column)",
+        "'Switch Accounts' link",
+        "Switch accounts list, '+ Add account', 'Manage'"
+      ],
+      "states": [
+        "After sign out: header shows 'Hello, sign in'; account pages redirect to sign in",
+        "Back button after sign out: account pages ask to sign in again"
+      ],
+      "interactions": [
+        "A single click signs out; the page reloads to sign in"
+      ],
+      "microcopy": [
+        "Sign Out",
+        "Switch Accounts",
+        "Switch accounts",
+        "Add account",
+        "Manage"
+      ]
+    },
+    {
+      "name": "Your Account hub",
+      "url_pattern": "/gp/css/homepage.html (alias /your-account). Mobile: /gp/aw/ya? Rebuild: /account",
+      "purpose": "A card-grid index of everything account-related.",
+      "layout": "Desktop: centered container ~1000px. H1 'Your Account' (28px). A grid of 3 columns of cards (~320x100px, 1px #D5D9D9 border, 8px radius, 66px line icon on the left, bold 17px title, 14px gray one-line description; light gray background on hover; the whole card is clickable). Below the grid, a hairline, then a 3-column grid of bordered link boxes, each with a bold heading and 5-10 plain text links (the 'link farm'). Mobile web: greeting 'Hello, Mikey' at the top, pill buttons 'Your Orders', 'Buy Again', 'Your Account', 'Your Lists', then grouped list sections with chevron rows (Orders, Account settings, Payments, Communication...).",
+      "elements": [
+        "H1 'Your Account'",
+        "Card 'Your Orders': 'Track, return, cancel an order, download invoice or buy again'",
+        "Card 'Login & security': 'Edit login, name, and mobile number'",
+        "Card 'Prime': 'View benefits and payment settings'",
+        "Card 'Your Addresses': 'Edit, remove or set default address'",
+        "Card 'Your business account': free Amazon Business sign-up pitch (tax-exempt pricing, volume discounts)",
+        "Card 'Gift cards': 'View balance or redeem a card, and purchase a new Gift Card'",
+        "Card 'Your Payments': 'View all transactions, manage payment methods and settings'",
+        "Card 'Your Amazon Family' / 'Your Profiles': 'Manage profiles, sharing, and permissions in one place'",
+        "Card 'Digital Services and Device Support': 'Troubleshoot device issues, manage or cancel digital subscriptions'",
+        "Card 'Your Messages': 'View or respond to messages from Amazon, Sellers and Buyers'",
+        "Card 'Archived orders': 'View and manage your archived orders'",
+        "Card 'Your Lists': 'View, modify, and share your lists, or create new ones'",
+        "Card 'Customer Service': 'Browse self service options, help articles or contact us'",
+        "Link boxes (headings): 'Digital content and devices', 'Email alerts, messages, and ads', 'More ways to pay', 'Ordering and shopping preferences', 'Other accounts', 'Shopping programs and rentals', 'Subscriptions', 'Memberships and subscriptions', 'Communication and content', 'Data and Privacy' (incl. 'Request your data', 'Close Your Amazon Account', 'Privacy Notice')"
+      ],
+      "states": [
+        "Signed out: redirect to /ap/signin with return_to = hub",
+        "Signed in: full grid; card order is fixed, not personalized",
+        "Server error: Amazon's 'Sorry! Something went wrong on our end' dog page"
+      ],
+      "interactions": [
+        "Card click navigates (full page). No inline previews such as order counts or default address"
+      ],
+      "microcopy": [
+        "Your Account",
+        "Your Orders",
+        "Login & security",
+        "Prime",
+        "Your Addresses",
+        "Gift cards",
+        "Your Payments",
+        "Your Messages",
+        "Archived orders",
+        "Your Lists",
+        "Customer Service"
+      ]
+    },
+    {
+      "name": "Login & security",
+      "url_pattern": "/ax/account/manage?... (older /ap/cnep). Always reached through a forced re-auth (max_auth_age=0). Rebuild: /account/security",
+      "purpose": "View and edit sign-in identity: name, email, mobile, passkey, password, 2SV.",
+      "layout": "Desktop: breadcrumb 'Your Account › Login & security'; H1 'Login & security'; a single bordered box (~600px, 8px radius) of rows split by 1px lines. Each row has a bold label and gray value or description on the left, and a small gray bordered 'Edit' button on the right. Rows in order: 'Name' | 'Email' | 'Primary mobile number' (with 'Quickly sign in, easily recover passwords, and receive security notifications with this mobile number.') | 'Passkey' ('Sign in the same way you unlock your device by using your face, fingerprint, or PIN.', button 'Set up') | 'Password' ('********') | '2-step verification' ('Add a layer of security. Require a verification code in addition to your password.', button 'Turn on' or 'Manage') | 'Compromised account?' ('Take steps like changing your password and signing out everywhere.', button 'Start'). Older layout ended with a yellow 'Done' button returning to Your Account. Mobile web: the same rows full width, and the Edit buttons stay on the right.",
+      "elements": [
+        "Breadcrumb 'Your Account › Login & security'",
+        "H1 'Login & security'",
+        "Row 'Name' + value + 'Edit'",
+        "Row 'Email' + value + 'Edit'",
+        "Row 'Primary mobile number' + value or empty + 'Edit'/'Add'",
+        "Row 'Passkey' + description + 'Set up'",
+        "Row 'Password' + '********' + 'Edit'",
+        "Row '2-step verification' + description + 'Turn on'",
+        "Row 'Compromised account?' + 'Start'"
+      ],
+      "states": [
+        "Entry: if not freshly authenticated, shows the sign-in password step first (email shown, 'Password', 'Sign in')",
+        "After a successful edit: green alert at the top, 'Success' / 'You have successfully modified your account!' (memory)",
+        "No mobile: value empty, button 'Add'"
+      ],
+      "interactions": [
+        "Each 'Edit' goes to a separate full page (not inline); save returns to this page with the success alert",
+        "2SV 'Turn on' goes to '/a/settings/approval' Two-Step Verification (2SV) Settings"
+      ],
+      "microcopy": [
+        "Login & security",
+        "Name",
+        "Email",
+        "Primary mobile number",
+        "Passkey",
+        "Set up",
+        "Password",
+        "2-step verification",
+        "Turn on",
+        "Compromised account?",
+        "Start",
+        "Edit"
+      ]
+    },
+    {
+      "name": "Login & security edit forms (name, email, mobile, password) and 2SV settings",
+      "url_pattern": "/ap/cnep?... /ax/account/manage/... (per field); 2SV: /a/settings/approval. Rebuild: inline row editors on /account/security",
+      "purpose": "Change a single identity attribute with appropriate verification.",
+      "layout": "All are simple single-card pages with a breadcrumb back to Login & security. CHANGE NAME: H1 'Change your name'; 'If you want to change the name associated with your Amazon customer account, you may do so below. Be sure to click the Save Changes button when you are done.'; label 'New name'; yellow 'Save changes'. CHANGE EMAIL: H1 'Change your email address'; 'Current email address:' + value; 'Enter the new email address you would like to associate with your account below. We will send a One Time Password (OTP) to that address.'; 'New email address'; yellow 'Continue'; then an OTP page ('Enter OTP'), then the password confirmation, then save. Other devices must sign in again. CHANGE MOBILE: H1 'Change mobile number'; country code select 'US +1'; 'Mobile number'; 'Continue'; SMS OTP 'Verify mobile number'. CHANGE PASSWORD: H1 'Change Password'; 'Use the form below to change the password for your Amazon account'; 'Current password'; 'New password' + 'Passwords must be at least 6 characters.'; 'Reenter new password'; yellow 'Save changes'; 'Secure password tips' box. 2SV SETTINGS: H1 'Two-Step Verification (2SV) Settings'; status 'Disabled' + 'Get Started'; Step 1 'Enroll a 2SV authenticator' with the choice 'Phone number' (country, number, 'Send OTP', 'Enter OTP', 'Verify OTP and continue') or 'Authenticator App' (QR code, 'Can't scan the barcode?', 'Enter OTP', 'Verify OTP and continue'); a backup method is required; Step 2 'Almost done...' with 'Don't require OTP on this browser' explanation and 'Got it. Turn on Two-Step Verification'. When enabled: 'Preferred method', 'Backup methods', 'Add new phone or Authenticator App', 'Make default', 'Remove', 'Disable'.",
+      "elements": [
+        "'Change your name' + 'New name' + 'Save changes'",
+        "'Change your email address' + 'Current email address:' + 'New email address' + 'Continue'",
+        "'Change mobile number' + country code + 'Mobile number' + 'Continue'",
+        "'Change Password' + 'Current password' + 'New password' + 'Reenter new password' + 'Save changes'",
+        "2SV settings: status, 'Get Started', authenticator enrollment, backup methods"
+      ],
+      "states": [
+        "Name empty: 'Enter your name'",
+        "Email invalid: 'Invalid email address'; email taken: error saying the address is already in use (memory)",
+        "Current password wrong: 'There was a problem' / 'Your password is incorrect'",
+        "New password short: 'Minimum 6 characters required'; mismatch: 'Passwords must match'",
+        "Success: return to Login & security with the green success alert"
+      ],
+      "interactions": [
+        "Save posts the form and redirects; 'Cancel' is the breadcrumb or back"
+      ],
+      "microcopy": [
+        "Change your name",
+        "New name",
+        "Save changes",
+        "Change your email address",
+        "Current email address:",
+        "New email address",
+        "Change Password",
+        "Current password",
+        "New password",
+        "Reenter new password",
+        "Two-Step Verification (2SV) Settings",
+        "Get Started"
+      ]
+    },
+    {
+      "name": "Your Addresses",
+      "url_pattern": "/a/addresses (legacy /gp/css/account/address/view.html). Rebuild: /account/addresses",
+      "purpose": "Address book used by checkout: add, edit, remove, set the default shipping address.",
+      "layout": "Desktop: container ~1000px; breadcrumb 'Your Account › Your Addresses'; H1 'Your Addresses'. A grid of fixed-size tiles (~320x290px, 3 per row, 1px #D5D9D9 border, 8px radius). Tile 1 is always 'Add address': a 2px dashed gray border, a large gray '+' and bold 'Add address' centered. The default address tile comes second, with a header strip reading 'Default:' followed by a small Amazon logo. Tile body: bold full name, address line 1, line 2, 'CITY, ST 12345-6789', 'United States', 'Phone number: 555-555-0123', and a link 'Add delivery instructions' (or the saved instructions summary). Tile footer, blue links separated by pipes: 'Edit | Remove | Set as Default'. The default tile has only 'Edit | Remove'. Mobile web: an 'Add a new address' row with a chevron at the top, then full-width stacked cards with gray buttons 'Edit', 'Remove', 'Set as Default' in a row.",
+      "elements": [
+        "H1 'Your Addresses'",
+        "'Add address' dashed tile",
+        "Default tile header 'Default:' + Amazon logo",
+        "Address tile: name, lines, city/state/ZIP, country, 'Phone number:'",
+        "'Add delivery instructions' link",
+        "'Edit' | 'Remove' | 'Set as Default' links",
+        "Remove confirmation modal"
+      ],
+      "states": [
+        "Empty (new account): only the 'Add address' tile",
+        "One address: it is not automatically default on every path; the default strip shows when set",
+        "After add: green alert at the top, 'Address saved' (memory)",
+        "After set default: tile moves to position 2 with the 'Default:' strip; alert 'Default address changed' (memory)",
+        "After remove: alert 'Address removed' (memory). Pending orders to that address are unaffected",
+        "Signed out: redirect to sign in with return_to"
+      ],
+      "interactions": [
+        "'Remove' opens a modal 'Confirm removal' showing the address summary with a yellow 'Yes' and a 'No' (verified: 'Yes')",
+        "'Set as Default' is a one-click POST and page reload",
+        "'Edit' goes to the edit form prefilled",
+        "Changing the address book does not change open orders (help snippet); the next order to a new address may re-ask for the card number"
+      ],
+      "microcopy": [
+        "Your Addresses",
+        "Add address",
+        "Default:",
+        "Edit",
+        "Remove",
+        "Set as Default",
+        "Add delivery instructions",
+        "Phone number:",
+        "Confirm removal",
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "name": "Add / edit address form",
+      "url_pattern": "/a/addresses/add?ref=ya_address_book_add_button ; /a/addresses/edit?addressID=... Rebuild: /account/addresses/new, /account/addresses/:id/edit (also embedded in checkout)",
+      "purpose": "Capture a deliverable US address with a phone number.",
+      "layout": "Desktop: form column ~540px; breadcrumb; H1 'Add a new address' (edit: 'Edit your address'). Optional top banner 'Save time. Autofill your current location.' with an 'Autofill' button (memory). Fields top to bottom: 'Country/Region' select (default 'United States'); 'Full name (First and Last name)'; 'Phone number' + hint 'May be used to assist delivery'; 'Address' with two stacked inputs, placeholders 'Street address or P.O. Box' and 'Apt, suite, unit, building, floor, etc.' (line 1 has type-ahead suggestions); a row of three: 'City' | 'State' select ('Select') | 'ZIP Code'; checkbox 'Make this my default address'; collapsible 'Delivery instructions (optional)' with link 'Add preferences, notes, access codes and more', which reveals property type (House / Apartment / Business / Other), access codes, weekend delivery and notes; yellow 'Add address' (edit: 'Save changes', memory). Mobile web: the same single column; City/State/ZIP stack.",
+      "elements": [
+        "'Country/Region' select",
+        "'Full name (First and Last name)'",
+        "'Phone number' + 'May be used to assist delivery'",
+        "'Address': 'Street address or P.O. Box' and 'Apt, suite, unit, building, floor, etc.'",
+        "'City', 'State' select, 'ZIP Code'",
+        "'Make this my default address' checkbox",
+        "'Add preferences, notes, access codes and more' expander",
+        "'Add address' yellow button"
+      ],
+      "states": [
+        "Submit with errors: a red box at the top 'There was a problem', plus inline messages per field",
+        "Name empty: 'Please enter a name.'",
+        "Phone empty: 'Please enter a phone number so we can call if there are any issues with delivery.'",
+        "Address empty: 'Please enter an address.'",
+        "City empty: 'Please enter a city name.'",
+        "State empty: 'Please enter a state, region or province.'",
+        "ZIP empty or invalid: 'Please enter a ZIP or postal code.' or a ZIP/state mismatch message",
+        "Unverifiable address: modal 'Review your address' showing 'Suggested' vs 'What you entered' radio options and a 'Use this address' button (memory)",
+        "Success: back to Your Addresses with the saved alert (or back to checkout)"
+      ],
+      "interactions": [
+        "Street line autocomplete fills city, state and ZIP",
+        "Changing Country/Region re-renders the field set (state and postal formats)",
+        "The delivery instructions section expands inline"
+      ],
+      "microcopy": [
+        "Add a new address",
+        "Country/Region",
+        "Full name (First and Last name)",
+        "Phone number",
+        "May be used to assist delivery",
+        "Street address or P.O. Box",
+        "Apt, suite, unit, building, floor, etc.",
+        "City",
+        "State",
+        "ZIP Code",
+        "Make this my default address",
+        "Add preferences, notes, access codes and more",
+        "Add address",
+        "Please enter a name.",
+        "Please enter a phone number so we can call if there are any issues with delivery.",
+        "Please enter an address.",
+        "Please enter a city name.",
+        "Please enter a ZIP or postal code."
+      ]
+    },
+    {
+      "name": "Your Payments: Wallet",
+      "url_pattern": "/cpe/yourpayments/wallet ; /cpe/yourpayments/transactions. Rebuild: /account/payments",
+      "purpose": "Manage saved cards and payment methods, default card, and see transactions.",
+      "layout": "Desktop: breadcrumb 'Your Account › Your Payments'; H1 'Your Payments'; tab bar 'Wallet' | 'Transactions' (plus 'Settings' in some locales). Wallet tab is two panes. LEFT (~35%): heading 'Cards & accounts', then a vertical list of payment method rows, each with brand card art (~60px), '•••• 1234' and brand. The default method is listed first, with a small 'Default' label (memory). Expired cards show red 'Expired'. Then the 'Amazon Gift Card' balance row ('$0.00'), then '+ Add a payment method' at the bottom. RIGHT (~65%): detail for the selected method, with large card art, 'Visa ending in 1234', 'Name on card', 'Expires 04/2028', 'Billing address' block, and an 'Edit' link. Mobile web: a list page (tap a row to open a detail page with 'Edit' at the top right); 'Add' button instead of 'Add a payment method'.",
+      "elements": [
+        "H1 'Your Payments'",
+        "Tabs 'Wallet', 'Transactions'",
+        "'Cards & accounts' list with card art, last 4, 'Expired' flag",
+        "'Amazon Gift Card' balance row",
+        "'Add a payment method' link",
+        "Detail pane: 'Visa ending in 1234', 'Name on card', 'Expires', 'Billing address', 'Edit'",
+        "Edit modal: name, expiration selects, billing address change, 'Set as the default payment method' checkbox, 'Remove from wallet' link, 'Save'",
+        "Remove confirmation: card summary + 'Confirm Remove'"
+      ],
+      "states": [
+        "Empty wallet: only the gift card balance row and 'Add a payment method'",
+        "Expired card: red 'Expired' in the list, and a detail prompt to update the expiration date",
+        "Card in use (default for subscriptions such as Prime, or pending orders): removal is blocked with an explanation to switch those first",
+        "Transactions tab: rows with date, merchant ('AMAZON.COM' vs other Amazon Pay merchants), 'Order #112-...' link, payment method, amount; empty 'No transactions'"
+      ],
+      "interactions": [
+        "Clicking a list row updates the right pane without a page reload",
+        "'Edit' opens a modal; 'Remove from wallet' inside the modal opens a confirmation, then 'Confirm Remove' removes it and shows an alert",
+        "Setting default: Edit, tick 'Set as the default payment method', 'Save'"
+      ],
+      "microcopy": [
+        "Your Payments",
+        "Wallet",
+        "Transactions",
+        "Cards & accounts",
+        "Add a payment method",
+        "Edit",
+        "Remove from wallet",
+        "Confirm Remove",
+        "Set as the default payment method",
+        "Save",
+        "Expired"
+      ]
+    },
+    {
+      "name": "Add a credit or debit card",
+      "url_pattern": "Modal on /cpe/yourpayments/wallet (also in checkout). Rebuild: modal on /account/payments and checkout",
+      "purpose": "Save a card: number, name, expiry, then billing address.",
+      "layout": "'Add a payment method' opens a panel of options: 'Credit or debit card' ('Add a credit or debit card'), 'Personal checking account', 'Amazon Gift Card' ('Enter a gift card, voucher or promotional code' + 'Apply'). Card modal (~600px): header 'Add a credit or debit card' + close X. The left column has 'Card number', 'Name on card', 'Expiration date' (two selects, month '01' and year '2026'), and checkbox 'Set as default payment method'. The right column has 'Amazon accepts all major credit and debit cards:' with a row of network logos. Footer: 'Cancel' + yellow 'Add your card'. Next step: 'Select a billing address' with radio address tiles, '+ Add a new address', and 'Use this address'. No CVV asked in the US wallet flow.",
+      "elements": [
+        "'Add a credit or debit card' modal header",
+        "'Card number' (autocomplete=cc-number, inputmode=numeric)",
+        "'Name on card' (cc-name)",
+        "'Expiration date' month and year selects",
+        "'Set as default payment method' checkbox",
+        "Accepted card logos",
+        "'Cancel' + 'Add your card'",
+        "'Select a billing address' step + 'Use this address'"
+      ],
+      "states": [
+        "Invalid card number (Luhn or length): inline error under the number (e.g. 'The card number is not correct.' — memory)",
+        "Missing name: inline 'Enter the name on your card' style error (memory)",
+        "Past expiry: expiration error (memory)",
+        "Duplicate card: notice that the card is already in the wallet (memory)",
+        "Success: modal closes, the new card is selected in the list, alert shown"
+      ],
+      "interactions": [
+        "Card brand is detected from the number and the logo is highlighted",
+        "The modal traps focus; Esc or X closes it"
+      ],
+      "microcopy": [
+        "Add a payment method",
+        "Add a credit or debit card",
+        "Card number",
+        "Name on card",
+        "Expiration date",
+        "Amazon accepts all major credit and debit cards:",
+        "Cancel",
+        "Add your card",
+        "Select a billing address",
+        "Use this address"
+      ]
+    },
+    {
+      "name": "Your Messages (Message Center)",
+      "url_pattern": "/gp/message (with hash routes such as #!/inbox). Rebuild: /account/messages",
+      "purpose": "Inbox of messages from Amazon (order, shipping, account notices) and buyer-seller conversations.",
+      "layout": "Desktop: H1 'Your Messages' / 'Message Center'. Filter tabs across the top (older layout: 'All Messages' | 'Buyer/Seller Messages' | 'Notifications'; memory). A message list table: unread rows in bold, sender ('Amazon.com' or seller name), subject (e.g. 'Your Amazon.com order #112-1234567-1234567 has shipped'), date on the right. Clicking a row opens the message detail in the right pane or a new view: subject, 'From:', date, HTML body (same as email, with order cards and 'Track package'). Buyer-seller thread: messages as bubbles, order ID link, reply textarea, 'Add attachment', 'Send'. Mobile web: single list, tap to open the detail page.",
+      "elements": [
+        "H1 'Your Messages'",
+        "Filter tabs (All / Buyer-Seller / Notifications)",
+        "Message rows: sender, subject, date, unread bold",
+        "Message detail: subject, sender, date, body",
+        "Seller thread reply box + 'Send'"
+      ],
+      "states": [
+        "Empty: 'You have no messages' (memory)",
+        "Unread count shown in bold, no nav badge",
+        "Signed out: redirect to sign in"
+      ],
+      "interactions": [
+        "Row click opens the detail; back returns to the list with the filter kept"
+      ],
+      "microcopy": [
+        "Your Messages",
+        "All Messages",
+        "Buyer/Seller Messages",
+        "Notifications",
+        "Send"
+      ]
+    },
+    {
+      "name": "Prime membership page",
+      "url_pattern": "/gp/primecentral (signed-in manage page); /amazonprime (marketing / sign-up). Rebuild: /account/prime (static)",
+      "purpose": "Shows plan, next payment date and method, benefits; entry to cancel or change the plan.",
+      "layout": "Desktop member view: a blue Prime hero band with the prime logo and greeting. At the top right, a 'Manage membership' dropdown panel with 'Membership plan' (e.g. 'Prime Monthly'), next payment amount and date (e.g. '$14.99 on October 3, 2026'), the payment method ('Visa ending in 1234' + edit), 'Remind me before renewal' option, and 'Update, cancel and more'. That link leads to a page with 'End membership' ('End Membership and Benefits'), 'Switch to annual billing', and 'View payment history'. Below the hero: a grid of benefit tiles ('Your Prime benefits': delivery, Prime Video, Amazon Music, Prime Gaming, Prime Reading, Grubhub+, RxPass, and so on), each with 'Learn more'. Non-member: 'Try Prime free for 30 days' style hero with 'Start your free trial'; plans $14.99/month or $139/year. Mobile web: the same, stacked.",
+      "elements": [
+        "Prime hero",
+        "'Manage membership' dropdown",
+        "Plan name, next payment date and amount, payment method",
+        "'Update, cancel and more'",
+        "'End Membership' button (multi-step retention flow)",
+        "Benefits tile grid"
+      ],
+      "states": [
+        "Member (monthly/annual)",
+        "Non-member: trial CTA",
+        "Cancelled but active until the end date: banner showing the benefits end date"
+      ],
+      "interactions": [
+        "'Manage membership' expands in place; cancellation goes through 2-3 retention screens before confirming"
+      ],
+      "microcopy": [
+        "Manage membership",
+        "Update, cancel and more",
+        "End Membership",
+        "Membership plan"
+      ]
+    },
+    {
+      "name": "Your Browsing History",
+      "url_pattern": "/gp/history (mobile /gp/aw/ybh). Rebuild: /history",
+      "purpose": "Recently viewed products, with per-item removal, clear all and a switch to turn tracking off.",
+      "layout": "Desktop: H1 'Your Browsing History'; subline 'These items were viewed recently. We use them to personalize recommendations.' (memory). Right-aligned 'Manage history' control (older: dropdown; newer: gear icon) that reveals a panel with a toggle 'Turn Browsing History on/off' and a button 'Remove all items from view'. The newer gear menu has 'Remove items', 'Pause History', 'More settings'. Body: a responsive grid of product cards (image, 2-line title link, star rating + count, price, yellow 'Add to Cart', link 'Remove from view'). Below, recommendation carousels based on history ('Customers who viewed ... also viewed'). Mobile web: a 2-column grid, gear at the top right.",
+      "elements": [
+        "H1 'Your Browsing History'",
+        "'Manage history' / gear control",
+        "Toggle 'Turn Browsing History on/off'",
+        "'Remove all items from view' button",
+        "Product cards with 'Add to Cart' and 'Remove from view'"
+      ],
+      "states": [
+        "Empty: 'You have no recently viewed items.' plus 'After viewing product detail pages, look here to find an easy way to navigate back to pages you are interested in.' (memory)",
+        "History off: grid hidden, message that browsing history is turned off, toggle shown off",
+        "Signed out: works for the current device or session only",
+        "Confirm clear all: confirmation asking again with the same 'Remove all items from view' label (search snippet). Not reversible"
+      ],
+      "interactions": [
+        "'Remove from view' removes the card in place (AJAX) with no confirm",
+        "Toggle flips immediately via AJAX; new views are not recorded while off",
+        "'Add to Cart' works in place"
+      ],
+      "microcopy": [
+        "Your Browsing History",
+        "Manage history",
+        "Remove all items from view",
+        "Turn Browsing History on/off",
+        "Remove from view",
+        "Add to Cart",
+        "More settings"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Checkout auth gate with return to origin (returning customer)",
+      "steps": [
+        "Signed-out shopper has items in the device (guest) cart and clicks 'Proceed to checkout'",
+        "Server responds 302 to /ap/signin?openid.return_to=<URL-encoded checkout URL> (only same-origin return targets allowed)",
+        "Identifier step: types email, presses 'Continue' (or Enter)",
+        "Account found: password step shows the email + 'Change'; types password; optionally ticks 'Keep me signed in.'; clicks 'Sign in'",
+        "If 2SV is on: 'Two-Step Verification' page, 'Enter OTP', 'Sign in'",
+        "Optional interstitials: 'Add mobile number' ('Not now') or 'Sign in faster with passkeys' ('Not now')",
+        "Guest cart lines merge into the account cart (same item: quantities combined)",
+        "Redirect to return_to: checkout opens with the default address and default payment preselected; with no saved address, the address form is shown first",
+        "Same gate is used for: 'Returns & Orders', 'Account & Lists' click, 'Add to List', 'Create a List', 'Write a customer review', Your Addresses / Payments / Messages / Prime pages. Cart and browsing history work signed out"
+      ]
+    },
+    {
+      "name": "Create account via unified email-first flow",
+      "steps": [
+        "On /ap/signin enter a new email, 'Continue'",
+        "'Looks like you're new to Amazon' screen: 'Proceed to create an account'",
+        "Enter 'Your name', 'Password' (at least 6), 'Re-enter password'; click 'Verify email'",
+        "Client validation errors are shown inline if any ('Enter your name', 'Minimum 6 characters required', 'Passwords must match')",
+        "'Verify email address' page: OTP emailed (subject 'Verify your new Amazon account')",
+        "Enter the 6-digit code in 'Enter OTP'; click 'Create your Amazon account' ('Resend OTP' if needed)",
+        "Account created and signed in; redirect to return_to (homepage by default)"
+      ]
+    },
+    {
+      "name": "Create account via legacy register page",
+      "steps": [
+        "From the flyout 'New customer? Start here.' or sign-in 'Create your Amazon account', go to /ap/register",
+        "Fill 'Your name', 'Mobile number or email', 'Password', 'Re-enter password'; 'Continue'",
+        "If the email is already used: 'Email address already in use' box with 'Sign in' / 'Forgot your password?' links",
+        "Otherwise go to OTP verification (email) or SMS OTP (mobile), then 'Create your Amazon account'",
+        "Signed in, redirect to return_to"
+      ]
+    },
+    {
+      "name": "Forgot password / Password assistance",
+      "steps": [
+        "Password step: click 'Forgot password?'",
+        "'Password assistance': the identifier is prefilled or entered; 'Continue'",
+        "'Verification required': OTP sent to email (or SMS/WhatsApp); 'Enter OTP'; 'Continue'",
+        "'Create new password': 'New password' + 'Password again'; 'Save changes and sign in'",
+        "Signed in; redirect to return_to; security email sent. Other sessions may be invalidated"
+      ]
+    },
+    {
+      "name": "Sign out",
+      "steps": [
+        "Hover 'Account & Lists', click 'Sign Out' (no confirmation)",
+        "Session cleared; redirect to the /ap/signin identifier step (email may be remembered)",
+        "Header shows 'Hello, sign in'; cart falls back to the device cart; any protected URL now redirects to sign in"
+      ]
+    },
+    {
+      "name": "Add an address and make it default",
+      "steps": [
+        "Account & Lists > Account > 'Your Addresses'",
+        "Click the dashed 'Add address' tile",
+        "Fill 'Full name (First and Last name)', 'Phone number', street, apt, 'City', 'State', 'ZIP Code'; tick 'Make this my default address'",
+        "Click 'Add address'. On errors: top 'There was a problem' box + inline messages; fix and resubmit",
+        "If the address can't be verified: review modal, choose the suggested or original address",
+        "Back on Your Addresses: 'Address saved' alert; the new tile shows the 'Default:' strip in position 2"
+      ]
+    },
+    {
+      "name": "Change default or remove an address",
+      "steps": [
+        "On a non-default tile click 'Set as Default': reload, the tile moves next to the Add tile with 'Default:'",
+        "On any tile click 'Remove': 'Confirm removal' modal shows the address",
+        "Click 'Yes': tile disappears, 'Address removed' alert; 'No' closes the modal",
+        "Open orders shipping to that address are unaffected"
+      ]
+    },
+    {
+      "name": "Add, set default and remove a card",
+      "steps": [
+        "Account > 'Your Payments' > Wallet tab",
+        "Click 'Add a payment method' > 'Add a credit or debit card'",
+        "Enter 'Card number', 'Name on card', choose 'Expiration date'; optionally tick default; click 'Add your card'",
+        "Pick a billing address ('Use this address') or add one",
+        "New card appears in 'Cards & accounts' and is selected in the detail pane",
+        "To make it default: 'Edit' > tick 'Set as the default payment method' > 'Save'",
+        "To remove: select card > 'Edit' > 'Remove from wallet' > 'Confirm Remove'. Blocked if the card backs a subscription or pending order"
+      ]
+    },
+    {
+      "name": "Change password while signed in",
+      "steps": [
+        "Account > 'Login & security' (password re-prompt if the last auth wasn't recent)",
+        "Next to 'Password' click 'Edit'",
+        "Enter 'Current password', 'New password', 'Reenter new password'; 'Save changes'",
+        "Errors: wrong current password, 'Minimum 6 characters required', 'Passwords must match'",
+        "Return to Login & security with the success alert; notification email sent"
+      ]
+    },
+    {
+      "name": "Change email address",
+      "steps": [
+        "Login & security > 'Email' > 'Edit'",
+        "'Change your email address': enter 'New email address'; 'Continue'",
+        "OTP sent to the new address: 'Enter OTP'; confirm with password",
+        "'Save changes': success alert; other devices must sign in again"
+      ]
+    },
+    {
+      "name": "Set up a passkey",
+      "steps": [
+        "Login & security > 'Passkey' row > 'Set up' (or the post-sign-in 'Sign in faster with passkeys' interstitial > 'Set up')",
+        "Browser/OS passkey sheet: confirm with Face ID / fingerprint / PIN",
+        "Confirmation; row now shows the passkey with 'Edit' to manage or remove",
+        "Next sign in: enter email > 'Continue' > passkey sheet opens automatically; password stays available as a fallback"
+      ]
+    },
+    {
+      "name": "Manage browsing history",
+      "steps": [
+        "Account & Lists > 'Browsing History' (/gp/history)",
+        "Click 'Remove from view' under a product: card disappears in place",
+        "Open 'Manage history' (gear) > 'Remove all items from view' > confirm: grid empties, recommendations reset",
+        "Flip the 'Turn Browsing History on/off' toggle to off: new product views are no longer recorded; page shows the off state"
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "feature": "Email-first sign in (identifier step, then inline password step) with Amazon error copy ('Enter your email or mobile phone number', 'We cannot find an account with that email address', 'Your password is incorrect')",
+      "tier": "P0",
+      "why": "Gate to checkout and orders. Without it the shopping loop cannot be completed as a real account."
+    },
+    {
+      "feature": "Create account (name, email, password min 6) with inline validation, unique email, argon2/bcrypt hashing",
+      "tier": "P0",
+      "why": "New judges have no account; sign-up must take under 20 seconds and never fail silently."
+    },
+    {
+      "feature": "Session cookie (httpOnly, SameSite=Lax) + 'Keep me signed in' (browser session vs 30-day)",
+      "tier": "P0",
+      "why": "Core auth plumbing; the checkbox is one line of expiry logic."
+    },
+    {
+      "feature": "Sign out",
+      "tier": "P0",
+      "why": "Expected, trivial, needed to demo signed-out vs signed-in states."
+    },
+    {
+      "feature": "Auth gate + return-to-origin (next= param, same-origin only) for checkout, orders, account pages, add-to-list",
+      "tier": "P0",
+      "why": "Amazon's key efficiency: sign in drops you back exactly where you were. Open-redirect-safe validation is a security must."
+    },
+    {
+      "feature": "Guest cart merge into account cart on sign-in/sign-up",
+      "tier": "P0",
+      "why": "Losing the cart at the sign-in wall breaks the core loop."
+    },
+    {
+      "feature": "Header 'Hello, sign in / Hello, {name}' + 'Account & Lists' flyout (signed-in and signed-out states)",
+      "tier": "P0",
+      "why": "Primary entry point judges will click first; cheap."
+    },
+    {
+      "feature": "Your Addresses: list tiles, Add address tile, add/edit form with required-field validation, Remove with confirm, Set as Default",
+      "tier": "P0",
+      "why": "Checkout needs a shipping address; the same form component serves checkout and the address book."
+    },
+    {
+      "feature": "Your Account hub (card grid limited to built features: Orders, Login & security, Addresses, Payments, Lists, Browsing history)",
+      "tier": "P1",
+      "why": "Cheap static grid; makes the account area feel complete. Skip the 40-link farm."
+    },
+    {
+      "feature": "Login & security: edit name, email (no OTP), password (requires current password)",
+      "tier": "P1",
+      "why": "Strongly expected; simple CRUD on the user row."
+    },
+    {
+      "feature": "Your Payments wallet: add card (store brand, last4, expiry, name only; demo/test numbers), set default, remove with confirm, expired flag",
+      "tier": "P1",
+      "why": "Makes checkout payment selection real without PCI scope. Never store PAN/CVV."
+    },
+    {
+      "feature": "Browsing history page: record PDP views, grid, Remove from view, Remove all, on/off toggle",
+      "tier": "P1",
+      "why": "Cheap (one table plus an insert on PDP view) and also powers homepage 'Keep shopping for' rows."
+    },
+    {
+      "feature": "Sign-in rate limiting / lockout message ('Too many attempts. Try again in a few minutes.')",
+      "tier": "P1",
+      "why": "Minimal abuse protection for a public deploy; replaces Amazon's CAPTCHA."
+    },
+    {
+      "feature": "Show-password toggle and correct autocomplete attributes on all auth/address/card fields",
+      "tier": "P1",
+      "why": "A few attributes give big UX and accessibility gains, and password managers work out of the box."
+    },
+    {
+      "feature": "Password assistance (reset via emailed code or link)",
+      "tier": "P2",
+      "why": "Needs a transactional email provider and token table. Link 'Forgot password?' must still exist; implement if email is wired."
+    },
+    {
+      "feature": "Email OTP verification at sign-up ('Verify email address', 'Enter OTP', 'Resend OTP')",
+      "tier": "P2",
+      "why": "Adds friction and an email dependency for a demo. Build the table and screen only if email sending is already in place."
+    },
+    {
+      "feature": "Passkey sign-in and enrollment (WebAuthn via a small library)",
+      "tier": "P2",
+      "why": "Impressive and on-trend (Amazon's default on mobile) but browser edge cases eat time. Do it after the loop is solid."
+    },
+    {
+      "feature": "Your Messages: auto-generated 'Order placed' / 'Shipped' messages list + detail",
+      "tier": "P2",
+      "why": "Easy once orders exist; low judge value vs. core loop."
+    },
+    {
+      "feature": "Prime membership page (static: plan, next payment date, benefits, disabled 'End membership')",
+      "tier": "P2",
+      "why": "Visual completeness only; no billing logic."
+    },
+    {
+      "feature": "Delivery instructions on addresses; ZIP to city/state autofill; address suggestion modal",
+      "tier": "P2",
+      "why": "Nice polish; USPS verification API is out of scope, static ZIP lookup is optional."
+    },
+    {
+      "feature": "Sign out of all devices / 'Compromised account?' and Close your account",
+      "tier": "P2",
+      "why": "Delete sessions by user id is one query; good hygiene if time allows."
+    },
+    {
+      "feature": "Mobile-number accounts and SMS OTP sign-in",
+      "tier": "skip",
+      "why": "Requires SMS provider, cost, and toll-fraud exposure; email covers the demo."
+    },
+    {
+      "feature": "2-Step Verification (authenticator app, SMS, backup methods, trusted browsers)",
+      "tier": "skip",
+      "why": "High effort (TOTP enrollment, backup method rules, recovery) with little visible value in a 24h judged demo."
+    },
+    {
+      "feature": "CAPTCHA / 'Solve this puzzle' / 'Important Message!' challenges",
+      "tier": "skip",
+      "why": "No bot pressure at demo scale; rate limiting is sufficient and keeps the flow fast."
+    },
+    {
+      "feature": "Amazon Business sign-up, Amazon Family/Household, 'Who is shopping?' profiles, Switch Accounts",
+      "tier": "skip",
+      "why": "Separate products; adds clutter to the account area without serving the shopping loop."
+    },
+    {
+      "feature": "Gift cards balance/redeem, checking accounts, Shop with Points, store card, Transactions tab",
+      "tier": "skip",
+      "why": "Payment-rail specific; no real money moves in the rebuild."
+    },
+    {
+      "feature": "Prime sign-up, billing and cancellation retention flow",
+      "tier": "skip",
+      "why": "Subscription billing and legal copy; a static page is enough."
+    },
+    {
+      "feature": "Archived orders",
+      "tier": "skip",
+      "why": "Belongs to the Orders surface; rarely used."
+    },
+    {
+      "feature": "Recognized-but-expired soft session and forced re-auth (max_auth_age) for sensitive pages",
+      "tier": "skip",
+      "why": "Complexity for little demo value; requiring current password on password change covers the risky edit."
+    },
+    {
+      "feature": "Digital content/devices, communication preferences, data request, Login with Amazon link farm",
+      "tier": "skip",
+      "why": "Dozens of links to unrelated products; showing dead links hurts perceived quality."
+    },
+    {
+      "feature": "Real card storage / real payment processing",
+      "tier": "skip",
+      "why": "PCI scope. Store only brand, last4, expiry, and simulate authorization."
+    }
+  ],
+  "better_than_original": [
+    "One page instead of 2-4 full page loads: the password field (or the 'new here' name field) slides in under the email after 'Continue', with the email still visible and editable. It keeps Amazon's email-first branching but has no reloads and no lost typing.",
+    "Drop 'Re-enter password' and add an eye toggle ('Show'). Show a live check of the length rule ('6+ characters') beside the field instead of an error that only appears on submit.",
+    "Validate each field on blur and clear errors while the user types. Link each error with aria-describedby and aria-invalid, move focus to the first invalid field, and announce a summary in an aria-live region. Amazon only validates on submit, and its ! icon messages are visual-first.",
+    "Set correct autocomplete tokens everywhere: username, current-password, new-password, name, tel, street-address, address-line1/2, address-level1/2, postal-code, cc-number, cc-name, cc-exp, one-time-code. Password managers and browser autofill then fill sign-in, addresses and cards in one tap.",
+    "Replace the 'Keep me signed in' Details popover with one short line of helper text under the checkbox ('Stay signed in on this device for 30 days. Don't use on shared computers.'). The same information with no hidden click.",
+    "Carry the pending action through sign-in, not just the page: after signing in from 'Add to List' or 'Buy Now', finish that action automatically and show a toast.",
+    "Merge the guest cart visibly: after sign-in, show a toast such as '2 items from this device were added to your cart' so shoppers never wonder where items went.",
+    "Account hub shows only features that work, in three labeled groups: Orders & shopping, Account & security, Addresses & payments. Each card shows live context (e.g. 'Default: 123 Main St', 'Visa •••• 4242 default', '3 orders in transit'). Drop the 40-link farm.",
+    "Login & security edits happen in place: the row expands into a form, saves with a toast, and needs no separate page or 'Done' button. Password change still asks for the current password.",
+    "Removing an address or card shows 'Removed. Undo' for about 6 seconds instead of a blocking 'Confirm removal' modal (deletion is soft until the toast expires). Keep a real confirm only for irreversible 'Remove all browsing history'.",
+    "Address form: ZIP first (it auto-fills City and State from a small static ZIP table) and fewer visible fields. 'Apt, suite' stays optional and collapsed on mobile. Phone hint explains why it's needed. Same component reused at checkout.",
+    "Default address and default card always appear first with a clear 'Default' badge. 'Set as default' is a single optimistic click with no page reload.",
+    "Wallet on mobile opens as a single list with a detail bottom sheet instead of two panes. Expired cards show 'Expired: update' inline with the expiry editable right there. If a card is used by an open order, explain why it can't be removed before the user tries.",
+    "Browsing history groups items by day, uses a real labeled switch ('Browsing history: On') with plain text explaining what turning it off does, and removes items instantly with undo.",
+    "Consistent, specific error copy in one voice (e.g. 'No account found for mikey@example.com. Create one?' with an inline 'Create account' button), instead of Amazon's mix of 'There was a problem' boxes and inline alerts.",
+    "Accessibility and speed basics Amazon misses on these pages: visible focus rings, keyboard-openable account menu (button with aria-expanded, not hover-only), 44px touch targets, dark-mode tokens, and pages that stay fast because account pages are small server-rendered forms."
+  ],
+  "data": [
+    {
+      "entity": "User",
+      "fields": [
+        "id",
+        "name",
+        "email (unique, lowercased)",
+        "password_hash (argon2id/bcrypt)",
+        "email_verified_at (nullable, P2)",
+        "browsing_history_enabled (bool, default true)",
+        "default_address_id (nullable)",
+        "default_payment_method_id (nullable)",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "entity": "Session",
+      "fields": [
+        "id (random 32-byte token, stored hashed)",
+        "user_id",
+        "created_at",
+        "expires_at (browser-session vs +30d when 'Keep me signed in')",
+        "last_seen_at",
+        "user_agent"
+      ]
+    },
+    {
+      "entity": "Address",
+      "fields": [
+        "id",
+        "user_id",
+        "full_name",
+        "phone",
+        "line1",
+        "line2 (nullable)",
+        "city",
+        "state (2-letter)",
+        "zip (5 or ZIP+4)",
+        "country (default 'US')",
+        "delivery_instructions (nullable, P2)",
+        "created_at",
+        "updated_at",
+        "deleted_at (soft delete for undo)"
+      ]
+    },
+    {
+      "entity": "PaymentMethod",
+      "fields": [
+        "id",
+        "user_id",
+        "brand (visa|mastercard|amex|discover)",
+        "last4",
+        "exp_month",
+        "exp_year",
+        "name_on_card",
+        "billing_address_id",
+        "created_at",
+        "deleted_at (soft delete)",
+        "NOTE: never store full card number or CVV"
+      ]
+    },
+    {
+      "entity": "BrowsingHistoryItem",
+      "fields": [
+        "id",
+        "user_id (nullable)",
+        "anon_id (cookie id for signed-out, merged on sign-in)",
+        "product_id",
+        "viewed_at",
+        "hidden (bool, for 'Remove from view')"
+      ]
+    },
+    {
+      "entity": "Cart (merge touchpoint)",
+      "fields": [
+        "id",
+        "user_id (nullable)",
+        "anon_id (nullable)",
+        "items[] {product_id, qty}",
+        "merged_into_cart_id (nullable)"
+      ]
+    },
+    {
+      "entity": "VerificationCode (P2: sign-up OTP, password reset, email change)",
+      "fields": [
+        "id",
+        "user_id or email",
+        "purpose (signup|reset|email_change)",
+        "code_hash",
+        "expires_at (~10 min)",
+        "attempts",
+        "consumed_at",
+        "created_at"
+      ]
+    },
+    {
+      "entity": "LoginAttempt (rate limit)",
+      "fields": [
+        "key (email or IP)",
+        "count",
+        "window_started_at",
+        "locked_until"
+      ]
+    },
+    {
+      "entity": "Message (P2)",
+      "fields": [
+        "id",
+        "user_id",
+        "sender ('Amazon.com' or seller name)",
+        "subject",
+        "body_html",
+        "order_id (nullable)",
+        "read_at (nullable)",
+        "created_at"
+      ]
+    },
+    {
+      "entity": "Passkey (P2)",
+      "fields": [
+        "id",
+        "user_id",
+        "credential_id",
+        "public_key",
+        "sign_count",
+        "transports",
+        "device_label",
+        "created_at",
+        "last_used_at"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/ap/signin?openid.return_to=...&openid.assoc_handle=usflex&openid.mode=checkid_setup",
+      "verified": false,
+      "note": "Blocked: HTTP 503 (bot block). Sign-in layout and copy come from memory."
+    },
+    {
+      "url": "https://www.amazon.com/ap/register?openid.return_to=...&openid.assoc_handle=usflex",
+      "verified": false,
+      "note": "Blocked: HTTP 503. Register form labels and validation messages come from memory."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GH4N2EB5KRDVEM4K",
+      "verified": false,
+      "note": "Blocked: HTTP 503."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=TPphmhSWBgcI9Ak87p",
+      "verified": false,
+      "note": "About Passkey help page. Blocked: HTTP 503. Stopped fetching amazon.com after three 503s."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/amazon-passwordless-sign-in-passkey",
+      "verified": true,
+      "note": "Fetched. Confirms Your Account > Login & Security > 'Set up' next to Passkeys; passkeys are the default sign-in on mobile once set up; 175M+ customers; signs in 6x faster."
+    },
+    {
+      "url": "https://hideez.com/blogs/news/passkey-amazon",
+      "verified": true,
+      "note": "Fetched (third party). Passkeys section with 'Set up' in Login & Security; 'Sign in with a passkey' step; OTP after it if 2SV is on."
+    },
+    {
+      "url": "https://www.1password.community/discussions/1password/trouble-using-passkey-on-amazons-website/60508",
+      "verified": true,
+      "note": "Fetched. 'Sign in with a passkey' button under the password field on amazon.com (Oct 2023)."
+    },
+    {
+      "url": "https://mojoauth.com/blog/how-amazon-ebay-target-bestbuy-implement-passkeys",
+      "verified": true,
+      "note": "Fetched (third-party teardown, 2026; may paraphrase). Interstitial 'Sign in faster with passkeys', body copy, 'Set up' / 'Not now', fallback message. Treat as medium-low confidence."
+    },
+    {
+      "url": "https://www.makeuseof.com/how-to-manage-amazon-address-book/",
+      "verified": true,
+      "note": "Fetched (third party). 'Add Address', 'Edit', 'Remove' confirmed with 'Yes', 'Set as Default', 'Make this my default address', 'Add preferences, notes, access codes and more'; deleting an address doesn't affect pending orders."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GQT5HV6YYGNDSFNW",
+      "verified": false,
+      "note": "Search snippet only (fetch blocked). 'Set as Default' under an address; default does not change billing address; card number re-confirmed for new addresses; open orders unaffected."
+    },
+    {
+      "url": "https://blog.lastpass.com/posts/amazon-password-reset",
+      "verified": true,
+      "note": "Fetched (third party). 'Password assistance', 'Continue', 'Submit Code', 'Save Changes and Sign In', Login & Security > Password > 'Edit' > 'Save Changes', 'Didn't receive the OTP?', 'Two-Step Verification Recovery'."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GH3NM2YWEFEL2CQ4",
+      "verified": false,
+      "note": "Reset Your Password help page. Search snippet only: enter email/mobile > Continue > OTP > new password; 'Send OTP by WhatsApp' option."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GU3U2EU63RCFDAP2",
+      "verified": false,
+      "note": "Verify Your Email for a New Account. Search snippet only: OTP email at account creation, 'Resend OTP' at the bottom of the registration page."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=T7fVvVo3XDuCvKDF8N",
+      "verified": false,
+      "note": "Search snippet only: 'E-mail address already in use' error when reusing an email."
+    },
+    {
+      "url": "https://www.howtogeek.com/783615/how-to-remove-a-credit-card-from-your-amazon-account/",
+      "verified": true,
+      "note": "Fetched (third party). Your Payments > 'Edit' > 'Remove From Wallet' > 'Confirm Remove'."
+    },
+    {
+      "url": "https://pay.amazon.com/blog/for-shoppers/how-to-manage-your-amazon-wallet",
+      "verified": true,
+      "note": "Fetched (Amazon Pay blog). 'Add a payment method' (web) / 'Add' (app), 'Add your card', 'Edit' + 'Set as the default payment method', 'Transactions' tab; default method listed first."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GNQFBWDZJN838JZF",
+      "verified": false,
+      "note": "Manage Payment Methods. Search snippet only: Cards and accounts > Remove > confirm; can't remove a method used by subscriptions or pending orders."
+    },
+    {
+      "url": "https://www.slashgear.com/1773250/amazon-search-history-how-clear-see-account-information/",
+      "verified": true,
+      "note": "Fetched (third party). 'Your Browsing History', 'Remove from view', gear icon, 'Remove items', 'Pause History', 'More settings', 'Browsing History' toggle."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GXPNZSZPM3UPM2VA",
+      "verified": false,
+      "note": "Manage Your Browsing History. Search snippets only: 'Manage history', 'Remove all items from view' with a second confirmation, turn on/off via settings."
+    },
+    {
+      "url": "https://goaura.com/blog/amazon-message-center",
+      "verified": true,
+      "note": "Fetched (third party). Buyer 'Your Messages' at amazon.com/gp/message under Communication in Your Account; exact tab labels not given (tabs in the screen spec are from memory)."
+    },
+    {
+      "url": "https://www.technipages.com/amazon-how-to-change-email-address-account/",
+      "verified": true,
+      "note": "Fetched (third party). Login & Security > Edit (email) > Continue > OTP > password > 'Save changes'; other devices must sign in again."
+    },
+    {
+      "url": "https://hideez.com/blogs/news/how-to-change-amazon-password",
+      "verified": true,
+      "note": "Fetched (third party). Login & Security > Password 'Edit' > 'Save changes'. Form field labels not quoted (they come from memory)."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/how-to-cancel-amazon-prime-membership",
+      "verified": true,
+      "note": "Fetched. 'Manage Membership' and 'End Membership' labels; mobile 'Manage Prime Membership'."
+    },
+    {
+      "url": "https://www.tomsguide.com/us/how-to-cancel-amazon-prime,news-21413.html",
+      "verified": false,
+      "note": "Search snippet only: 'Manage membership' dropdown says 'Update, cancel and more'."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G3PWZPU52FKN7PW4",
+      "verified": false,
+      "note": "What is Two-Step Verification. Search snippets (plus howtogeek, intego): 'Edit' next to 'Two-Step Verification (2SV) Settings'; a backup method is required."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G3JHAKLM2QKM6NXS",
+      "verified": false,
+      "note": "Change your Amazon Account Settings. Search snippet only: Login and Security > Edit > 'Save Changes'; hub sections described (gift cards, payments, profiles, devices, lists, customer service, messages)."
+    },
+    {
+      "url": "https://github.com/timur-tabi/amazon-vine/issues/6",
+      "verified": true,
+      "note": "Fetched. Old (2016) sign-in error copy: 'There was a problem. Your email or password was incorrect. Please try again.' Current copy separates the not-found and wrong-password messages (memory)."
+    },
+    {
+      "url": "https://techcrunch.com/2023/10/17/amazon-passkey-sign-in",
+      "verified": false,
+      "note": "Search result only (not fetched)."
+    },
+    {
+      "url": "https://www.forbes.com/sites/daveywinder/2025/12/23/critical-amazon-security-update---millions-of-users-must-now-decide/",
+      "verified": false,
+      "note": "Fetch returned HTTP 403."
+    },
+    {
+      "url": "https://www.techlicious.com/tip/how-to-create-and-use-passkeys-with-your-amazon-account/",
+      "verified": false,
+      "note": "Fetch returned HTTP 403."
+    },
+    {
+      "url": "https://wavebrowser.co/blog/amazon-browsing-history",
+      "verified": false,
+      "note": "Fetch failed (TLS certificate error)."
+    },
+    {
+      "url": "https://www.izoate.com/blog/how-to-verify-your-new-amazon-account-email-using-an-otp/",
+      "verified": false,
+      "note": "Fetched but contained no verbatim Amazon UI copy."
+    },
+    {
+      "url": "https://www.iorad.com/player/2044921/Amazon---How-to-turn-your-browsing-history-on-or-off--on-Amazon",
+      "verified": false,
+      "note": "Fetched but the tutorial steps are rendered by JS; no content."
+    },
+    {
+      "url": "https://www.scribd.com/document/851286741/Amazon-Sign-In",
+      "verified": false,
+      "note": "Fetched but only metadata: the sign-in page has an email/phone field and Conditions of Use and Privacy Notice agreement."
+    },
+    {
+      "url": "memory://amazon-desktop-and-mobile-web-2024-2026",
+      "verified": false,
+      "note": "From memory (not fetched): sign-in and register card layout and footer; 'Keep Me Signed In' popover text; all per-field validation strings on register and address forms; 'Looks like you're new to Amazon' branch; OTP page and email copy; Password assistance steps 2-3 wording and 'Secure password tips'; Your Account card titles and descriptions and link boxes; Login & security row copy; edit-form headings; address tile layout and 'Default:' strip; wallet two-pane layout; Add card modal fields; Message Center tabs; Prime page contents; browsing history empty and off states; URL patterns under /ax/, /ap/cvf/, /a/addresses, /cpe/yourpayments."
+    }
+  ]
+}

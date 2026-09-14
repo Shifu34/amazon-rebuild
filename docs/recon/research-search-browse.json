@@ -1,0 +1,951 @@
+{
+  "area": "search-browse",
+  "screens": [
+    {
+      "name": "Global search bar + autocomplete dropdown",
+      "purpose": "Main way into the shopping loop, on every page. Per a 2026 report, nearly 60% of US searches start from an autocomplete pick [V: search snippet]. It has to feel instant.",
+      "url_pattern": "Submits to /s?k={query}&i={deptAlias?}&crid={id}&sprefix={prefix},{alias},{ms}&ref=nb_sb_ss_{strategy}_{pos}_{prefixLen} (suggestion click) or ref=nb_sb_noss (typed Enter). Suggestion API: GET completion.amazon.com/api/2017/suggestions?prefix=…&alias=aps&limit=11 [V]",
+      "layout": "Desktop header row, left to right: amazon logo | 'Deliver to {Name} / {City} {ZIP}' with pin icon | SEARCH (grows to fill): [department select 'All' ▾, gray, auto-width to the chosen label] [text input, placeholder 'Search Amazon'] [orange/yellow square button with magnifier icon, aria-label 'Go'] | 'EN' flag | 'Hello, sign in / Account & Lists ▾' | 'Returns & Orders' | cart icon with count. When focused, the whole search field gets a 2-3px orange ring. The dropdown is a white panel directly under the input, as wide as the input plus select, with a dim overlay over the page behind it. Mobile web: search is a full-width row under the logo row (rounded input, orange magnifier button, no department select), and a teal 'Deliver to …' strip sits below it.",
+      "elements": [
+        "Department select 'All' with options: All Departments, Alexa Skills, Amazon Devices, Amazon Fresh, Appliances, Apps & Games, Arts, Crafts & Sewing, Audible Books & Originals, Automotive Parts & Accessories, Baby, Beauty & Personal Care, Books, CDs & Vinyl, Cell Phones & Accessories, Clothing, Shoes & Jewelry, Computers, Electronics, Garden & Outdoor, Grocery & Gourmet Food, Health, Household & Baby Care, Home & Kitchen, Industrial & Scientific, Kindle Store, Luggage & Travel Gear, Movies & TV, Musical Instruments, Office Products, Pet Supplies, Smart Home, Software, Sports & Outdoors, Tools & Home Improvement, Toys & Games, Video Games (from memory)",
+        "Text input: placeholder 'Search Amazon'. The last query stays filled in on the results page.",
+        "Submit button: magnifier icon on orange #febd69",
+        "Suggestion rows: up to 10 keyword completions [V: API returns 10]. Typed prefix in normal weight, the completed part in bold (memory).",
+        "Past searches (signed in or same session) listed first, in a different text color, each with a 'Remove' link on desktop (clock icon + X on the mobile app) (memory)",
+        "2025-26 additions: product thumbnails on some suggestions [V: snippet], Rufus question rows like 'What finishes are available for large metal wall art?' [V: ecomtent], and from May 2026 'Alexa for Shopping' answers questions typed into the bar while keyword queries still go to the normal results page [V: Retail Dive]",
+        "The API's 'predictiveText' field (e.g. 'wireless earbuds' for 'wireless ear') supports ghost-text completion [V]"
+      ],
+      "states": [
+        "Empty and focused: past searches if there are any, otherwise nothing opens",
+        "Typing: suggestions update on every keypress (event=onkeypress). The last result stays visible while the next one loads, with no spinner.",
+        "No suggestions: dropdown closes. Enter still searches.",
+        "API error: silently no dropdown; search still works",
+        "Department scoped (e.g. Books): suggestions come from that department's alias (alias=stripbooks gave 'harry potter books', 'harry potter illustrated' [V])",
+        "Department hints like 'in Electronics' under the first suggestion: an older pattern. Three live API calls in Sep 2026 returned no scope fields, so treat it as gone or rare [V: absence].",
+        "Empty submit with 'All' selected: nothing happens. Empty submit with a department selected: goes to that department's page (memory)."
+      ],
+      "interactions": [
+        "Up/Down arrows move the highlight and write the suggestion into the input; Esc restores the typed text and closes",
+        "Enter or clicking a suggestion runs the search right away",
+        "Mouse hover highlights a row in light gray",
+        "Clicking outside or tabbing away closes the dropdown",
+        "'Remove' on a past search deletes it on the spot without closing the dropdown",
+        "Changing the department select re-scopes suggestions and search. Picking from the select does not submit."
+      ],
+      "microcopy": [
+        "Search Amazon",
+        "All",
+        "All Departments",
+        "Go (aria-label)",
+        "Remove"
+      ]
+    },
+    {
+      "name": "Search results page (desktop)",
+      "purpose": "Scan, narrow down, compare and add to cart without opening each product. This is the core of the shopping loop.",
+      "url_pattern": "/s?k=wireless+earbuds [&i=electronics] [&rh=n:172282,p_123:{brandId},p_72:1248879011 (4 Stars & Up),p_36:2500-5000 (price in cents; p_36:-2500 = up to $25),p_85:2470955011 (Prime),p_90:8308920011 (Get It by Tomorrow),p_n_deal_type:23566064011 (Today's Deals, V: search result URL),p_n_condition-type:…] [&s=relevanceblender|price-asc-rank|price-desc-rank|review-rank|date-desc-rank|exact-aware-popularity-rank] [&page=2] &qid={ts}&ref=sr_pg_2. Browse without a query: /s?i=electronics&rh=n:12097478011",
+      "layout": "Desktop, top to bottom: (1) global header + sub-nav ('☰ All', 'Today's Deals', 'Registry', 'Customer Service', 'Gift Cards', 'Sell'). (2) Thin results bar with a bottom border: left '1-48 of over 10,000 results for \"wireless earbuds\"' (query in bold orange-brown #c45500); right a 'Sort by: Featured ▾' button-select. (3) Sometimes a Sponsored Brands banner (brand logo, headline, 3 products, 'Shop {Brand} ›'). (4) Two columns. Left sidebar about 240px, filter sections stacked with bold headings. Main column has an H2 'Results' with a small gray note 'Check each product page for other buying options. Price and other details may vary based on product size and color.', then the results. Layout depends on category: GRID of 4-5 columns (24-60 per page, often 48) for home, fashion, beauty and most goods; LIST of one row per item, image left about 220px and details right (16 per page), for books, laptops, TVs and many electronics. Carousels are mixed in between result rows: 'Highly rated', 'Top rated from our brands', 'Customers frequently viewed', 'Explore related searches', 'Brands related to your search' (Sponsored), sponsored video. A 'More results' heading follows those blocks. (5) Pagination bar, centered. (6) 'Need help?' block. (7) 'Related searches' as a grid of pill links with magnifier icons. (8) 'Your browsing history' / recently viewed strip. (9) 'Back to top' bar + footer.",
+      "elements": [
+        "Count line format: '{start}-{end} of {N} results for \"{q}\"'. Exact N when small ('1-16 of 243 results'), otherwise rounded ('over 1,000', 'over 2,000', … 'over 10,000', 'over 50,000', 'over 100,000'). Without a query it names the category path: '1-24 of over 80,000 results for Electronics : Headphones, Earbuds & Accessories : Earbud & In-Ear Headphones'. Page 2 starts at '49-96 of …'.",
+        "Sort options, exact: 'Featured', 'Price: Low to High', 'Price: High to Low', 'Avg. Customer Review', 'Newest Arrivals', 'Best Sellers'. Books add 'Publication Date'. Picking one reloads at page 1. [V: Feedvisor lists Featured, Price Low to High, Price High to Low, Average Customer Review, Newest Arrivals]",
+        "SIDEBAR, typical order for an electronics query: 'Eligible for Free Shipping' [☐ Free Shipping by Amazon, with gray note 'Get FREE Shipping on eligible orders shipped by Amazon'] · 'Delivery Day' [☐ Get It Today / ☐ Get It by Tomorrow / ☐ Get It in 2 Days] [V: Feedvisor] · Prime [☐ ✓prime logo] · 'Department' tree ('‹ Any Department', parent 'Electronics', current child in bold, children indented, 'See all 12 Departments') · 'Customer Reviews' [★★★★☆ '& Up' row, aria text '4 Stars & Up'] · 'Brands' [☐ Top Brands, then ☐ Apple, ☐ Soundcore, ☐ JBL, ☐ Sony, ☐ Samsung, ☐ Bose, ☐ Beats, then '▾ See more' which expands inline and flips to 'See less'] · 'Price' [links: Up to $25 / $25 to $50 / $50 to $100 / $100 to $200 / $200 & above, then '$ Min' '$ Max' inputs + 'Go' button. Since about 2023 many queries show a two-handle slider '$18 – $300+' with a 'Go' button instead] · 'Deals & Discounts' [All Discounts / Today's Deals] [V: snippet] · category facets such as 'Headphone Features' (Active Noise Cancellation, Microphone Included, Water Resistant), 'Connectivity Technology', 'Headphones Form Factor' (In Ear, On Ear, Over Ear), 'Color' (grid of color squares), 'Compatible Devices' · 'Seller' [Amazon.com] · 'Condition' [New / Used / Renewed] [V: Feedvisor adds Collectible] · 'Availability' [☐ Include Out of Stock] · 'Climate Pledge Friendly' [V] · 'From Our Brands' · 'Subscribe & Save'",
+        "Applied filter: the option turns bold and its checkbox fills. A small 'Clear' link appears right under that section heading. Department uses '‹ Any Department' as its back-out. Desktop has no top chip row and no global 'Clear all' (memory).",
+        "RESULT CARD (grid), top to bottom: optional badge in the top-left corner of the image area ('Best Seller' orange #e47911 tag; 'Amazon's Choice' navy #232f3e tag with 'Choice' in orange; 'Overall Pick' navy tag; 'Limited time deal' red #cc0c39 tag) · square image on light gray #f7f7f7 (product image blended onto the gray) · color swatch dots under the image with '+5' overflow (fashion/home) · 'Sponsored' in small gray text with an ⓘ icon · brand name in bold (fashion) · title link, #0f1111, 2-4 lines clamped, turns #c7511f and underlined on hover · rating row: '4.4' + stars + '▾' + '(58.3K)' abbreviated count (aria: '4.4 out of 5 stars') · '10K+ bought in past month' in small gray text right under the rating [V: Intentwise, 'just below the star rating'; buckets like 50+/100+/800+/1K+/10K+/100K+] · price: superscript '$', large dollars, superscript cents ('$29⁹⁹'), optional unit price '($0.50/Count)' · reference price: gray 'List: ~~$49.99~~' or 'Typical: ~~$39.99~~' (the label is not struck through) [V: help and seller docs; Typical = 90-day median price paid, excluding limited-time deals; since Apr-May 2026 only shown when validated] · coupon: green tag 'Save 15%' + 'with coupon', or 'Save $5.00 with coupon' · promos: 'Lowest price in 30 days', 'Save 10% on 2 select item(s)' · delivery: ✓prime logo, 'FREE delivery **Tue, Sep 16**', 'Or fastest delivery **Tomorrow, Sep 15**'. Signed out or non-Prime: 'FREE delivery Tue, Sep 16 on $35 of items shipped by Amazon' · stock: 'Only 3 left in stock - order soon.' in red #b12704 · 'Options: 3 sizes, 8 colors' link · 'Climate Pledge Friendly' leaf + '1 sustainability feature' · yellow pill button 'Add to cart' (#ffd814), or white outlined 'See options' for products with variations",
+        "LIST card extras: badge row 'Best Seller' + 'in Earbud & In-Ear Headphones'. Books show format rows ('Paperback', 'Kindle', 'Hardcover', 'Audible Audiobook'), each with its own price and delivery line, plus 'Other formats:'. Also 'More Buying Choices $19.99 (12 used & new offers)'.",
+        "Rating popover on hover over stars/▾: '4.4 out of 5', '58,312 global ratings', 5 bars '5 star 68%', '4 star 17%'…, 'See customer reviews ›'",
+        "Sponsored ⓘ popover: 'You're seeing this ad based on the product's relevance to your search query.' + 'Leave ad feedback' (memory)",
+        "Pagination: '‹ Previous' (grayed out on page 1) · '1' (current, boxed and bold) · '2' · '3' · '…' · '20' · 'Next ›'. Only about 20 pages of 16 or about 7 pages of 48 can be reached, even when the count says 'over 10,000'.",
+        "'Need help?' heading + 'Visit the help section or contact us' (both links)",
+        "'Related searches': about 8-16 pill links (e.g. 'wireless earbuds bluetooth', 'wireless earbuds noise cancelling', 'wireless earphones')"
+      ],
+      "states": [
+        "Loading: server-rendered. A filter, sort or page change is a full navigation, and on slow networks the old results stay dimmed until the new page paints. No skeletons on desktop.",
+        "Spelling corrected: above the results, 'Showing results for **wireless earbuds**' and on the next line 'Search instead for wirless earbuds' (link) [V: seller forum quote 'Showing results for [other brand]. Search instead for [our brand].']",
+        "Zero results: large '**No results for** asdfqwer.' then 'Try checking your spelling or use more general terms', then the 'Need help?' block and sometimes sponsored or recommended carousels. With a department: 'No results for B00BIHRYTY in Books.' [V: Goodreads quote]",
+        "Some words dropped: 'No results for \"a b c\".' followed by 'Results for \"a b\"' (memory)",
+        "Filters leave few or zero results: Amazon hides options with zero results rather than showing counts, so an empty filtered page is rare",
+        "Signed out vs signed in: signed out shows 'FREE delivery … on $35 of items shipped by Amazon'. Prime members see 'FREE delivery Tomorrow'. Delivery dates depend on the 'Deliver to' ZIP. Past searches only appear when signed in or within the session.",
+        "Out of stock: hidden by default ('Include Out of Stock' filter). When shown: no price, 'Currently unavailable.' or 'No featured offers available' + '$24.95 (5 used & new offers)', and no Add to cart",
+        "Add to cart pending/success: the button turns into a stepper [🗑 1 +] (trash icon at qty 1, − above 1), the header cart count goes up, and sometimes a short green 'Added' note (memory)",
+        "Deal item: 'Limited time deal' badge. Some variants show a red '-25%' before the price.",
+        "Variation product: price range '$19.99 - $34.99' and 'See options' instead of Add to cart"
+      ],
+      "interactions": [
+        "Clicking a filter link or checkbox navigates right away (one click, one reload). No apply button except 'Go' for custom price.",
+        "Brands and facet checkboxes: OR within one section, AND across sections. Customer Reviews and Price range are single choice.",
+        "'See more' / 'See less' expand and collapse long lists in place",
+        "Custom price: Min/Max are numbers only. Pressing Go with both empty does nothing. With only Min it filters '$50 & above'. If Min > Max Amazon swaps or ignores them (memory).",
+        "Sort: native-style select. Changing it submits and resets page=1 but keeps filters.",
+        "Card: image and title go to /dp/{ASIN}; the rating count goes to /dp/{ASIN}#customerReviews; hovering a swatch changes the card image",
+        "Pagination and filters keep k, i and rh in the URL, so pages are shareable and Back works",
+        "Hovering the rating stars opens the histogram popover after a short delay"
+      ],
+      "microcopy": [
+        "1-48 of over 10,000 results for \"wireless earbuds\"",
+        "Sort by:",
+        "Featured",
+        "Price: Low to High",
+        "Price: High to Low",
+        "Avg. Customer Review",
+        "Newest Arrivals",
+        "Best Sellers",
+        "Results",
+        "Check each product page for other buying options. Price and other details may vary based on product size and color.",
+        "More results",
+        "Sponsored",
+        "You're seeing this ad based on the product's relevance to your search query.",
+        "Leave ad feedback",
+        "Best Seller",
+        "in Earbud & In-Ear Headphones",
+        "Amazon's Choice",
+        "Overall Pick",
+        "Limited time deal",
+        "4.4 out of 5 stars",
+        "10K+ bought in past month",
+        "List:",
+        "Typical:",
+        "Save 15%",
+        "with coupon",
+        "Lowest price in 30 days",
+        "FREE delivery Tue, Sep 16",
+        "FREE delivery Tue, Sep 16 on $35 of items shipped by Amazon",
+        "Or fastest delivery Tomorrow, Sep 15",
+        "Only 3 left in stock - order soon.",
+        "Currently unavailable.",
+        "No featured offers available",
+        "More Buying Choices",
+        "(12 used & new offers)",
+        "Options: 3 sizes",
+        "Add to cart",
+        "See options",
+        "Eligible for Free Shipping",
+        "Free Shipping by Amazon",
+        "Delivery Day",
+        "Get It Today",
+        "Get It by Tomorrow",
+        "Get It in 2 Days",
+        "Department",
+        "Any Department",
+        "See all 12 Departments",
+        "Customer Reviews",
+        "4 Stars & Up",
+        "& Up",
+        "Brands",
+        "Top Brands",
+        "See more",
+        "See less",
+        "Price",
+        "Up to $25",
+        "$25 to $50",
+        "$50 to $100",
+        "$100 to $200",
+        "$200 & above",
+        "$ Min",
+        "$ Max",
+        "Go",
+        "Deals & Discounts",
+        "All Discounts",
+        "Today's Deals",
+        "Condition",
+        "New",
+        "Used",
+        "Renewed",
+        "Availability",
+        "Include Out of Stock",
+        "Seller",
+        "Climate Pledge Friendly",
+        "Clear",
+        "Showing results for",
+        "Search instead for",
+        "No results for",
+        "Try checking your spelling or use more general terms",
+        "Previous",
+        "Next",
+        "Need help?",
+        "Visit the help section or contact us",
+        "Related searches",
+        "Back to top"
+      ]
+    },
+    {
+      "name": "Search results page (mobile web) + filter sheet",
+      "purpose": "The same narrowing on a phone. The sidebar moves into a full-screen sheet and quick chips sit up top.",
+      "url_pattern": "Same /s?k=…&rh=… URLs as desktop",
+      "layout": "Sticky: search bar row, then a 'Deliver to …' strip. Next, a horizontally scrolling chip row: 'Filters' with a sliders icon (becomes 'Filters (2)' when filters are on), then shortcuts like '✓prime', 'Get It by Tomorrow', '4 Stars & Up', brand names, 'Under $25' [V: Feedvisor/snippet: Prime, Today, 4 Stars & Up, brands as chips]. Then 'RESULTS' label + count. Cards are one column (image about 40% on the left, text on the right) for most categories, two columns for fashion. Card contents match desktop; the 'Add to cart' button sits in the right column. Pagination at the bottom.",
+      "elements": [
+        "Filters sheet (full screen, slides up): header 'Filters' + close X. Sections: 'Sort by' (Featured, Price: Low to High, Price: High to Low, Avg. Customer Review, Newest Arrivals, Best Sellers as pills), 'Prime & Delivery', 'Customer Reviews', 'Brands' (top chips + 'See all'), 'Price & Deals' (slider + range pills + Today's Deals), 'Department', category facets, 'Condition'",
+        "Sticky footer in the sheet: 'Clear Filters' (text) and a primary 'Show 1,000+ results' button [V: aboutamazon 'Filters' → 'Browse by' → 'Show Results']",
+        "Active chips stay highlighted (dark outline / filled) in the chip row"
+      ],
+      "states": [
+        "No filters: 'Filters' chip with no count",
+        "Filters on: 'Filters (n)' and highlighted chips; tapping a highlighted chip turns it off",
+        "Sheet counting results: the button label updates to the new count after each tap",
+        "Zero results: same 'No results for' copy as desktop"
+      ],
+      "interactions": [
+        "Tapping a quick chip applies it immediately and reloads the results",
+        "Inside the sheet, taps are collected; 'Show … results' applies them all, and closing the sheet with X throws them away",
+        "Scroll position of the chip row is kept"
+      ],
+      "microcopy": [
+        "Filters",
+        "Show 1,000+ results",
+        "Clear Filters",
+        "Sort by",
+        "Prime & Delivery",
+        "Price & Deals",
+        "See all",
+        "RESULTS"
+      ]
+    },
+    {
+      "name": "Category browse: All menu + department landing",
+      "purpose": "Browsing without a query: department → subcategory → narrowed results page.",
+      "url_pattern": "Store-style landing: /b?node=172282 (Electronics) or /b/?node=…. Leaf categories open results pages: /s?i=electronics&rh=n:12097478011&ref=… . The 'All' menu uses in-page JS.",
+      "layout": "HAMBURGER '☰ All' opens a left side sheet about 365px wide over a dark overlay, with X to close. Header bar 'Hello, sign in' / 'Hello, {Name}' with a user icon. Sections split by rules: 'Digital Content & Devices' (Prime Video, Amazon Music, Kindle E-readers & Books, Amazon Appstore) · 'Shop by Department' (Electronics, Computers, Smart Home, Arts & Crafts, then 'See all ▾' expanding in place) · 'Programs & Features' · 'Help & Settings' (Your Account, English, United States, Customer Service, Sign in). Clicking a department slides in a sub-panel: '‹ MAIN MENU' at the top, a bold department title, then subcategories. Some menu versions also have a 'Trending' section (Best Sellers, New Releases, Movers & Shakers). DEPARTMENT LANDING (/b?node): department sub-nav bar under the header (e.g. 'Electronics | TV & Video | Audio & Home Theater | Computers | Camera & Photo | Wearable Technology | Car Electronics & GPS | Portable Audio | Cell Phones | Office Electronics | Musical Instruments | Deals'). Hero banner. 'Shop by category' grid of image tiles with labels. Carousels such as 'Best Sellers in Electronics', 'Top deals', 'New releases', 'Featured brands'. A left sidebar with the department tree on many nodes. Mid- and leaf-level nodes skip the landing page and render the results page with the tree pre-selected. Mobile: menu is full screen; landing pages stack tiles in 2 or 3 columns.",
+      "elements": [
+        "Side sheet with headings, rows with a '›' chevron, 'See all' / 'See less' expander, '‹ MAIN MENU' back link",
+        "Department sub-nav links",
+        "Category tiles (square image + label)",
+        "Horizontal product carousels with prev/next arrows and 'See more'",
+        "Department tree in the results sidebar: '‹ Any Department' › parent › current (bold) › children"
+      ],
+      "states": [
+        "Signed out: menu header 'Hello, sign in'",
+        "Carousel lazy-loads as it scrolls into view",
+        "Node with no products: results-page zero state"
+      ],
+      "interactions": [
+        "Clicking a department row slides the panel left (about 200ms); '‹ MAIN MENU' slides back",
+        "Esc, X or the overlay closes the sheet; focus returns to the ☰ button",
+        "Tile click → results page scoped to that node"
+      ],
+      "microcopy": [
+        "All",
+        "Hello, sign in",
+        "Shop by Department",
+        "See all",
+        "see less",
+        "MAIN MENU",
+        "Shop by category",
+        "See more"
+      ]
+    },
+    {
+      "name": "Best Sellers",
+      "purpose": "Ranked top-100 lists by sales for each category. A high-trust shortcut when you don't know what to search for.",
+      "url_pattern": "/gp/bestsellers or /Best-Sellers/zgbs (overview); /Best-Sellers-Electronics/zgbs/electronics (category); /gp/bestsellers/electronics/12097478011 (subcategory); ?pg=2 for ranks 51-100. Sibling lists: /gp/new-releases, /gp/movers-and-shakers, /gp/most-wished-for, /gp/most-gifted",
+      "layout": "Tab strip at the top: 'Best Sellers' | 'New Releases' | 'Movers & Shakers' | 'Most Wished For' | 'Gift Ideas' (current tab underlined/bold). H1 'Amazon Best Sellers' with the subline 'Our most popular products based on sales. Updated frequently.' [V: search snippet]. Two columns. LEFT sidebar: 'Any Department' then an alphabetical department list (Amazon Devices & Accessories, Amazon Renewed, Appliances, Apps & Games, Arts, Crafts & Sewing, Audible Books & Originals, Automotive, Baby, Beauty & Personal Care, Books, Camera & Photo Products, CDs & Vinyl, Cell Phones & Accessories, Clothing, Shoes & Jewelry, Computers & Accessories, Digital Music, Electronics, Gift Cards, Grocery & Gourmet Food, Handmade Products, Health & Household, Home & Kitchen, Industrial & Scientific, Kindle Store, Kitchen & Dining, Movies & TV, Musical Instruments, Office Products, Patio, Lawn & Garden, Pet Supplies, Software, Sports & Outdoors, Tools & Home Improvement, Toys & Games, Video Games). When drilled in: '‹ Any Department' › '‹ Electronics' › bold current › indented children [V: JumpFly 'category breaks down on the left side']. MAIN on the overview: stacked sections 'Best Sellers in {Category}', each with a 'See More' link on the right and a horizontal carousel with ‹ › arrows and 'Page 1 of 10'. MAIN on a category: H1 'Best Sellers in Electronics', then a grid of 50 cards (4-5 per row), with rows below the first batch lazy-loading on scroll, then a pager 'Previous page' / 'Next page' covering 2 pages = 100 items [V: Apify listing '100 products per chart, split across two pages of 50']. Mobile: the department list becomes a dropdown/accordion at the top; cards go to 2 columns or a list.",
+      "elements": [
+        "Rank badge: '#1' in an orange-brown tag at the card's top-left corner",
+        "Card: square image, title link (clamped to about 3 lines), stars + count '(12,345)', price '$24.99', or '2 offers from $19.99' when there is no featured offer",
+        "No filters, no sort, no Add to cart on list cards (memory)",
+        "Movers & Shakers card extras: green ▲ / red ▼ '345%' plus 'Sales rank: 32 (previously 142)'",
+        "Tab sublines (memory): New Releases 'Our best-selling new and future releases. Updated frequently.'; Movers & Shakers 'Our biggest gainers in sales rank over the past 24 hours. Updated frequently.'; Most Wished For 'Our products most often added to Wishlists and Registries. Updated daily.'; Gift Ideas 'Our most popular products most often purchased as gifts. Updated daily.'"
+      ],
+      "states": [
+        "Loading: first 30 cards server-rendered, rest lazy-loaded with gray placeholders",
+        "Category with fewer than 100 ranked items: shorter grid, no page 2",
+        "Item out of stock: still ranked; price replaced by offers text or left empty",
+        "Signed in and out look the same"
+      ],
+      "interactions": [
+        "Clicking a sidebar category reloads with that category's top 100",
+        "Carousel arrows page by about 6 cards and update 'Page n of 10'",
+        "'See More' → full category list",
+        "Card → /dp/{ASIN}"
+      ],
+      "microcopy": [
+        "Amazon Best Sellers",
+        "Our most popular products based on sales. Updated frequently.",
+        "Best Sellers in Electronics",
+        "Any Department",
+        "See More",
+        "Page 1 of 10",
+        "#1",
+        "Previous page",
+        "Next page",
+        "New Releases",
+        "Movers & Shakers",
+        "Most Wished For",
+        "Gift Ideas"
+      ]
+    },
+    {
+      "name": "Today's Deals",
+      "purpose": "Browse time-limited discounts: see % off, urgency and value at a glance.",
+      "url_pattern": "/deals (current; /gp/goldbox redirects here). Filtered deal results: /s?rh=n:2235625011,p_n_deal_type:23566064011 [V: this URL appears titled 'Amazon.com: Today's Deals']. Deal groups: /deal/{dealId}",
+      "layout": "Desktop: H1 'Today's Deals'. Below it, a horizontal row of category pills that can scroll: 'All' (selected, dark fill), 'Amazon Devices', 'Beauty', 'Computers', 'Electronics', 'Fashion', 'Home', 'Kitchen', 'Toys & Games', 'Video Games'… During events a banner shows (e.g. 'Prime Big Deal Days', 'Today's Big Deals' daily themed drops at midnight PDT [V: TechRadar]). Two columns. LEFT filters: 'Department' (single choice, 'See more'), 'Customer Reviews' ('4 Stars & Up') [V], 'Brands' (checkboxes), 'Price' ('Up to $25', '$25 to $50', '$50 to $100', '$100 to $200', '$200 & Above'), 'Discount' ('10% off or more', '25% off or more', '50% off or more', '70% off or more'), 'Prime Programs' / deal type ('Lightning deals', 'Prime Exclusive Deals') [V: aboutamazon 'Browse by' → 'Lightning Deals']. MAIN: deal grid of 4-6 columns that keeps loading as you scroll, sometimes interleaved with carousels ('Top deals for you', 'Deals under $25'). Mobile: chip row + 'Filters' sheet ('Browse by', 'Show Results' [V]), 2-column grid.",
+      "elements": [
+        "Deal card: square image on #f7f7f7 · red rounded tag '25% off' (white text on #cc0c39), with red text beside it 'Limited time deal' (or 'Lightning Deal', 'Prime Big Deal', 'Deal') · price '$29.99' with superscript cents · 'List: $39.99' or 'Typical: $39.99' struck through in gray · title clamped to 2 lines · for deals across several products: 'Up to 35% off' + 'Deals from $12.99' + 'See all deals'",
+        "Lightning deal extras: 'fuel gauge' progress bar with '45% claimed' and a countdown 'Ends in 03:12:44' [V: aboutamazon/reolink: discount banner, countdown, % claimed status bar]",
+        "Sold out or fully held in carts: '100% claimed' + 'Join waitlist' button; status text '100% of the promotional discounts are held in other customer carts or have been used' [V: aboutamazon]. Carts that don't check out within 15 minutes release the item to the next person on the waitlist [V].",
+        "Prime-exclusive: 'Prime exclusive deal' / 'With Prime' label. Signed out or non-Prime sees 'Join Prime to get this deal' (memory)",
+        "Upcoming (event days): 'Starts in 1h 23m'"
+      ],
+      "states": [
+        "Loading: gray card placeholders while the next batch arrives",
+        "No deals match the filters: 'No deals found' style empty grid, with a prompt to clear filters (memory, low confidence on exact copy)",
+        "Deal expired mid-view: card drops off on refresh; at checkout the price reverts to normal",
+        "Countdown under 1h ticks in seconds, otherwise 'Ends in 6h 23m'",
+        "Signed out: all deals visible; Prime-exclusive prices shown but blocked behind Prime"
+      ],
+      "interactions": [
+        "Category pill: single choice, refilters the grid without leaving the page",
+        "Sidebar filters: Department and Discount single choice, Brands multi-select; each click refilters",
+        "Card click → product page with the deal price and 'Limited time deal' badge, or /deal/{id} for groups",
+        "'Join waitlist' → toggles to 'On waitlist' (memory)"
+      ],
+      "microcopy": [
+        "Today's Deals",
+        "All",
+        "Limited time deal",
+        "Lightning Deal",
+        "25% off",
+        "Up to 35% off",
+        "Deals from",
+        "See all deals",
+        "List:",
+        "Typical:",
+        "45% claimed",
+        "Ends in",
+        "Starts in",
+        "Join waitlist",
+        "Prime exclusive deal",
+        "Join Prime to get this deal",
+        "Discount",
+        "10% off or more",
+        "25% off or more",
+        "50% off or more",
+        "70% off or more",
+        "Browse by",
+        "Lightning Deals",
+        "Show Results",
+        "Customer Reviews",
+        "4 Stars & Up"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Autocomplete to results",
+      "steps": [
+        "Focus the header search (click, Tab, or '/' in the rebuild); past searches appear if there are any",
+        "Type 'wireless ear'. After a ~100ms debounce, GET /api/suggest?q=wireless%20ear&dept=all returns up to 10 terms with the typed part normal and the completion bold",
+        "Down arrow twice highlights 'wireless earbuds noise cancelling' and writes it into the input",
+        "Enter → /s?k=wireless+earbuds+noise+cancelling; the query is saved to recent searches",
+        "Results page renders: count line, Sort by: Featured, sidebar, cards"
+      ]
+    },
+    {
+      "name": "Narrow and sort on the results page",
+      "steps": [
+        "On /s?k=wireless+earbuds, tick Brands › 'Sony' → URL gets brand=Sony, page resets to 1, count line updates, a 'Clear' link appears under Brands",
+        "Tick 'JBL' → OR within Brands (Sony or JBL)",
+        "Click Customer Reviews '4 Stars & Up' → AND with brands",
+        "Type $ Min 25, $ Max 100, press Go (or Enter) → price filter on; the preset ranges show none selected",
+        "Change Sort by to 'Price: Low to High' → reorders, keeps filters, page 1",
+        "Click 'Next ›' → page=2, count line reads '49-96 of …'; Back returns to page 1 with the same filters",
+        "Click 'Clear' under Brands → brand filter removed, other filters kept"
+      ]
+    },
+    {
+      "name": "Add to cart straight from results",
+      "steps": [
+        "Result card shows yellow 'Add to cart' (simple product, in stock)",
+        "Click → button shows a busy state; POST /api/cart {productId, qty:1}",
+        "Success → button becomes stepper [🗑 1 +], header cart count +1, polite live-region message 'Added to cart'",
+        "Click + → qty 2 (trash icon becomes −); 🗑 at qty 1 removes it and brings back 'Add to cart'",
+        "Product with variations shows 'See options' → goes to the product page with the variant picker",
+        "Error (out of stock since the page loaded) → button reverts, inline red text 'This item is no longer available' (rebuild copy)"
+      ]
+    },
+    {
+      "name": "Misspelling and zero results",
+      "steps": [
+        "Search 'wirless earbuds' → zero exact matches; fuzzy match finds 'wireless earbuds'",
+        "Page shows 'Showing results for wireless earbuds' and 'Search instead for wirless earbuds' with results for the corrected query",
+        "Clicking 'Search instead for' → /s?k=wirless+earbuds&nfpr=1 (no correction) → zero results state",
+        "Zero results: 'No results for wirless earbuds.' + 'Try checking your spelling or use more general terms' + 'Need help?' block; rebuild adds popular searches and 'Search all departments' when a department was selected"
+      ]
+    },
+    {
+      "name": "Browse by category",
+      "steps": [
+        "Click '☰ All' → side sheet slides in from the left",
+        "Shop by Department › 'Electronics' › sub-panel slides in › 'Headphones'",
+        "Lands on /s?i=electronics&rh=n:{node}; count line names the category path; sidebar tree has 'Headphones' in bold with children",
+        "Click child 'Earbud & In-Ear Headphones' → narrower results; '‹ Electronics' / '‹ Any Department' move back up",
+        "Apply filters and sort exactly as in the query flow"
+      ]
+    },
+    {
+      "name": "Best Sellers",
+      "steps": [
+        "Click 'Best Sellers' in the sub-nav (or menu Trending) → /gp/bestsellers overview with 'Best Sellers in {Category}' carousels",
+        "Click 'Electronics' in the left list → 'Best Sellers in Electronics' grid of #1-#50",
+        "Drill into 'Headphones' → subcategory top 50",
+        "'Next page' → #51-#100",
+        "Click #3 card → product page"
+      ]
+    },
+    {
+      "name": "Today's Deals",
+      "steps": [
+        "Click 'Today's Deals' in the sub-nav → /deals grid, 'All' pill selected",
+        "Click 'Electronics' pill → grid refilters",
+        "Sidebar Discount '25% off or more' → only deals ≥25% off",
+        "Lightning deal card shows '62% claimed' and 'Ends in 02:14:09'",
+        "Click card → product page with deal price; Add to cart holds the deal price (15-minute cart hold on real Amazon)",
+        "When claimed reaches 100%, the card shows 'Join waitlist'"
+      ]
+    },
+    {
+      "name": "Mobile filtering",
+      "steps": [
+        "On a phone, results show a chip row: 'Filters', '✓prime', '4 Stars & Up', brand chips",
+        "Tap '✓prime' chip → applied at once, chip highlighted, 'Filters (1)'",
+        "Tap 'Filters' → full-screen sheet; pick Sort 'Price: Low to High', Brands 'Sony'; button label updates to 'Show 42 results'",
+        "Tap 'Show 42 results' → sheet closes, results update; X instead would have thrown away the pending picks",
+        "'Clear Filters' in the sheet resets everything except the query"
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "feature": "Header search input + submit to /s?k= with the query kept in the input",
+      "tier": "P0",
+      "why": "The entry point to the whole shopping loop"
+    },
+    {
+      "feature": "Autocomplete: up to 10 prefix suggestions, bold completion, arrow/Enter/Esc keyboard nav, ARIA combobox",
+      "tier": "P0",
+      "why": "About 60% of Amazon searches start from a suggestion; cheap to build (prefix match over product titles + popular terms, one endpoint)"
+    },
+    {
+      "feature": "Results page: count line, results grid, pagination, URL-driven state (k, dept, brand[], rating, price_min/max, prime, sort, page)",
+      "tier": "P0",
+      "why": "Core loop; URL state gives Back/share/refresh for free"
+    },
+    {
+      "feature": "Result card: image, title, stars + count, price with superscript cents, strike 'List:' price, Prime badge + 'FREE delivery {date}', stock line",
+      "tier": "P0",
+      "why": "Enough to decide without opening the product; it's what makes Amazon efficient"
+    },
+    {
+      "feature": "'Add to cart' on cards, turning into a qty stepper and updating the header count",
+      "tier": "P0",
+      "why": "Closes the loop from results; judged end to end"
+    },
+    {
+      "feature": "Sort dropdown (Featured, Price: Low to High, Price: High to Low, Avg. Customer Review, Newest Arrivals, Best Sellers)",
+      "tier": "P0",
+      "why": "One ORDER BY each; widely expected"
+    },
+    {
+      "feature": "Filters: Department tree, Customer Reviews 4 Stars & Up, Brands (checkboxes + See more), Price ranges + Min/Max + Go, Prime",
+      "tier": "P0",
+      "why": "The minimum filter set shoppers use; each is a simple WHERE clause"
+    },
+    {
+      "feature": "Applied-filter feedback: per-section 'Clear' + removable chips row + 'Clear all'",
+      "tier": "P0",
+      "why": "Without it users get lost after 2+ filters; chips cost little and beat Amazon's desktop"
+    },
+    {
+      "feature": "Zero results state ('No results for …' + tips + clear filters / popular searches)",
+      "tier": "P0",
+      "why": "Hit in every demo on a typo; a blank page looks broken"
+    },
+    {
+      "feature": "Loading/error states for results (skeleton cards, retry)",
+      "tier": "P0",
+      "why": "Judged on UX quality; instant feedback is part of 'speed'"
+    },
+    {
+      "feature": "Mobile layout: chip row + full-screen Filters sheet with 'Show N results'",
+      "tier": "P0",
+      "why": "Must work at phone width; the sheet reuses the same filter form"
+    },
+    {
+      "feature": "Category browse: department results page (/s?dept=…) with sidebar tree",
+      "tier": "P0",
+      "why": "Same results-page code, no query; gives browse for free"
+    },
+    {
+      "feature": "Spelling correction 'Showing results for / Search instead for' (Postgres pg_trgm similarity on a term dictionary)",
+      "tier": "P1",
+      "why": "Cheap with trigram similarity; big perceived-quality win"
+    },
+    {
+      "feature": "Badges: Best Seller (top rank in category), Amazon's Choice/Overall Pick (seeded flag), Limited time deal",
+      "tier": "P1",
+      "why": "Computed or seeded fields; strong scanning cues. Max one badge per card"
+    },
+    {
+      "feature": "'X bought in past month' line (buckets 50+, 100+, 1K+, 10K+)",
+      "tier": "P1",
+      "why": "One seeded integer + a formatter; strong social proof"
+    },
+    {
+      "feature": "Coupon badge 'Save 15% with coupon' (display only)",
+      "tier": "P1",
+      "why": "Display is trivial; clipping and applying it in cart is P2"
+    },
+    {
+      "feature": "'Typical:' reference price variant + hover definition",
+      "tier": "P1",
+      "why": "Same field as List; tooltip adds honesty"
+    },
+    {
+      "feature": "Deals & Discounts filter (All Discounts / Today's Deals) and Delivery Day 'Get It by Tomorrow'",
+      "tier": "P1",
+      "why": "Boolean filters on existing data"
+    },
+    {
+      "feature": "Recent searches in autocomplete with Remove (localStorage for guests, DB when signed in)",
+      "tier": "P1",
+      "why": "A few lines; makes repeat searches fast"
+    },
+    {
+      "feature": "Department select next to search input + scoped suggestions",
+      "tier": "P1",
+      "why": "A native <select> passing dept to both endpoints"
+    },
+    {
+      "feature": "'☰ All' side-sheet menu with department drill-in",
+      "tier": "P1",
+      "why": "Main browse entry; a <dialog> plus a category tree query"
+    },
+    {
+      "feature": "Best Sellers page: department sidebar + ranked #1-#50 grid per category, page 2",
+      "tier": "P1",
+      "why": "Just ORDER BY sales_30d within category; reuses the card component; high-trust discovery"
+    },
+    {
+      "feature": "Today's Deals page: category pills, Discount/Department/Price filters, deal cards with % off, Limited time deal, Ends-in countdown, % claimed bar",
+      "tier": "P1",
+      "why": "Deals table + results query with deal join; countdown is a small client component"
+    },
+    {
+      "feature": "'Need help?' block + footer links",
+      "tier": "P1",
+      "why": "Static markup"
+    },
+    {
+      "feature": "Out-of-stock card state ('Currently unavailable.', no button) + 'Include Out of Stock' filter",
+      "tier": "P1",
+      "why": "Needs to be right so cart never takes unavailable items"
+    },
+    {
+      "feature": "Deliver-to ZIP affecting delivery dates",
+      "tier": "P1",
+      "why": "Delivery date = today + transit days by region; stored in a cookie"
+    },
+    {
+      "feature": "'See options' for products with variations",
+      "tier": "P1",
+      "why": "Needed only if the catalog has variations; links to the product page"
+    },
+    {
+      "feature": "Related searches pills at bottom",
+      "tier": "P2",
+      "why": "Needs co-query data; could fake from suggestion API"
+    },
+    {
+      "feature": "Category-specific attribute facets (Color swatches, Connectivity, Form Factor)",
+      "tier": "P2",
+      "why": "Generic JSONB attribute facets are doable but time-heavy to seed well"
+    },
+    {
+      "feature": "Color swatches on cards with hover image swap",
+      "tier": "P2",
+      "why": "Needs variation images"
+    },
+    {
+      "feature": "Grid vs list layout by category (list for books/electronics)",
+      "tier": "P2",
+      "why": "Grid everywhere is fine; list view is a CSS variant later"
+    },
+    {
+      "feature": "Rating histogram popover on hover",
+      "tier": "P2",
+      "why": "Product page already shows it; nice on results"
+    },
+    {
+      "feature": "Department landing pages with hero + 'Shop by category' tiles + carousels",
+      "tier": "P2",
+      "why": "Marketing surface; category results page covers the browse job"
+    },
+    {
+      "feature": "New Releases / Most Wished For / Gift Ideas tabs on Best Sellers",
+      "tier": "P2",
+      "why": "New Releases is a created_at sort (cheap); the others need wishlist/gift data"
+    },
+    {
+      "feature": "Autocomplete product thumbnails",
+      "tier": "P2",
+      "why": "Nice polish after core suggestions work"
+    },
+    {
+      "feature": "Price range slider",
+      "tier": "skip",
+      "why": "Min/Max number inputs are faster, accessible and native; the slider adds a component for no gain"
+    },
+    {
+      "feature": "Movers & Shakers",
+      "tier": "skip",
+      "why": "Needs hourly rank history; no real sales signal in a 24h build"
+    },
+    {
+      "feature": "Lightning deal waitlist + 15-minute cart holds",
+      "tier": "skip",
+      "why": "Complex inventory reservation for a niche case; show '100% claimed' instead"
+    },
+    {
+      "feature": "Sponsored Products labels, Sponsored Brands banners, video ads, 'Leave ad feedback'",
+      "tier": "skip",
+      "why": "No ad business; clutters results. Skipping it is a UX win"
+    },
+    {
+      "feature": "Mid-results carousels (Highly rated, Customers frequently viewed, Top rated from our brands)",
+      "tier": "skip",
+      "why": "Clutter that breaks scanning; no recommendation data"
+    },
+    {
+      "feature": "Rufus / Alexa for Shopping AI answers in the search bar",
+      "tier": "skip",
+      "why": "Out of scope for a 24h core loop; add only if everything else ships (LLM call on question-shaped queries)"
+    },
+    {
+      "feature": "Used & new offers / 'More Buying Choices' / multiple sellers",
+      "tier": "skip",
+      "why": "Single-seller model; Buy Box logic is a project of its own"
+    },
+    {
+      "feature": "Climate Pledge Friendly, Small Business, From Our Brands filters/badges",
+      "tier": "skip",
+      "why": "No certification data; fake badges would mislead"
+    },
+    {
+      "feature": "Book format rows (Paperback/Kindle/Audible)",
+      "tier": "skip",
+      "why": "Digital formats out of scope"
+    },
+    {
+      "feature": "Infinite scroll on search results",
+      "tier": "skip",
+      "why": "Amazon paginates; pages are shareable, Back works, and the footer stays reachable"
+    },
+    {
+      "feature": "Visual/camera search, barcode scan",
+      "tier": "skip",
+      "why": "App-only on Amazon; heavy ML"
+    }
+  ],
+  "better_than_original": [
+    "Show applied filters as removable chips above the results with 'Clear all' (Amazon desktop hides them as bold links plus per-section 'Clear' in the sidebar; Baymard finds 42% of sites fail to surface applied filters at the top)",
+    "Update filters without a full reload (fetch + history.pushState, keep scroll, dim results with skeletons) while URLs stay shareable and Back still works",
+    "Honest counts: exact 'N results' and a count next to each filter option ('Sony (12)'); options that would give zero are disabled with a reason. Never say 'over 10,000' when only about 336 can be reached.",
+    "Organic results only, no Sponsored rows or mid-list carousels, so every card is a real match and pages scan faster",
+    "One badge max per card, each with a tooltip saying why ('Best Seller: #1 by sales in Earbuds, updated hourly'). Amazon stacks up to 4 unexplained tags.",
+    "Price clarity: show '% saved' next to the strike price, define 'Typical price' inline (90-day median price paid), and always show unit price where it matters",
+    "One consistent delivery line ('FREE delivery Tue, Sep 16') instead of 2-3 variants with small-print conditions; dates set by the Deliver-to ZIP",
+    "Real form controls: filters as <fieldset> checkboxes/radios, not styled links; autocomplete as an ARIA combobox with aria-activedescendant; stars carry text '4.4 out of 5 stars, 58,312 ratings'; visible focus rings; '/' shortcut to focus search",
+    "Price Min/Max accepts Enter, swaps min > max automatically, and shows inline validation ('Enter a number') instead of silently ignoring input",
+    "Smarter zero results: offer 'Remove last filter', 'Search all departments', spelling fix, and popular searches instead of just 'Try checking your spelling'",
+    "Countdowns that respect users: coarse 'Ends in 3h 12m' until the last hour, no ticking announced to screen readers, reduced-motion friendly",
+    "Best Sellers with a real 'Updated 2 hours ago' timestamp and optional Prime/price filters, instead of the vague 'Updated frequently' and no filters",
+    "Grid rows line up: fixed-ratio image boxes (no layout shift), titles clamped to the same line count with the full title on hover",
+    "Add to cart confirms in place (stepper + toast with an Undo link) and never leaves the results page",
+    "Mobile filter sheet shows the live count ('Show 42 results') and keeps sort in the same sheet; a sticky compact sort/filter bar on scroll",
+    "Speed: first results page server-rendered, next page prefetched, product pages prefetched on hover/touchstart, responsive images with width hints"
+  ],
+  "data": [
+    {
+      "entity": "Product",
+      "fields": [
+        "id (ASIN-like string)",
+        "title",
+        "brand",
+        "category_id (leaf)",
+        "category_path (ids for tree + breadcrumb)",
+        "images[] (url, alt)",
+        "price_cents",
+        "list_price_cents (nullable)",
+        "typical_price_cents (nullable, 90-day median)",
+        "unit_price_label (nullable, e.g. '$0.50/Count')",
+        "rating_avg (0-5, 1 decimal)",
+        "rating_count",
+        "bought_past_month (int; shown as 50+/1K+/10K+ bucket)",
+        "sales_rank_in_category (int)",
+        "is_amazons_choice (bool) / overall_pick (bool)",
+        "prime_eligible (bool)",
+        "ships_in_days (int, for delivery date + Get It by Tomorrow filter)",
+        "stock_qty (int)",
+        "condition (new|used|renewed)",
+        "attributes (jsonb: color, connectivity, form_factor…)",
+        "has_variations (bool) + variations[] (swatch color, image, price)",
+        "created_at (Newest Arrivals)",
+        "search_vector (tsvector over title+brand+category)"
+      ]
+    },
+    {
+      "entity": "Category",
+      "fields": [
+        "id",
+        "name",
+        "slug (URL alias, e.g. electronics)",
+        "parent_id",
+        "depth",
+        "sort_order",
+        "image_url (tiles)",
+        "show_in_menu (bool)"
+      ]
+    },
+    {
+      "entity": "Deal",
+      "fields": [
+        "id",
+        "product_id",
+        "type (limited_time|lightning|prime_exclusive)",
+        "deal_price_cents",
+        "percent_off (derived from reference price)",
+        "starts_at",
+        "ends_at",
+        "qty_total",
+        "qty_claimed (claimed % = claimed/total)"
+      ]
+    },
+    {
+      "entity": "Coupon",
+      "fields": [
+        "id",
+        "product_id",
+        "kind (percent|amount)",
+        "value",
+        "expires_at",
+        "label ('Save 15%')"
+      ]
+    },
+    {
+      "entity": "SearchTerm (suggestion dictionary)",
+      "fields": [
+        "term",
+        "normalized_term",
+        "department_slug (nullable)",
+        "popularity (search count)",
+        "last_searched_at"
+      ]
+    },
+    {
+      "entity": "RecentSearch",
+      "fields": [
+        "user_id or anon session_id",
+        "term",
+        "department_slug",
+        "searched_at"
+      ]
+    },
+    {
+      "entity": "SearchQuery (URL state, not stored)",
+      "fields": [
+        "k (query)",
+        "dept (category slug)",
+        "brand[]",
+        "rating_min (4)",
+        "price_min",
+        "price_max",
+        "prime (bool)",
+        "delivery (tomorrow|2days)",
+        "deals (bool)",
+        "condition[]",
+        "include_oos (bool)",
+        "sort (featured|price-asc|price-desc|review|newest|bestsellers)",
+        "page",
+        "nfpr (skip spelling correction)"
+      ]
+    },
+    {
+      "entity": "SearchResponse",
+      "fields": [
+        "total (exact)",
+        "page",
+        "page_size",
+        "items[] (card DTO)",
+        "facets {brands:[{value,count}], departments:[{id,name,count,children}], price_ranges:[{label,min,max,count}], rating_4_up_count}",
+        "corrected_query (nullable)",
+        "original_query"
+      ]
+    },
+    {
+      "entity": "SuggestResponse",
+      "fields": [
+        "prefix",
+        "suggestions[] {value, type: KEYWORD|RECENT, department?}",
+        "predictive_text (ghost completion)"
+      ]
+    },
+    {
+      "entity": "BestSellerList (derived view)",
+      "fields": [
+        "category_id",
+        "rank (1-100)",
+        "product_id",
+        "computed_at"
+      ]
+    },
+    {
+      "entity": "CartLine (touched from results page)",
+      "fields": [
+        "cart_id (user or anon cookie)",
+        "product_id",
+        "qty",
+        "added_at",
+        "deal_id (nullable, to lock deal price)"
+      ]
+    },
+    {
+      "entity": "DeliveryContext",
+      "fields": [
+        "zip",
+        "city",
+        "region_transit_days",
+        "is_prime_member (for the FREE delivery line wording)"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/s?k=wireless+earbuds",
+      "verified": false,
+      "note": "HTTP 503 (bot-blocked). Results page layout, cards, sidebar labels, pagination and 'Need help?' come from detailed memory of the 2024-2026 desktop/mobile web experience."
+    },
+    {
+      "url": "https://www.amazon.com/s?k=wirless+earbuds",
+      "verified": false,
+      "note": "HTTP 503. Spelling-correction copy backed up by the seller forum source below."
+    },
+    {
+      "url": "https://www.amazon.com/gp/bestsellers",
+      "verified": false,
+      "note": "HTTP 503. Layout and tab sublines from memory, except the subline confirmed by search snippet."
+    },
+    {
+      "url": "https://www.amazon.com/gp/goldbox",
+      "verified": false,
+      "note": "HTTP 503. Deal card layout from memory + aboutamazon/reolink."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GSUNWNFT2ALMPR3L",
+      "verified": false,
+      "note": "HTTP 503 (Searching and Browsing help page). Search snippet only: contains 'Check each product page for other buying options' and 'Price and other details may vary based on product size and color'."
+    },
+    {
+      "url": "https://web.archive.org/web/2025/https://www.amazon.com/s?k=wireless+earbuds",
+      "verified": false,
+      "note": "Archive fetch not permitted by tool; also tried for zgbs and /deals."
+    },
+    {
+      "url": "https://completion.amazon.com/api/2017/suggestions?prefix=wireless%20ear&alias=aps&limit=11",
+      "verified": true,
+      "note": "Live JSON fetched: 10 KEYWORD suggestions ('wireless earbuds', 'wireless earbuds bluetooth', 'wireless earbuds noise cancelling', 'wireless earphones', …), predictiveText 'wireless earbuds', refTag nb_sb_ss_p13n-expert-pd-ops-ranker_{pos}_{prefixLen}. No department scope fields in this or the 'lap' / 'iphone' / 'harry' (alias=stripbooks) calls."
+    },
+    {
+      "url": "https://feedvisor.com/university/advanced-search/",
+      "verified": true,
+      "note": "Fetched. Filters: Department, Brand, Price min/max, Customer Rating, Prime, Delivery Day (Get It Today/Tomorrow/date), Condition (New, Used, Renewed, Collectible), Seller, Deals, Climate Pledge Friendly; sort options; mobile 'Filter' button; COSMO/Rufus."
+    },
+    {
+      "url": "https://www.intentwise.com/blog/amazon-ui-feature/amazon-is-displaying-sales-data-in-search-heres-what-to-know/",
+      "verified": true,
+      "note": "Fetched. '800+ bought in past month', '100k+ bought in past month', shown just below the star rating."
+    },
+    {
+      "url": "https://easyparser.com/blog/amazon-bought-in-past-month-explained",
+      "verified": false,
+      "note": "Search snippet: 50+ threshold, refreshed daily, excludes returns."
+    },
+    {
+      "url": "https://www.sellerlabs.com/blog/amazon-badges-2026-strategies/",
+      "verified": true,
+      "note": "Fetched. Best Seller (hourly), Best Seller New, Amazon's Choice, Prime, Small Business, Climate Pledge Friendly criteria."
+    },
+    {
+      "url": "https://www.aboutamazon.com/news/retail/how-to-find-amazon-lightning-deals",
+      "verified": true,
+      "note": "Fetched. Today's Deals 'Filters' → 'Browse by' → 'Lightning Deals' → 'Show Results'; discount banner, countdown, % claimed gauge, 'Join waitlist', '100% of the promotional discounts are held in other customer carts or have been used'."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GQXZQNRKMP6BDATD",
+      "verified": false,
+      "note": "Search snippet (Lightning deal waitlist): 15-minute cart hold before release to the next person on the waitlist."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GQ6B6RH72AX8D2TD",
+      "verified": false,
+      "note": "Strike-Through Pricing help page, search snippet only: List Price and Typical Price (90-day median, excluding limited-time deals) both shown as strike-through."
+    },
+    {
+      "url": "https://novadata.io/resources/news/amazon-reference-pricing-list-price-crackdown-april-2026",
+      "verified": true,
+      "note": "Fetched. Apr 23 2026 List Price shown only if validated; May 18 2026 Typical Price recalculation removes strike-through for always-discounted items."
+    },
+    {
+      "url": "https://www.retaildive.com/news/amazon-ai-alexa-for-shopping/820218/",
+      "verified": true,
+      "note": "Fetched. May 2026 Alexa for Shopping in main search bar answers questions; keyword searches still go to the normal results page."
+    },
+    {
+      "url": "https://www.ecomtent.ai/blog-page/rufus-now-appears-in-the-amazon-search-bar",
+      "verified": true,
+      "note": "Fetched. Rufus question suggestions appear in the search bar (example questions)."
+    },
+    {
+      "url": "https://www.jumpfly.com/blog/what-is-the-amazon-best-sellers-page-how-does-it-work/",
+      "verified": true,
+      "note": "Fetched. Category breakdown on the left side; ranking driven by recent sales."
+    },
+    {
+      "url": "https://www.amazon.com/Best-Sellers/zgbs",
+      "verified": false,
+      "note": "Search snippet only: 'Our most popular products based on sales. Updated frequently.'"
+    },
+    {
+      "url": "https://apify.com/santamaria-automations/amazon-bestsellers-scraper",
+      "verified": false,
+      "note": "Search snippet: 100 products per chart split across two pages of 50."
+    },
+    {
+      "url": "https://sellercentral.amazon.com/seller-forums/discussions/t/dbb2faa6-c40b-4af4-afab-2b59eca5c9a7",
+      "verified": false,
+      "note": "Search snippet quoting results page: 'Showing results for [other brand]. Search instead for [our brand].'"
+    },
+    {
+      "url": "https://help.goodreads.com/s/question/0D51H00005wX9fBSAS/",
+      "verified": false,
+      "note": "Search snippet quoting Amazon zero state: 'No results for B00BIHRYTY in Books. Try checking your spelling or use more general terms.'"
+    },
+    {
+      "url": "https://www.amazon.com/s?rh=n%3A2235625011%2Cp_n_deal_type%3A23566064011",
+      "verified": false,
+      "note": "Search result title 'Amazon.com: Today's Deals' confirms the p_n_deal_type refinement URL shape (not fetched)."
+    },
+    {
+      "url": "https://www.techradar.com/seasonal-sales/amazon-prime-day-2025-was-just-announced-with-one-surprising-and-extremely-welcome-change",
+      "verified": false,
+      "note": "Search snippet: 'Today's Big Deals' themed daily drops at midnight PDT."
+    },
+    {
+      "url": "https://www.pymnts.com/amazon/2026/amazon-weighs-merging-ai-chat-into-its-main-search-bar/",
+      "verified": false,
+      "note": "Search snippet: nearly 60% of US searches begin with an autocomplete selection; thumbnails added to suggestions."
+    },
+    {
+      "url": "https://baymard.com/blog/have-filters-for-list-item-info",
+      "verified": false,
+      "note": "Search snippet: 42% of sites don't bring applied filters to the top; 38% lack filters for displayed attributes."
+    }
+  ]
+}

@@ -1,0 +1,972 @@
+{
+  "area": "cart-checkout",
+  "screens": [
+    {
+      "name": "Added to Cart confirmation (desktop page / wide-screen cart sidebar / mobile sheet)",
+      "url_pattern": "Amazon: narrow desktop and mobile web go to /cart/smart-wagon?newItems=<ASIN>,<qty> (from memory). Wide desktop stays on the product page and opens the persistent right cart sidebar (#nav-flyout-ewc; its Go to Cart link uses ref_=ewc_gtc, confirmed from a search-result URL). Rebuild: stay on /dp/:id and open a side sheet, with /cart/added?item=:id as the no-JS fallback.",
+      "purpose": "Confirm the add worked, show the new cart total, and offer one-click paths to checkout or the cart without losing the shopper's place. This is also where Amazon cross-sells.",
+      "layout": "DESKTOP PAGE (from memory): (1) Top white card, left side: green check icon plus bold 'Added to cart', then the item thumbnail (about 60-100px). Variation text sits under the heading if the item has variations. (2) Same card, right side: free-shipping status line, 'Cart subtotal: $X.XX' (older versions: 'Cart subtotal (N items): $X.XX'), a yellow pill 'Proceed to checkout (N items)', and a white pill 'Go to Cart' below it. (3) A strip of cross-sell carousels: 'Frequently bought together', 'Customers who bought this item also bought', and sponsored items. Each card has image, title, stars, price and a small yellow 'Add to cart'. (4) Standard footer. Electronics sometimes show an interstitial side sheet first: 'Add to your order' with protection-plan choices (e.g. '3-Year Protection Plan $X') and the buttons 'Add Protection' and 'No thanks'. WIDE DESKTOP (at least ~1400px, signed in or not): a narrow fixed column on the right of every page (about 130px) showing 'Subtotal' and '$X.XX', a 'Go to Cart' button, and each cart item stacked as thumbnail, price and a mini qty stepper with a trash icon. It pushes page content left, and shoppers dislike that it cannot be hidden (Chrome extension and uBlock gist exist). The header cart badge (orange number over the cart icon) increments immediately. MOBILE WEB: goes to the smart-wagon page (or a bottom sheet in newer variants) with a green check and 'Added to cart', then 'Cart subtotal $X.XX', a full-width yellow 'Proceed to checkout (N items)', a full-width white 'Go to Cart', and cross-sell carousels below.",
+      "elements": [
+        "Green check icon and 'Added to cart' heading",
+        "Item thumbnail, plus variation (Color/Size) when present",
+        "Free-shipping status line (qualifies / add $X more)",
+        "'Cart subtotal: $X.XX'",
+        "Primary yellow pill 'Proceed to checkout (N items)'",
+        "Secondary white pill 'Go to Cart'",
+        "Header cart icon with count badge (number updates, and 99+ caps visually)",
+        "Optional protection-plan / add-on side sheet",
+        "Recommendation carousels with inline 'Add to cart'",
+        "Wide screens only: persistent right cart sidebar with subtotal, items and mini steppers"
+      ],
+      "interactions": [
+        "Add to Cart on the product page makes an async POST. The button shows a spinner (older: it greys out) until the server confirms.",
+        "Proceed to checkout goes to checkout, or to sign-in with a return URL if signed out.",
+        "Go to Cart goes to /cart.",
+        "An inline 'Add to cart' on a carousel card adds that item and swaps the button to a green check with 'Added'. The subtotal and badge update in place.",
+        "The sidebar stepper changes qty in place. At qty 1 the '-' is a trash icon, and clicking it removes the item.",
+        "Adding the same product again increments qty instead of creating a second line.",
+        "If the added qty exceeds the purchase limit, qty is capped and a notice is shown."
+      ],
+      "microcopy": [
+        "Added to cart [memory, very common]",
+        "Cart subtotal: $24.99 [memory]",
+        "Proceed to checkout (1 item) / Proceed to checkout (3 items) [memory; singular/plural]",
+        "Go to Cart [memory; also in the sidebar]",
+        "Your order qualifies for FREE Shipping. Choose this option at checkout. See details [memory]",
+        "Add $10.01 of eligible items to your order to qualify for FREE Shipping. See details [memory]",
+        "Add Protection / No thanks [memory, protection-plan sheet]",
+        "Subtotal (sidebar label) [memory]"
+      ],
+      "states": [
+        "Loading: Add to Cart button disabled with a spinner, so a double-click cannot add twice",
+        "Success: confirmation plus badge increment",
+        "Error: inline red text near the button, e.g. 'There was a problem adding this item to your Cart. Please try again.' [memory, approximate]",
+        "Purchase limit hit: the qty added is capped, with notice [see cart page]",
+        "Out of stock between page load and click: add fails with 'Currently unavailable' [memory]",
+        "Signed out: add works (guest cart tied to a cookie) and is merged into the account cart at sign-in",
+        "Mobile: full-width stacked buttons; the protection sheet is a bottom sheet"
+      ]
+    },
+    {
+      "name": "Shopping Cart page",
+      "url_pattern": "Amazon: /cart and /gp/cart/view.html (both real; seen in search results as amazon.com/cart?ref_=...). Rebuild: /cart",
+      "purpose": "Review and edit what you are about to buy, pick which lines count toward this checkout, park items for later, and see progress toward free shipping before going to checkout.",
+      "layout": "DESKTOP (from memory, 2024-2026 cart): page background light grey. LEFT COLUMN (about 75% width, white card): (1) Optional yellow/orange alert box 'Important messages about items in your Cart:' listing price changes and removed items. (2) H1 'Shopping Cart'. Under it, a link 'Deselect all items' (becomes 'Select all items' when none are selected). A small right-aligned 'Price' column label, then a divider. (3) Item rows, each separated by a divider. Row, left to right: checkbox; product image about 180px square; details block; price right-aligned in bold. Details block, top to bottom: title (links to the product page, wraps up to about 3 lines); optional badge ('#1 Best Seller', red 'Limited time deal'); stock line in green 'In Stock' (or orange/red 'Only 2 left in stock - order soon.'); shipping line 'Eligible for FREE Shipping' or the Prime logo with 'FREE delivery Tue, Sep 16' / '& FREE Returns'; 'Sold by X' or 'Shipped from: Amazon.com' when third-party; checkbox 'This is a gift' plus 'Learn more'; variation attributes in bold label/value pairs ('Color: Black', 'Size: Medium', 'Style: ...'); then the action row. Action row: rounded qty stepper pill (trash icon or '-', number, '+'), then text links separated by thin vertical bars: 'Delete' | 'Save for later' | 'Compare with similar items' | 'Share'. Price column: current price in bold, with 'List: $X' or 'Typical price: $X' struck through below when discounted. (4) Right-aligned at the bottom of the card: 'Subtotal (N items): $X.XX' with the amount in bold. RIGHT RAIL (about 25%, white card, sticky on scroll in newer builds): free-shipping block with a green check and 'Your order qualifies for FREE Shipping. Choose this option at checkout.' plus a 'See details' link (non-Prime under the threshold: a progress bar and 'Add $X.XX of eligible items to your order to qualify for FREE Shipping.'); 'Subtotal (N items): $X.XX'; checkbox 'This order contains a gift'; yellow full-width pill 'Proceed to checkout'. Below the card: sponsored or 'Customers who bought items in your cart also bought' vertical list with 'Add to cart' buttons. BELOW BOTH COLUMNS: (5) 'Your Items' card with tabs 'Saved for later (N items)' | 'Buy it again'. Saved items appear as a grid of cards: image, title, price, stock line, then buttons 'Move to cart', and links 'Delete', 'Add to list', 'Compare with similar items'. Unavailable saved items show 'Currently unavailable.' in place of the price. (6) Fine print: 'The price and availability of items at Amazon.com are subject to change. The Cart is a temporary place to store a list of your items and reflects each item's most recent price.' plus 'Learn more', and 'Do you have a gift card or promotional code? We'll ask you to enter your claim code when it's time to pay.' (7) 'Your recently viewed items' carousel. MOBILE WEB/APP: no two-column layout. The top block holds 'Subtotal $X.XX' (large), the free-shipping line, and a full-width yellow 'Proceed to checkout (N items)' near the top. Items become compact rows (image about 100px on the left; title, price, stock and delivery on the right). Below each row: stepper pill plus pill buttons 'Delete', 'Save for later', 'Compare with similar items', 'Share'. The checkbox is often hidden on mobile. 'Saved for later' follows as a list, then recommendations.",
+      "elements": [
+        "'Important messages about items in your Cart:' alert box (conditional)",
+        "H1 'Shopping Cart'",
+        "'Deselect all items' / 'Select all items' link",
+        "'Price' column header (desktop)",
+        "Per line: include checkbox, image, title link, badge, 'In Stock' / low-stock text, 'Eligible for FREE Shipping' / Prime delivery date, seller line, 'This is a gift' checkbox with 'Learn more', variation attributes, qty stepper (trash at 1), 'Delete', 'Save for later', 'Compare with similar items', 'Share', price with list/strikethrough",
+        "Bottom 'Subtotal (N items): $X.XX'",
+        "Right rail: free-shipping progress/qualify message with 'See details', subtotal, 'This order contains a gift' checkbox, 'Proceed to checkout' yellow button",
+        "Saved for later section with 'Move to cart' / 'Delete' / 'Add to list' / 'Compare with similar items'",
+        "Buy it again tab",
+        "Legal/temporary-cart fine print",
+        "Recently viewed carousel and recommendation rail",
+        "Header cart badge showing total quantity"
+      ],
+      "interactions": [
+        "Checkbox: unchecking a line keeps it in the cart but excludes it from the subtotal and from checkout. The subtotal count and amount update instantly, and the rail updates too.",
+        "Deselect all items unchecks every line and makes the subtotal 'Subtotal (0 items): $0.00'. The Proceed button stays visible, but checkout then has no items (memory; the rebuild should disable it with the hint 'Select at least one item').",
+        "Qty stepper: '+' increments, '-' decrements, trash (shown at qty 1) deletes. Each change fires an async update. The row briefly shows a spinner and dims, then the price, subtotal and header badge update.",
+        "Legacy dropdown 'Qty: 1' offers 0 (Delete), 1-9 and '10+'. Choosing '10+' swaps in a number textbox and an 'Update' button (memory; still seen in some builds).",
+        "Delete collapses the row into a one-line gray message '<Title> was removed from Shopping Cart.' No undo on desktop (memory).",
+        "Save for later removes the line from the cart and prepends it to Saved for later, leaving the message '<Title> has been moved to Saved For Later.'",
+        "Move to cart does the reverse: '<Title> has been moved to Cart.'",
+        "Compare with similar items opens a right-side sheet with a comparison table of the item and about 4 similar products (price, rating, delivery, key attributes), each with 'Add to cart'.",
+        "Share opens the native share sheet on mobile. On desktop it opens a popover with 'Copy link' plus email/social options.",
+        "'This is a gift' checkbox flags the line. Checkout then shows 'Add gift options' (message, gift receipt, wrap).",
+        "'See details' next to free shipping opens a popover explaining eligible items.",
+        "Title or image click goes to the product page.",
+        "Proceed to checkout: if signed out, redirects to sign-in with a return to checkout. If signed in, goes to checkout with the selected lines only.",
+        "The page re-prices on every load: items always show the current price, and the alert box lists changes since the item was added.",
+        "Mobile: a sticky 'Proceed to checkout' may appear at the bottom after scrolling past the top button."
+      ],
+      "microcopy": [
+        "Shopping Cart [memory, certain]",
+        "Deselect all items / Select all items [memory]",
+        "Price [memory, column label]",
+        "In Stock [memory]",
+        "Only 2 left in stock - order soon. [memory]",
+        "Eligible for FREE Shipping [memory]",
+        "FREE delivery Tue, Sep 16 [memory pattern]",
+        "This is a gift  Learn more [verified-secondary: How-To Geek quotes 'This Is a Gift']",
+        "Delete | Save for later | Compare with similar items | Share [memory]",
+        "Subtotal (1 item): $24.99 / Subtotal (3 items): $72.47 [memory]",
+        "This order contains a gift [memory, right rail]",
+        "Proceed to checkout [memory]",
+        "Your order qualifies for FREE Shipping. Choose this option at checkout. See details [memory]",
+        "Part of your order qualifies for FREE Shipping. [memory]",
+        "Add $10.01 of eligible items to your order to qualify for FREE Shipping. [memory]",
+        "Important messages about items in your Cart: [verified-secondary: Amazon Forum thread title]",
+        "Please note that the price of <Item> has increased from $159.99 to $166.10 since you placed it in your Shopping Cart. [verified-secondary: search snippet]",
+        "Please note that the price of <Item> has decreased from $139.89 to $125.00 since you placed it in your Shopping Cart. [verified-secondary: search snippet]",
+        "Items in your Shopping Cart always reflect the most recent price displayed on the product detail page... Placing an item in your cart doesn't reserve the price shown at that time. [verified-secondary: Amazon 'Shopping Cart Prices' help snippet]",
+        "You reached the purchase limit for this item. We have changed the quantity to the maximum allowable. [verified-secondary: customer-reported in search snippet]",
+        "This seller has a limit of 3 per customer. To see if more are available from another seller, go to the product detail page. [memory, approximate]",
+        "This seller has only 2 of these available. To see if more are available from another seller, go to the product detail page. [memory, approximate]",
+        "<Title> was removed from Shopping Cart. [memory]",
+        "<Title> has been moved to Saved For Later. [memory]",
+        "<Title> has been moved to Cart. [memory]",
+        "Saved for later (2 items) / Move to cart [memory]",
+        "Currently unavailable. [memory]",
+        "No items saved for later in cart [memory, approximate]",
+        "The price and availability of items at Amazon.com are subject to change. The Cart is a temporary place to store a list of your items and reflects each item's most recent price. Learn more [memory]",
+        "Do you have a gift card or promotional code? We'll ask you to enter your claim code when it's time to pay. [memory]",
+        "EMPTY: Your Amazon Cart is empty [verified-secondary: search snippet of amazon.com/cart]",
+        "EMPTY: Shop today's deals [verified-secondary]",
+        "EMPTY signed-out: Sign in to your account (yellow) / Sign up now (white) [verified-secondary]"
+      ],
+      "states": [
+        "Empty, signed out: left card with an illustration (empty cart graphic) and 'Your Amazon Cart is empty', a 'Shop today's deals' link, yellow 'Sign in to your account' and white 'Sign up now' buttons. Right rail hidden. Recently viewed carousel below.",
+        "Empty, signed in: 'Your Amazon Cart is empty' with a 'Shop today's deals' link, no sign-in buttons. The Saved for later / Buy it again section still shows if it has content.",
+        "Loading line update: row dims or overlays a spinner; the stepper is disabled until the response arrives",
+        "Error updating qty: row-level red text, e.g. 'There was a problem updating your cart. Please try again.' (memory, approximate); qty reverts",
+        "Price changed since add: alert box at top with increased/decreased messages; disappears after any interaction (Amazon Forum complaint title), which is bad",
+        "Item went out of stock: the line moves to Saved for later (or stays with 'Currently unavailable' and no longer counts toward the subtotal); alert box message says the item was moved",
+        "Low stock: 'Only N left in stock - order soon.' in orange/red",
+        "Qty exceeds stock or limit: qty auto-capped and the purchase-limit message shown in the row",
+        "Some items deselected: subtotal shows only selected lines; unselected rows stay visible",
+        "Mixed free-shipping eligibility: 'Part of your order qualifies for FREE Shipping.'",
+        "Signed-in Prime: no threshold messaging; Prime badge on lines",
+        "Third-party seller item: 'Sold by X' and 'Ships from X' lines",
+        "Mobile: single column; Proceed button at top; checkboxes usually hidden"
+      ]
+    },
+    {
+      "name": "Sign-in gate for checkout",
+      "url_pattern": "Amazon: /ap/signin?openid.return_to=<checkout URL>&... (memory). Rebuild: /signin?returnTo=/checkout",
+      "purpose": "Checkout requires an account. A signed-out Proceed to checkout or Buy Now sends the shopper here and returns them to checkout afterwards, with the guest cart merged.",
+      "layout": "Centered narrow card under the Amazon logo. H1 'Sign in or create account'. Field label 'Enter mobile number or email'. Yellow 'Continue'. Legal line: 'By continuing, you agree to Amazon's Conditions of Use and Privacy Notice.' Link 'Need help?'. Divider 'Buying for work?' with 'Shop on Amazon Business'. Step 2: 'Password' field, 'Sign in' button, 'Forgot password?'. Unknown email leads to a 'Create account' form (name, email/mobile, password with 'At least 6 characters', re-enter password). Same layout on mobile, full width.",
+      "elements": [
+        "Logo",
+        "'Sign in or create account' heading",
+        "Email/mobile input",
+        "'Continue' button",
+        "Password step with 'Sign in'",
+        "'Forgot password?' link",
+        "Create account path",
+        "Legal consent line"
+      ],
+      "interactions": [
+        "On success, redirect to returnTo. The guest cart merges into the account cart: quantities add up, and limits are then enforced.",
+        "Validation is inline, under the field, with a red icon"
+      ],
+      "microcopy": [
+        "Sign in or create account [memory, 2024+ unified flow]",
+        "Enter mobile number or email [memory]",
+        "Continue [memory]",
+        "By continuing, you agree to Amazon's Conditions of Use and Privacy Notice. [memory]",
+        "Enter your email or mobile phone number [memory, empty-field error]",
+        "Your password is incorrect [memory]",
+        "We cannot find an account with that email address [memory]"
+      ],
+      "states": [
+        "Empty-field error",
+        "Wrong password",
+        "Unknown account leads to create account",
+        "Loading on Continue"
+      ]
+    },
+    {
+      "name": "Checkout (single-page 'Secure checkout')",
+      "url_pattern": "Amazon: /checkout/entry/cart?proceedToCheckout=1 redirects to /checkout/p/p-<id>/spc (newer). Older: /gp/buy/spc/handlers/display.html. Buy Now: /checkout/entry/buynow (all from memory). Rebuild: /checkout (cart lines) and /checkout?buyNow=<productId>&qty=N",
+      "purpose": "Confirm where it ships, how it is paid, and when it arrives, then place the order, with the totals always visible.",
+      "layout": "Minimal header (no search, no nav): Amazon logo on the left, centered 'Secure checkout' with a lock icon (older: 'Checkout (N items)'), cart icon link on the right labeled 'Cart' (returns to /cart). Page background light grey. DESKTOP TWO COLUMNS. LEFT (about 70%), stacked white section cards:\n(1) DELIVERY. Collapsed: 'Delivering to Jane Doe' with the address on one line ('123 Main St, APT 4, SEATTLE, WA 98101-1234') and a 'Change' link on the right, plus 'Add delivery instructions'. Older design: numbered '1  Shipping address'. Expanded (Change clicked, or no address yet): heading 'Select a delivery address'. Radio list of address cards, each with bold name, address, 'Phone number: ...', and links 'Edit address | Add delivery instructions'. Link '+ Add a new delivery address'. Yellow 'Deliver to this address' (older: 'Use this address').\n(2) PAYMENT. Collapsed: 'Paying with Visa 1234' with the card logo and 'Change'. Shows 'Billing address: Same as delivery address' when applicable. Expanded: heading 'Payment method'. Sub-block 'Your credit and debit cards', a radio list of rows with card logo, 'Visa ending in 1234', name on card and 'Expires 04/2028'. Choosing a saved card for a new address can prompt 'Verify your card' and require re-entering the card number. Link '+ Add a credit or debit card'. Sub-block 'Other payment methods': 'Personal Checking Accounts', 'Add a personal checking account'; 'Venmo'; 'Affirm'; 'EBT card'. Sub-block gift cards: 'Use your $0.00 Amazon Gift Card balance' checkbox and 'Enter a gift card, voucher or promotional code' with input placeholder 'Enter Code' and a white 'Apply' button. Yellow 'Use this payment method'.\n(3) REVIEW ITEMS AND SHIPPING. One card per shipment group. Group header in green bold: 'Arriving Sep 16, 2026' (or 'Delivery: Sep 16, 2026'), with 'If you order in the next 3 hours and 12 mins' in smaller text. Left of the group: item rows with thumbnail about 90px, bold title, price in red/bold, 'Sold by: Amazon.com', qty dropdown 'Qty: 1' (editable), 'Add gift options' link (or a gift icon if flagged), and 'Delete'. Right of the group: 'Choose your delivery option:' radio list, e.g. 'Tuesday, Sep 16 FREE Prime Delivery', 'Tomorrow, Sep 15 $2.99 One-Day Delivery', 'Friday, Sep 19 FREE Amazon Day Delivery', and for non-Prime 'Monday, Sep 22 - Wednesday, Sep 24 FREE Shipping' vs 'Thursday, Sep 18 $6.99 Standard Shipping'.\n(4) Bottom-of-page place order block: yellow 'Place your order' on the left with 'Order total: $X.XX' in red bold and the legal line.\n(5) Fine print: 'Need help? Check our Help pages or contact us', 'For an item sold by Amazon.com: When you click the \"Place your order\" button, we'll send you an email message acknowledging receipt of your order. Your contract to purchase an item will not be complete until we send you an email notifying you that the item has been shipped.', plus returns and tax notes with links 'Amazon.com's Returns Policy', 'Amazon Prime'.\nRIGHT RAIL (about 30%, sticky): yellow full-width 'Place your order'; legal line 'By placing your order, you agree to Amazon's privacy notice and conditions of use.'; divider; 'Order Summary' table with left labels and right amounts: 'Items (3):', 'Shipping & handling:', 'Free Shipping:' (a negative line when a free-shipping discount applies), 'Promotion applied:' (conditional), 'Total before tax:', 'Estimated tax to be collected:'; divider; 'Order total:' in large red bold. Links under it: 'How are shipping costs calculated?' and 'Why didn't I qualify for free shipping?' (conditional). A Prime trial upsell box may appear between the sections: 'Get FREE delivery ... with a Prime free trial', pre-selected trial option (dark pattern).\nFIRST-TIME USER (no address, no card): sections are forced in sequence (address form open; payment disabled until the address is saved; review disabled until payment is saved). 'Place your order' appears only after all are complete. Older UIs used 'Continue' buttons between steps.\nMOBILE WEB: single column. Top: 'Place your order' button and a short total ('Order total $X.XX'). Then the Delivering to, Paying with and Arriving cards, each tappable to a full-screen picker. Order summary with a 'Place your order' button at the bottom; the button may be sticky.",
+      "elements": [
+        "Minimal header: logo, 'Secure checkout' with lock, Cart link",
+        "Delivery section: collapsed summary with 'Change'; expanded radio address list; '+ Add a new delivery address'; 'Deliver to this address'",
+        "'Add delivery instructions' link",
+        "Payment section: collapsed 'Paying with Visa 1234' with 'Change'; expanded saved cards with 'ending in 1234' and expiry; '+ Add a credit or debit card'; other methods; gift card/promo input 'Enter Code' with 'Apply'; 'Use this payment method'",
+        "Review section: shipment groups with arrival date and 'if you order within' countdown; item rows with qty dropdown, gift options, delete; delivery-speed radio options per group",
+        "Right rail Order Summary: Items (N), Shipping & handling, Free Shipping discount, Promotion applied, Total before tax, Estimated tax to be collected, Order total",
+        "Primary 'Place your order' (rail and bottom of page)",
+        "Legal consent line under 'Place your order'",
+        "Help / contract / returns fine print"
+      ],
+      "interactions": [
+        "'Change' on a section expands it inline and collapses the others. Summary values update when the section is confirmed.",
+        "Selecting a different address re-computes delivery dates, shipping options, tax and availability (some items 'cannot be shipped to the selected address'), then collapses back.",
+        "'+ Add a new delivery address' opens a modal (desktop) or full page (mobile) titled 'Enter a new delivery address' / 'Add an address'. Fields in order: Country/Region (select, default United States); Full name (First and Last name); Phone number (helper 'May be used to assist delivery'); Address (line 1 placeholder 'Street address or P.O. Box'; line 2 placeholder 'Apt, suite, unit, building, floor, etc.'); City; State (select, 'Select' default, 50 states + DC + territories + APO/FPO); ZIP Code; checkbox 'Make this my default address'; expander 'Add preferences, notes, access codes and more' (delivery instructions: property type House/Apartment/Business/Other, security code, 'Can we leave packages...' notes, weekend delivery); yellow 'Use this address'.",
+        "Address validation runs on submit: required-field errors appear under each field in red with an alert icon, and focus jumps to the first error. Then a server-side address check. If the address cannot be verified, a 'Review your address' interstitial shows 'Suggested address' vs 'Original address' radios with 'Use this address'. If the ZIP/state/city do not match, an inline error appears.",
+        "'+ Add a credit or debit card' opens the modal 'Add a credit or debit card'. Fields: Card number; Name on card; Expiration date (MM select and YYYY select); Security code (CVV) with a 'What's this?' tooltip; accepted brand logos row; checkbox 'Set as default payment method'. Buttons 'Cancel' and yellow 'Add your card'. Card-brand logo lights up as the number is typed.",
+        "Promo 'Apply': spinner, then a green 'Promotion applied' line in the summary, or a red error under the input.",
+        "Changing qty in the review section re-prices totals in place. Setting qty to 0 or Delete removes the line (and it is removed from the cart). An empty order sends the shopper back to the cart.",
+        "Selecting a delivery-speed radio updates 'Shipping & handling' and the arrival header immediately.",
+        "'Place your order': the button disables with a spinner, and the server re-validates price, stock, address and payment authorization. Success goes to the thank-you page. Failure scrolls to the offending section with an error banner and keeps all selections.",
+        "Prices changed since the cart: checkout shows a notice and updated totals before placing (memory: 'The price of an item in your order has changed...' approximate).",
+        "Leaving via the 'Cart' link returns to /cart with no loss."
+      ],
+      "microcopy": [
+        "Secure checkout [memory, 2024+ header]",
+        "Checkout (3 items) [memory, older header]",
+        "Delivering to Jane Doe [memory, 2024+]",
+        "Change [verified-secondary: Amazon help snippet 'select Change on the relevant section']",
+        "Add delivery instructions [memory]",
+        "Select a delivery address [memory]",
+        "Deliver to this address / Use this address [memory]",
+        "+ Add a new delivery address [memory]",
+        "Enter a new delivery address / Add an address [memory]",
+        "Country/Region [memory]",
+        "Full name (First and Last name) [memory]",
+        "Phone number  May be used to assist delivery [memory]",
+        "Street address or P.O. Box / Apt, suite, unit, building, floor, etc. [memory, placeholders]",
+        "City / State / ZIP Code [memory]",
+        "Make this my default address [memory]",
+        "Add preferences, notes, access codes and more [memory]",
+        "Please enter a name. [memory]",
+        "Please enter a phone number so we can call if there are any issues with delivery. [memory]",
+        "Please enter an address. [memory]",
+        "Please enter a city name. [memory]",
+        "Please enter a state, region or province. [memory]",
+        "Please enter a ZIP or postal code. [memory]",
+        "Please enter a valid US zip code. / The ZIP code you entered doesn't match the state. [memory, approximate]",
+        "Review your address / We couldn't verify your address [memory, approximate]",
+        "Paying with Visa 1234 [memory, 2024+]",
+        "Payment method [memory]",
+        "Your credit and debit cards [memory]",
+        "Visa ending in 1234 [memory]",
+        "+ Add a credit or debit card [memory]",
+        "Add a credit or debit card  Card number / Name on card / Expiration date / Security code (CVV) / Set as default payment method / Cancel / Add your card [memory]",
+        "Please enter a valid card number. / Your card's expiration date is invalid. / Please enter your card's security code. [memory, approximate]",
+        "Verify your card [memory]",
+        "Use your $0.00 Amazon Gift Card balance [memory]",
+        "Enter a gift card, voucher or promotional code  [Enter Code] [Apply] [memory]",
+        "The promotional code you entered is not valid. [memory]",
+        "The promotional code you entered cannot be applied to your purchase. [memory]",
+        "Use this payment method [memory]",
+        "Arriving Sep 16, 2026 [memory]",
+        "If you order in the next 3 hours and 12 mins [memory pattern]",
+        "Choose your delivery option: [memory]",
+        "FREE Prime Delivery / FREE Shipping / One-Day Delivery / FREE Amazon Day Delivery [memory]",
+        "Sold by: Amazon.com [memory]",
+        "Add gift options [verified-secondary: How-To Geek 'Add Gift Options']",
+        "Save gift options and continue [verified-secondary: How-To Geek]",
+        "Place your order [memory, certain]",
+        "By placing your order, you agree to Amazon's privacy notice and conditions of use. [memory, certain]",
+        "Order Summary [memory]",
+        "Items (3): / Shipping & handling: / Total before tax: / Estimated tax to be collected: / Order total: [verified-secondary: invoice/search snippets list Item(s) Subtotal, Shipping & Handling, Total Before Tax, Estimated Tax to be Collected, Grand Total]",
+        "Free Shipping: -$5.99 / Promotion applied: -$X.XX [memory]",
+        "How are shipping costs calculated? / Why didn't I qualify for free shipping? [memory]",
+        "Your contract to purchase an item will not be complete until we send you an email notifying you that the item has been shipped. [memory]",
+        "There was a problem with your payment. / Your card was declined. Please select another payment method. [memory, approximate]",
+        "This item cannot be shipped to your selected delivery location. Please choose a different delivery location. [memory, approximate]"
+      ],
+      "states": [
+        "Signed out: never renders; redirect to sign-in with returnTo",
+        "Empty cart / nothing selected: redirect to /cart",
+        "Returning user with defaults: all three sections collapsed with summaries; 'Place your order' enabled immediately (the fast path)",
+        "New user: address form open by default; payment and review sections greyed 'not started'; place-order disabled or hidden",
+        "No saved card: payment section expanded with the add-card modal trigger",
+        "Loading/re-pricing after any change: summary amounts show skeleton or spinner; place-order disabled until settled",
+        "Tax before an address exists: 'Estimated tax to be collected: --' or $0.00 until an address is chosen",
+        "Address validation errors (inline per field)",
+        "Unverifiable address: suggestion interstitial",
+        "Item not shippable to the address: red notice on the line with 'Delete' / 'Save for later' options",
+        "Promo invalid: red text under the input",
+        "Card declined on place: red alert banner at top plus payment section re-opened",
+        "Price or stock changed at place-order time: banner, updated totals, and the order is not placed until confirmed again",
+        "Out of stock at place: line flagged 'Currently unavailable', removed from the order, shopper asked to review",
+        "Double-submit: second click ignored; idempotent server",
+        "Mobile: stacked cards, full-screen pickers, sticky bottom 'Place your order'"
+      ]
+    },
+    {
+      "name": "Buy Now express checkout (pop-up / side sheet)",
+      "url_pattern": "Amazon: modal over the product page ('turbo checkout'). Falls back to /checkout/entry/buynow when defaults are missing (memory). Rebuild: sheet on /dp/:id, with /checkout?buyNow=:id as fallback",
+      "purpose": "Buy a single item right away with the default address and card, without touching the cart. The shopper can still change details before placing.",
+      "layout": "DESKTOP (from memory, consistent with the Amazon help snippet about the 'Buy Now pop-up'): centered modal or right sheet, about 400px. Header 'Buy now' with a close X. Product row: thumbnail, title (2 lines), price. Rows, each a tappable line with a right chevron: 'Deliver to Jane - Seattle 98101'; 'Pay with Visa 1234'; 'Arriving Tuesday, Sep 16' with the delivery speed. Then 'Total $X.XX (incl. tax)' in bold. Yellow full-width 'Place your order' button. Legal line beneath: 'By placing your order, you agree to Amazon's privacy notice and conditions of use.' MOBILE: bottom sheet with the same content. Newer 2025 variant for Prime: 'Add to today's delivery' (blue) replaces Buy Now when a same-day order exists.",
+      "elements": [
+        "Sheet header with close",
+        "Item thumbnail/title/price",
+        "Deliver to row (Change)",
+        "Pay with row (Change)",
+        "Arrival/speed row",
+        "Total incl. tax",
+        "'Place your order' button",
+        "Legal line"
+      ],
+      "interactions": [
+        "Buy Now signed out: redirect to sign-in, then return to the express flow",
+        "Buy Now signed in without a default address or card: goes to the full checkout page with only this item",
+        "Tapping a row opens an in-sheet picker (address list / card list / speeds)",
+        "Place your order: same server path as regular checkout, then the thank-you page. The cart is untouched.",
+        "Close or Esc dismisses; nothing is ordered"
+      ],
+      "microcopy": [
+        "Buy Now [memory, product page button label]",
+        "Deliver to / Pay with / Arriving [memory]",
+        "Place your order [memory]",
+        "If you select Buy Now on any product page, we'll charge the default payment method on your account and deliver to your default address. [verified-secondary: Amazon help snippet]",
+        "You can check whether the delivery and payment information are correct in the Buy Now pop-up, or on the order review/checkout screen, before placing your order. [verified-secondary: Amazon help snippet]",
+        "Add to today's delivery [verified: TechCrunch fetch, 2025 Prime feature]"
+      ],
+      "states": [
+        "Signed out: sign-in redirect",
+        "Missing defaults: full checkout",
+        "Loading totals",
+        "Declined: error in sheet with 'Change' on Pay with",
+        "Out of stock: button disabled 'Currently unavailable'"
+      ]
+    },
+    {
+      "name": "Order placed / thank-you page",
+      "url_pattern": "Amazon: /gp/buy/thankyou/handlers/display.html?purchaseId=... (memory). Rebuild: /checkout/thank-you/:orderId (or /orders/:id?placed=1)",
+      "purpose": "Reassure the shopper that the order went through, and state where it is going and when it arrives, with links to edit the order or keep shopping.",
+      "layout": "DESKTOP (from memory): header back to the full nav. Top white card with a green check and 'Order placed, thanks!' in green bold. 'Confirmation will be sent to your email.' Then bold 'Shipping to Jane Doe,' followed by the address on one line. Then a shipment block (one per group): bold 'Tuesday, Sep 16' or 'Arriving Sep 16' with a delivery speed line and item thumbnails in a row. Link 'Review or edit your recent orders' (to Your Orders). Occasional Prime upsell or 'Amazon Day' prompt card to the right. Below: 'Continue shopping' (older builds) and recommendation carousels ('Customers who bought items in your order also bought', 'Buy it again'). Some builds show a small feedback prompt 'How was your checkout experience?'. MOBILE: same stack, full width; thumbnails wrap.",
+      "elements": [
+        "Green check and 'Order placed, thanks!'",
+        "'Confirmation will be sent to your email.'",
+        "'Shipping to <Name>, <address>'",
+        "Per-shipment delivery date and thumbnails",
+        "'Review or edit your recent orders' link",
+        "'Continue shopping' link/button",
+        "Recommendation carousels"
+      ],
+      "interactions": [
+        "Refreshing the page shows the same confirmation, with no re-order",
+        "Header cart badge shows the remaining (unselected/unordered) item count",
+        "'Review or edit your recent orders' goes to the order list. A cancel window exists before shipping (feedvisor cites ~30 min for Buy Now; treat as unverified)."
+      ],
+      "microcopy": [
+        "Order placed, thanks! [memory, certain]",
+        "Confirmation will be sent to your email. [memory, certain]",
+        "Shipping to Jane Doe, 123 MAIN ST, APT 4, SEATTLE, WA, 98101-1234, United States [memory pattern]",
+        "Review or edit your recent orders [memory]",
+        "Continue shopping [memory]",
+        "Arriving Sep 16 [memory pattern]"
+      ],
+      "states": [
+        "Normal success",
+        "Order split across multiple shipments (multiple date blocks)",
+        "Pending payment verification: 'Your order is pending...' variant (memory; low priority)",
+        "Direct hit without a valid order id for this user: redirect to home/orders"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "Add to Cart to confirmation",
+      "steps": [
+        "On the product page, pick qty (default 1) and click yellow 'Add to Cart'.",
+        "Button shows a spinner and disables. POST /api/cart {productId, qty}. Server merges with an existing line (qty += n), caps at min(stock, perCustomerLimit), and returns the cart summary plus any capping notice.",
+        "Header cart badge animates to the new total quantity.",
+        "Desktop: the right side sheet opens with a green check, 'Added to cart', thumbnail, 'Cart subtotal: $X.XX', free-shipping status, 'Proceed to checkout (N items)' and 'Go to Cart'. Mobile: bottom sheet with the same content.",
+        "Cross-sell carousel inside the sheet (P2). Its 'Add to cart' updates the subtotal in place.",
+        "The shopper either closes the sheet (focus returns to the Add button), goes to the cart, or proceeds to checkout."
+      ]
+    },
+    {
+      "name": "Guest cart then sign-in merge",
+      "steps": [
+        "Signed-out shopper adds items. The cart is stored server-side by an anonymous session cookie (or localStorage for a 24h build).",
+        "Proceed to checkout redirects to /signin?returnTo=/checkout.",
+        "On sign-in or account creation, the guest lines merge into the user cart: the same product adds quantities, capped at limits, and a notice shows if anything was capped.",
+        "Redirect to /checkout with the merged, selected lines."
+      ]
+    },
+    {
+      "name": "Edit cart",
+      "steps": [
+        "Go to /cart. The server re-prices lines against the current product price and stock.",
+        "If any priceAtAdd differs from the current price, or an item is unavailable, render the 'Important messages about items in your Cart:' box (and persist it until dismissed, unlike Amazon).",
+        "'+'/'-' stepper sends PATCH qty with an optimistic UI. The subtotal and badge update. On error, revert with row error text.",
+        "At qty 1 the '-' becomes a trash icon, and tapping it deletes. The row collapses to '<Title> was removed from Shopping Cart.' with an 'Undo' (rebuild improvement).",
+        "Uncheck a line to exclude it from the subtotal and checkout. 'Deselect all items' / 'Select all items' toggles all.",
+        "'Save for later' moves the line to the Saved for later list ('has been moved to Saved For Later'). 'Move to cart' reverses it.",
+        "'This is a gift' checkbox flags the line for gift options at checkout.",
+        "Right rail shows 'Subtotal (N items): $X' and the free-shipping progress (threshold $35 non-Prime) and 'Proceed to checkout'."
+      ]
+    },
+    {
+      "name": "Checkout happy path, returning user with defaults",
+      "steps": [
+        "Click 'Proceed to checkout' on the cart (or the confirmation sheet).",
+        "Server builds a checkout session from selected cart lines, the default address, the default card, and the cheapest delivery option per group (FREE when eligible).",
+        "/checkout renders all sections collapsed: 'Delivering to Jane Doe ... Change', 'Paying with Visa 1234 ... Change', 'Arriving Sep 16' groups with speed radios. The right rail summary is filled in, including estimated tax for the address state.",
+        "Optionally change the delivery speed. Shipping & handling and the order total update.",
+        "Click 'Place your order'. The button disables with a spinner. POST /api/orders with an idempotency key.",
+        "Server re-validates price, stock, limits, address and card (mock authorization), then writes the order and order items as snapshots in one transaction, decrements stock, and removes ordered lines from the cart (unselected lines stay).",
+        "Redirect to /checkout/thank-you/:id: 'Order placed, thanks!', 'Confirmation will be sent to your email.', 'Shipping to ...', arrival date, 'Review or edit your recent orders'."
+      ]
+    },
+    {
+      "name": "Checkout first-time user (no address, no card)",
+      "steps": [
+        "Arrive at /checkout signed in with no saved address. The delivery section opens with the address form; payment and review are shown disabled.",
+        "Fill in Country (US), Full name, Phone number, Address line 1, optional line 2, City, State (select), ZIP Code, and 'Make this my default address' (checked by default for a first address).",
+        "Submit 'Use this address'. Client validation shows per-field errors ('Please enter a name.', 'Please enter a ZIP or postal code.', etc.), and focus goes to the first error.",
+        "Server validation checks ZIP format (5 or 9 digits) and that the ZIP prefix matches the state. On mismatch, show a field error; on success, the section collapses to 'Delivering to ...'.",
+        "The payment section opens. Click '+ Add a credit or debit card' to open the modal: Card number (Luhn check, brand detection), Name on card, Expiration MM/YYYY (not in the past), CVV (3 digits, or 4 for Amex). Then 'Add your card'.",
+        "Only brand, last4, expiry and name are stored. CVV is never stored. The section collapses to 'Paying with Visa 1234'.",
+        "The review section enables and the summary computes. 'Place your order' is enabled, then follow the happy path."
+      ]
+    },
+    {
+      "name": "Change address / payment in checkout",
+      "steps": [
+        "Click 'Change' next to 'Delivering to'. The section expands to a radio list of saved addresses and '+ Add a new delivery address'.",
+        "Select a different address and click 'Deliver to this address'.",
+        "Server re-computes delivery dates, shipping options, tax (new state rate) and shippability. Lines that cannot ship there are flagged.",
+        "Click 'Change' next to 'Paying with' to select another card or add one, then 'Use this payment method'."
+      ]
+    },
+    {
+      "name": "Promo / gift card code",
+      "steps": [
+        "In the payment section, type a code into 'Enter Code' and click 'Apply'.",
+        "Server checks the code exists, is not expired, and meets the minimum subtotal.",
+        "Success: green 'Promotion applied' text and a summary line 'Promotion applied: -$X.XX'. The total re-computes (tax applied to the discounted subtotal).",
+        "Failure: red text under the input, 'The promotional code you entered is not valid.' or 'The promotional code you entered cannot be applied to your purchase.'"
+      ]
+    },
+    {
+      "name": "Card declined",
+      "steps": [
+        "Click 'Place your order'. Mock authorization declines (e.g. test card number 4000 0000 0000 0002, or a card with past expiry).",
+        "No order is created, and the cart is untouched.",
+        "A red alert banner at the top of the checkout says 'There was a problem with your payment. Your card was declined. Please select another payment method or add a new card.' The payment section re-opens with the declined card marked.",
+        "The shopper picks or adds another card and places the order again. (Amazon's post-order 'Payment revision needed' with 'Retry payment method' / 'Change payment method' is skipped for the rebuild because authorization is synchronous.)"
+      ]
+    },
+    {
+      "name": "Price or stock changed at place-order time",
+      "steps": [
+        "Server re-prices during place-order and finds a price or stock change (or the qty limit exceeded).",
+        "Order is not placed. Checkout re-renders with a yellow notice, e.g. 'Some items in your order have changed. Please review before placing your order.', listing old to new price, qty caps, and removed unavailable items.",
+        "Totals update, and the shopper clicks 'Place your order' again to confirm."
+      ]
+    },
+    {
+      "name": "Buy Now",
+      "steps": [
+        "Click 'Buy Now' on the product page.",
+        "Signed out: sign-in, then return.",
+        "Signed in with a default address and card: open the Buy Now sheet (item, Deliver to, Pay with, Arriving, Total incl. tax, 'Place your order').",
+        "Missing defaults: go to /checkout?buyNow=:id&qty=N (full checkout, only this item, cart untouched).",
+        "'Place your order' uses the same order endpoint with source=buyNow, then the thank-you page."
+      ]
+    },
+    {
+      "name": "Empty cart",
+      "steps": [
+        "Go to /cart with zero lines.",
+        "Signed out: show the empty illustration, 'Your Amazon Cart is empty', 'Shop today's deals', yellow 'Sign in to your account', white 'Sign up now'.",
+        "Signed in: 'Your Amazon Cart is empty' with 'Shop today's deals'. The Saved for later section is shown if non-empty.",
+        "Visiting /checkout with nothing selected redirects to /cart."
+      ]
+    }
+  ],
+  "priorities": [
+    {
+      "feature": "Add to Cart API with merge-on-duplicate, stock/limit capping, and header badge count update",
+      "tier": "P0",
+      "why": "Core of the shopping loop; every other surface depends on it."
+    },
+    {
+      "feature": "Added-to-cart confirmation side sheet (thumbnail, 'Added to cart', Cart subtotal, 'Proceed to checkout (N items)', 'Go to Cart')",
+      "tier": "P0",
+      "why": "Immediate feedback and the fastest path to checkout; it is one component."
+    },
+    {
+      "feature": "Cart page: line items with image, title, price, In Stock, qty stepper (trash at 1), Delete, Subtotal (N items), Proceed to checkout",
+      "tier": "P0",
+      "why": "Required to review and edit before paying."
+    },
+    {
+      "feature": "Empty cart state (signed-in and signed-out variants with sign-in buttons)",
+      "tier": "P0",
+      "why": "Zero-cost, and it is the first thing judges see on a fresh session."
+    },
+    {
+      "feature": "Guest cart (cookie/localStorage) with merge into the account cart at sign-in",
+      "tier": "P0",
+      "why": "Shoppers add before signing in. Losing the cart at the sign-in wall breaks the loop."
+    },
+    {
+      "feature": "Sign-in redirect gate with returnTo for checkout",
+      "tier": "P0",
+      "why": "Checkout needs an identity for addresses and orders."
+    },
+    {
+      "feature": "Checkout single page: address section (saved list, add form with validation, default flag)",
+      "tier": "P0",
+      "why": "Cannot place an order without a shipping address. Validation is a trust-boundary requirement."
+    },
+    {
+      "feature": "Checkout payment: saved cards list plus 'Add a credit or debit card' modal with Luhn/expiry/CVV validation (mock processor; store brand+last4 only)",
+      "tier": "P0",
+      "why": "End-to-end loop needs a payment step. Real PCI processing is out of scope, so mock authorization with declines for a test number."
+    },
+    {
+      "feature": "Review items grouped by delivery date with delivery-speed radios (FREE Standard / paid faster) that change shipping",
+      "tier": "P0",
+      "why": "Delivery date and cost drive the decision on Amazon. Grouping can be a single group for a 24h build."
+    },
+    {
+      "feature": "Order summary (Items, Shipping & handling, Total before tax, Estimated tax to be collected, Order total) plus 'Place your order' with legal line",
+      "tier": "P0",
+      "why": "Money math and the commit button are the heart of checkout."
+    },
+    {
+      "feature": "Server-side re-validation of price/stock/limits at place-order, plus idempotent order creation (double-click safe)",
+      "tier": "P0",
+      "why": "Prevents wrong charges and duplicate orders. Cheap to do once in the order endpoint."
+    },
+    {
+      "feature": "Order placed confirmation page ('Order placed, thanks!', shipping to, arrival date, 'Review or edit your recent orders', 'Continue shopping')",
+      "tier": "P0",
+      "why": "Closes the loop; the proof that the whole flow works."
+    },
+    {
+      "feature": "Free shipping threshold logic ($35 non-Prime) with cart progress message 'Add $X of eligible items...' / 'Your order qualifies for FREE Shipping'",
+      "tier": "P1",
+      "why": "One function, highly recognizable, and it drives basket size."
+    },
+    {
+      "feature": "Save for later plus 'Move to cart' section",
+      "tier": "P1",
+      "why": "Strongly expected Amazon behavior; it is just a boolean flag on the cart line."
+    },
+    {
+      "feature": "Per-line include checkbox plus 'Deselect all items' affecting the subtotal/checkout",
+      "tier": "P1",
+      "why": "Distinctive Amazon efficiency feature; a selected boolean plus a filter."
+    },
+    {
+      "feature": "Buy Now: go straight to /checkout with only that item (skip the sheet)",
+      "tier": "P1",
+      "why": "Reuses the checkout page with a different line source. The express sheet itself is P2."
+    },
+    {
+      "feature": "Price-changed / unavailable notices ('Important messages about items in your Cart:')",
+      "tier": "P1",
+      "why": "Compare priceAtAdd vs the current price on load; shows judgement about trust."
+    },
+    {
+      "feature": "Promo code 'Enter Code' + 'Apply' with valid/invalid messages (a couple of seeded codes)",
+      "tier": "P1",
+      "why": "Cheap table lookup; demonstrates error states."
+    },
+    {
+      "feature": "Card declined and address-invalid error states",
+      "tier": "P1",
+      "why": "Error handling is part of UX quality judging; both are deterministic mock rules."
+    },
+    {
+      "feature": "Estimated tax by state (static rate table) computed after address",
+      "tier": "P1",
+      "why": "Totals feel real; a 50-row map replaces a tax engine."
+    },
+    {
+      "feature": "Quantity limits (per-product maxPerCustomer, stock cap) with 'purchase limit' notice",
+      "tier": "P1",
+      "why": "Single clamp function reused by add, update and place-order."
+    },
+    {
+      "feature": "Mobile layout: sticky 'Proceed to checkout' / 'Place your order', stacked sections, bottom sheet",
+      "tier": "P1",
+      "why": "Most Amazon traffic is mobile, and responsive CSS is cheap if designed in from the start."
+    },
+    {
+      "feature": "Delete with Undo toast",
+      "tier": "P1",
+      "why": "A few lines and better than Amazon; prevents accidental loss."
+    },
+    {
+      "feature": "'This is a gift' checkbox plus gift message at checkout",
+      "tier": "P2",
+      "why": "Recognizable but not on the core path; a flag and a text field."
+    },
+    {
+      "feature": "Buy Now express sheet (Deliver to / Pay with / Arriving / Place your order)",
+      "tier": "P2",
+      "why": "Nice speed demo but duplicates checkout UI; do it only after P1."
+    },
+    {
+      "feature": "Cross-sell carousels on the confirmation sheet and cart ('Customers who bought...')",
+      "tier": "P2",
+      "why": "Revenue feature, not loop-critical; can reuse the search/product card component with a same-category query."
+    },
+    {
+      "feature": "'Compare with similar items' side sheet",
+      "tier": "P2",
+      "why": "Needs attribute data and a table layout; low value for the loop."
+    },
+    {
+      "feature": "'Share' link on cart lines",
+      "tier": "P2",
+      "why": "navigator.share or copy link to the product; trivial but low value."
+    },
+    {
+      "feature": "Multiple shipment groups with different arrival dates per item",
+      "tier": "P2",
+      "why": "Realistic but complex; a single group with per-item dates is enough."
+    },
+    {
+      "feature": "Delivery instructions expander on the address form",
+      "tier": "P2",
+      "why": "One textarea; nice but not required."
+    },
+    {
+      "feature": "Wide-screen persistent right cart sidebar (ewc)",
+      "tier": "skip",
+      "why": "Users actively dislike it (extensions and uBlock rules exist to hide it); the side sheet covers the need."
+    },
+    {
+      "feature": "Protection plan / warranty interstitial",
+      "tier": "skip",
+      "why": "Upsell friction with no loop value; needs a warranty catalog."
+    },
+    {
+      "feature": "Prime free trial upsell inside checkout",
+      "tier": "skip",
+      "why": "Known dark pattern; no membership system in scope."
+    },
+    {
+      "feature": "Real payment processing, 3-D Secure, Venmo/Affirm/EBT/checking accounts",
+      "tier": "skip",
+      "why": "PCI and third-party integrations are impossible in 24h; a mock card with a clearly labeled demo covers the UX."
+    },
+    {
+      "feature": "Gift card balance and gift wrap pricing",
+      "tier": "skip",
+      "why": "Separate ledger and pricing rules; the promo code demonstrates the same UI."
+    },
+    {
+      "feature": "Address verification service (USPS suggestions interstitial)",
+      "tier": "skip",
+      "why": "External API; ZIP-state prefix check gives a representative error state."
+    },
+    {
+      "feature": "Post-order 'Payment revision needed' retry flow and order cancellation window",
+      "tier": "skip",
+      "why": "Requires async charge lifecycle and an orders management surface outside this area."
+    },
+    {
+      "feature": "Amazon Day delivery, 'Add to today's delivery', subscribe & save, business/multi-address shipping",
+      "tier": "skip",
+      "why": "Membership- and logistics-dependent features with no value for a demo loop."
+    },
+    {
+      "feature": "Buy it again tab in cart",
+      "tier": "skip",
+      "why": "Depends on order history volume; belongs to the orders surface."
+    },
+    {
+      "feature": "International shipping / import fees / country selector beyond US",
+      "tier": "skip",
+      "why": "Scope is amazon.com US; Country fixed to United States."
+    }
+  ],
+  "better_than_original": [
+    "One consistent quantity control everywhere (stepper with trash at 1, typed entry for more than 10), instead of Amazon's mix of dropdown '10+' textbox and stepper across builds.",
+    "Delete and Save for later show an 'Undo' toast (5s) instead of Amazon's dead-end '<Title> was removed from Shopping Cart.' line.",
+    "Price-change and out-of-stock notices stay pinned per line (e.g. a 'Price dropped $14.89 since added' chip) until dismissed. Amazon's 'Important messages' box vanishes after any interaction, which shoppers complain about on Amazon's own forum.",
+    "Free-shipping progress is a real progress bar with the exact remaining amount, and it counts only selected, eligible lines, so 'Part of your order qualifies' ambiguity goes away.",
+    "Show the estimated total (with shipping and tax once an address is known) in the cart, not just the subtotal, so checkout has no surprise jump.",
+    "'Proceed to checkout' is disabled with a clear hint ('Select at least one item to check out') when all lines are deselected, instead of proceeding to an empty or confusing state.",
+    "No wide-screen persistent sidebar that steals horizontal space: use a dismissible side sheet on add, with focus returned to the triggering button.",
+    "No upsell interstitials in the purchase path (no protection-plan modal, no pre-selected Prime trial). Recommendations sit below the fold only.",
+    "Checkout with defaults shows everything collapsed with one-click 'Change', and a first-time user gets a clear 3-step progress indicator (Address, Payment, Review) with completed checkmarks, so there is no guessing why 'Place your order' is missing.",
+    "Delivery speed options show date and price side by side, with the cheapest and fastest labeled, and the arrival header updates instantly. Amazon's per-group radio blocks are dense and easy to skim past (Emily Pak's user research found shoppers 'ordered too quickly and didn't see all the options').",
+    "The address form uses autocomplete attributes (name, tel, address-line1, address-level2, address-level1, postal-code), inputmode='numeric' for ZIP and card, and a ZIP-first city/state autofill from a small lookup, so there is less typing than on Amazon.",
+    "The card form uses native autocomplete (cc-number, cc-exp, cc-csc, cc-name), a single MM/YY field, live brand detection, and Luhn validation on blur, not only on submit.",
+    "Accessibility: errors are linked via aria-describedby with an error summary at the top that focuses on submit; quantity changes and subtotal updates are announced via aria-live; the side sheet traps focus and closes on Esc; all actions are real buttons, not text links, with 44px touch targets on mobile.",
+    "Idempotent 'Place your order' (button locks, idempotency key) plus an explicit re-validation diff screen, so shoppers never get duplicate orders or silent price changes.",
+    "Speed: optimistic cart updates with server reconciliation, and the checkout summary is computed by one pure function shared by client and server, so totals never flicker or disagree.",
+    "Card-declined errors say what to do next ('Try another card or add a new one') and keep every other selection. There is no post-order 'Payment revision needed' surprise because authorization happens before the order is confirmed.",
+    "The confirmation page shows the actual order number, itemized total paid and a copyable summary, instead of Amazon's minimal 'Confirmation will be sent to your email.' (Amazon emails have also dropped item details)."
+  ],
+  "data": [
+    {
+      "entity": "Product (fields needed by cart/checkout)",
+      "fields": [
+        "id (ASIN-like)",
+        "title",
+        "imageUrl",
+        "priceCents",
+        "listPriceCents (nullable, for strikethrough)",
+        "stockQty",
+        "maxPerCustomer (nullable)",
+        "freeShippingEligible (bool)",
+        "primeEligible (bool)",
+        "soldBy",
+        "shipsFrom",
+        "variationAttrs {Color, Size...}",
+        "category",
+        "weightClass (for shipping options, optional)"
+      ]
+    },
+    {
+      "entity": "CartLine",
+      "fields": [
+        "id",
+        "ownerId (userId) or sessionId (guest)",
+        "productId",
+        "qty (1..min(stock,maxPerCustomer,30))",
+        "selected (bool, default true)",
+        "savedForLater (bool)",
+        "isGift (bool)",
+        "priceAtAddCents (for change notices)",
+        "addedAt",
+        "updatedAt",
+        "unique(ownerId, productId, savedForLater)"
+      ]
+    },
+    {
+      "entity": "Address",
+      "fields": [
+        "id",
+        "userId",
+        "country (US)",
+        "fullName",
+        "phone",
+        "line1",
+        "line2 (nullable)",
+        "city",
+        "state (2-letter)",
+        "zip (5 or ZIP+4)",
+        "isDefault",
+        "deliveryInstructions (nullable)",
+        "createdAt"
+      ]
+    },
+    {
+      "entity": "PaymentMethod (mock; never store PAN/CVV)",
+      "fields": [
+        "id",
+        "userId",
+        "brand (visa|mastercard|amex|discover)",
+        "last4",
+        "nameOnCard",
+        "expMonth",
+        "expYear",
+        "isDefault",
+        "billingAddressId (nullable, defaults to shipping)",
+        "createdAt"
+      ]
+    },
+    {
+      "entity": "DeliveryOption (static config)",
+      "fields": [
+        "id (standard_free|standard|expedited|one_day)",
+        "label ('FREE Shipping', 'Standard Shipping', 'One-Day Delivery')",
+        "priceCents (0 when subtotal >= 3500 for standard_free)",
+        "minBusinessDays",
+        "maxBusinessDays",
+        "requiresThreshold (bool)"
+      ]
+    },
+    {
+      "entity": "PromoCode",
+      "fields": [
+        "code (uppercase)",
+        "type (percent|fixed)",
+        "value",
+        "minSubtotalCents",
+        "expiresAt",
+        "active"
+      ]
+    },
+    {
+      "entity": "TaxRate (static map)",
+      "fields": [
+        "state",
+        "rate (e.g. WA 0.1025, CA 0.0725, OR 0, ...)"
+      ]
+    },
+    {
+      "entity": "Order",
+      "fields": [
+        "id (display format '111-1234567-1234567')",
+        "userId",
+        "status (placed|cancelled)",
+        "source (cart|buyNow)",
+        "addressSnapshot {fullName, line1, line2, city, state, zip, phone}",
+        "paymentSnapshot {brand, last4}",
+        "deliveryOptionId",
+        "estimatedDeliveryDate",
+        "itemsSubtotalCents",
+        "shippingCents",
+        "discountCents",
+        "promoCode (nullable)",
+        "taxCents",
+        "totalCents",
+        "giftMessage (nullable)",
+        "idempotencyKey (unique)",
+        "createdAt"
+      ]
+    },
+    {
+      "entity": "OrderItem",
+      "fields": [
+        "id",
+        "orderId",
+        "productId",
+        "titleSnapshot",
+        "imageSnapshot",
+        "unitPriceCents",
+        "qty",
+        "isGift"
+      ]
+    },
+    {
+      "entity": "CheckoutQuote (computed, not stored)",
+      "fields": [
+        "lines[] {productId, qty, unitPriceCents, changedFromCents?, unavailable?}",
+        "itemCount",
+        "itemsSubtotalCents",
+        "shippingCents",
+        "freeShippingDiscountCents",
+        "promoDiscountCents",
+        "totalBeforeTaxCents",
+        "estimatedTaxCents",
+        "orderTotalCents",
+        "amountToFreeShippingCents",
+        "deliveryOptions[] with dates",
+        "notices[]"
+      ]
+    },
+    {
+      "entity": "User (touchpoints only)",
+      "fields": [
+        "id",
+        "name",
+        "email",
+        "passwordHash",
+        "isPrime (bool, seed false)",
+        "defaultAddressId",
+        "defaultPaymentMethodId"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.amazon.com/gp/cart/view.html",
+      "verified": false,
+      "note": "WebFetch returned HTTP 503 (bot block). Cart layout and microcopy in this report are from memory unless tagged verified-secondary."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GZXW7X6AKTHNUP6H",
+      "verified": false,
+      "note": "Free shipping help page; HTTP 503 blocked."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G8T7L5ATZJXVZTU6",
+      "verified": false,
+      "note": "Help page; HTTP 503 blocked."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GF3GA88LAZ36ZMSQ",
+      "verified": false,
+      "note": "'Shopping Cart Prices' help page; fetch 503. A search snippet confirmed: items reflect the most recent price, and adding to the cart doesn't reserve the price."
+    },
+    {
+      "url": "https://us.amazon.com/ask/questions/Tx2S6ODDRO7VPOM/",
+      "verified": false,
+      "note": "Search snippet only. Price-change messages 'Please note that the price of X has increased/decreased from $A to $B since you placed it in your Shopping Cart.'"
+    },
+    {
+      "url": "https://www.amazonforum.com/s/question/0D54P00008IWFXuSAP/in-the-cart-the-box-called-important-messages-about-items-in-your-cart-about-increases-and-decreases-in-prices-on-items-or-saved-for-later-it-goes-away-if-you-do-anything-at-all-i-would-like-to-know-how-to-access-it-again",
+      "verified": false,
+      "note": "Fetch returned a loading error. The thread title itself confirms the 'Important messages about items in your Cart' box and that it disappears after any action."
+    },
+    {
+      "url": "https://www.amazon.com/cart?ref_=ewc_gtc",
+      "verified": false,
+      "note": "Appeared in search results for the empty-cart query. The snippet confirms 'Shop today's deals', 'Sign in to your account', 'Sign up now' on the cart page. Not fetched directly."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GU224Z5TL5RBQTJA",
+      "verified": false,
+      "note": "'Buy Now Ordering' help page. Search snippets only: Buy Now pop-up lets you review and change delivery and payment; charges the default payment method to the default address."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=GVMU4A8KZ54WP4MP",
+      "verified": false,
+      "note": "'Quantity Limit' help page. Search snippet: limits notified as quantities are added; quantities adjusted at checkout; limits can apply across orders sharing an account/card/address."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=G6P826S3WMEV8SPN",
+      "verified": false,
+      "note": "'Payment Revision Needed' help page. Search snippet: 'Retry Payment Method' / 'Change Payment Method' next to the order; order cancelled if declined again."
+    },
+    {
+      "url": "https://www.amazon.com/gp/help/customer/display.html?nodeId=202036190",
+      "verified": false,
+      "note": "'About US State Sales and Use Taxes'. Search snippet: 'Estimated Tax' shown at checkout and may update when finalized; rate based on the delivery address."
+    },
+    {
+      "url": "https://www.cnbc.com/2023/08/28/amazon-hikes-free-shipping-minimum-to-35-for-some-users-without-prime.html",
+      "verified": false,
+      "note": "Fetch returned 403. Headline via search: free shipping minimum raised to $35 for some non-Prime customers (2023)."
+    },
+    {
+      "url": "https://unanswered.io/guide/amazon-free-shipping-policy-minimum-prime-benefits",
+      "verified": false,
+      "note": "Search summary: $35 non-Prime minimum in 2026, standard 5-8 day delivery; books possibly $25 (unconfirmed)."
+    },
+    {
+      "url": "https://www.howtogeek.com/746805/how-to-give-a-gift-receipt-with-an-amazon-purchase/",
+      "verified": true,
+      "note": "Fetched. Labels 'This Is a Gift' (cart), 'Add Gift Options' (checkout), 'Save Gift Options and Continue'."
+    },
+    {
+      "url": "https://techcrunch.com/2025/10/02/amazon-now-lets-prime-members-add-items-to-upcoming-orders-with-one-tap/",
+      "verified": true,
+      "note": "Fetched. 'Add to today's delivery' button replaces Buy Now for eligible Prime members (app and web), below Add to cart, with undo."
+    },
+    {
+      "url": "https://gist.github.com/t27/e188046e9457b8ce4d2e448c25f2bc29",
+      "verified": true,
+      "note": "Fetched. Confirms the persistent cart sidebar (#nav-flyout-ewc) showing the cart subtotal, which users want hidden and which leaves whitespace."
+    },
+    {
+      "url": "https://chrome.google.com/webstore/detail/hide-amazon-cart-sidebar/ijlbklkecnccljkihiakhbkphcbemkjd?hl=en-US",
+      "verified": false,
+      "note": "Search result only. An extension exists to hide the Amazon cart sidebar, which supports skipping it."
+    },
+    {
+      "url": "https://www.emilypak.com/amzn-checkout",
+      "verified": true,
+      "note": "Fetched. 2021 Amazon checkout UX case study: yellow primary CTA; users skim and rely on defaults ('I ordered too quickly and didn't see all the options'); single-page checkout crowded."
+    },
+    {
+      "url": "https://feedvisor.com/university/1-click/",
+      "verified": true,
+      "note": "Fetched, but it claims Buy Now completes instantly with no review. This contradicts Amazon's own help snippet about the Buy Now pop-up; treated as outdated (legacy 1-Click). Mentions a ~30 min cancel window (unverified)."
+    },
+    {
+      "url": "https://www.slashgear.com/1812219/amazon-payment-revision-needed-meaning-how-fix/",
+      "verified": true,
+      "note": "Fetched. Paraphrases only: payment revision appears when the bank declines; no verbatim labels."
+    },
+    {
+      "url": "https://procurement.ofa.ncsu.edu/2019/06/28/new-amazon-enhanced-checkout",
+      "verified": true,
+      "note": "Fetched. Amazon Business procurement note with no consumer UI details; not used."
+    },
+    {
+      "url": "https://www.elasticpath.com/blog/amazon-alerts-shoppers-of-price-changes-in-cart",
+      "verified": false,
+      "note": "Fetch returned the blog index, not the article; not used."
+    },
+    {
+      "url": "https://rebatekey.com/blog/how-long-items-stay-amazon-cart/",
+      "verified": false,
+      "note": "Search snippet only. Conflicting retention claims (about 21 days vs 2 weeks); inventory is not reserved in the cart. Low confidence."
+    },
+    {
+      "url": "https://www.businesswire.com/news/home/20221025005382/en",
+      "verified": false,
+      "note": "Search result title only: Venmo added as an Amazon payment option (2022)."
+    },
+    {
+      "url": "memory://amazon-desktop-mobile-web-2024-2026",
+      "verified": false,
+      "note": "Most exact layouts and microcopy come from memory and are tagged [memory] in screens: 'Secure checkout' header, 'Delivering to'/'Paying with' collapsed sections, address and card form labels and validation messages, 'Place your order' legal line, order summary labels, 'Order placed, thanks!', 'Confirmation will be sent to your email.', 'Review or edit your recent orders'. Items tagged approximate should be checked in a browser before copying verbatim."
+    }
+  ]
+}
