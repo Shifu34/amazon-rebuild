@@ -6,6 +6,7 @@ import { Progress } from '@/components/orders/progress'
 import { requireUser } from '@/lib/auth'
 import { longDate, plural, shortDate } from '@/lib/format'
 import { getOrder, orderView, trackingEvents, trackingId, type TrackingEvent } from '@/lib/orders'
+import { countryCodeFromName, IMPORT_FEES_NOTE } from '@/lib/region'
 
 export const metadata: Metadata = { title: 'Track package' }
 
@@ -13,6 +14,13 @@ type Props = { params: Promise<{ id: string }> }
 
 const time = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
 const stamp = (d: Date) => `${shortDate(d)}, ${time(d)}`
+
+// trackingEvents reads like a US domestic trip; Pakistan orders get the international legs, ending in the city in Pakistan
+const INTL_LABELS: Record<string, string> = {
+  Shipped: 'Departed the US for Pakistan',
+  'Package arrived at a carrier facility': 'Cleared customs, arrived at a carrier facility in Pakistan',
+  'Out for delivery': 'Out for delivery with the local carrier',
+}
 
 export default async function TrackPage({ params }: Props) {
   const { id } = await params
@@ -33,7 +41,11 @@ export default async function TrackPage({ params }: Props) {
     )
   }
 
-  const events = trackingEvents(order, now)
+  const intl = countryCodeFromName(order.shipTo.country) === 'PK'
+  const local = `${order.shipTo.city}, ${order.shipTo.state}`
+  const events = trackingEvents(order, now).map((e) =>
+    intl ? { ...e, label: INTL_LABELS[e.label] ?? e.label, place: e.place === local ? `${order.shipTo.city}, Pakistan` : e.place } : e,
+  )
   const days = new Map<string, TrackingEvent[]>()
   for (const e of events) days.set(longDate(e.at), [...(days.get(longDate(e.at)) ?? []), e])
   const notes = [
@@ -87,7 +99,7 @@ export default async function TrackPage({ params }: Props) {
 
         <aside aria-label="Shipment details" className="space-y-4 text-sm">
           <div className="rounded-lg border border-line p-4">
-            <h2 className="font-bold">{view.status === 'delivered' ? 'Delivered by nile' : 'Shipping with nile'}</h2>
+            <h2 className="font-bold">{view.status === 'delivered' ? 'Delivered by nile' : intl ? 'Shipping internationally with nile' : 'Shipping with nile'}</h2>
             {view.step >= 1 ? (
               <p className="mt-1">
                 Tracking ID: <span className="font-mono select-all">{trackingId(order.id)}</span>
@@ -95,6 +107,7 @@ export default async function TrackPage({ params }: Props) {
             ) : (
               <p className="mt-1 text-muted">Tracking info will be available when your package ships.</p>
             )}
+            {intl && <p className="mt-2 text-xs text-muted">{IMPORT_FEES_NOTE}</p>}
           </div>
           <div className="rounded-lg border border-line p-4">
             <h2 className="font-bold">Shipping Address</h2>

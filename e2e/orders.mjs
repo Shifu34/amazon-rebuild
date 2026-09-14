@@ -1,6 +1,7 @@
 // Your Orders end to end in headless Chrome: sign-in gate, empty states, place an order, Not Yet Shipped, cancel with
 // validation, a second order delivered via the demo control, tracking, a return (validation, fee, refund), demo refund,
-// Buy it again, Buy Again tab, search, another account gets a 404, and 390px layouts.
+// Buy it again, Buy Again tab, search, PKR display (orders keep their own currency, summaries add up), another account
+// gets a 404, and 390px layouts.
 // Run with the app up: node e2e/orders.mjs [baseUrl]   (default http://localhost:3000)
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
@@ -15,6 +16,11 @@ const step = (name) => console.log(`- ${name}`)
 const waitCart = (n) =>
   page.waitForFunction((n) => document.querySelector('a[aria-label^="Cart, "]')?.getAttribute('aria-label') === `Cart, ${n} ${n === 1 ? 'item' : 'items'}`, n)
 const card = (id) => page.getByRole('article', { name: `Order ${id}` })
+const setCurrency = (value) => page.context().addCookies([{ name: 'currency', value, url: base }])
+// Order Summary rows as { label: text }; money() turns "PKR 1,234.56" / "−$6.99" into minor units
+const summaryRows = async () =>
+  Object.fromEntries(await page.getByRole('region', { name: 'Order summary' }).locator('dl > div').evaluateAll((divs) => divs.map((d) => [d.querySelector('dt').textContent.trim(), d.querySelector('dd').textContent.trim()])))
+const money = (t) => (/^[−-]/.test(t) ? -1 : 1) * Math.round(Number(t.replace(/[^\d.]/g, '')) * 100)
 
 async function register(p, email) {
   await p.getByLabel('Email').fill(email)
@@ -194,9 +200,30 @@ try {
   const chip = page.locator('#main').getByText('7 days left', { exact: true })
   assert.equal(await chip.evaluate((el) => getComputedStyle(el).color), 'rgb(196, 85, 0)', '"7 days left" is amber (≤ 7 days)')
 
+  step('PKR: USD orders keep their dollars, Buy Again follows the display currency, a PKR order adds up and stays PKR')
+  await setCurrency('PKR')
+  await page.goto(`${base}/orders/${second}`)
+  await page.getByText('Refund issued: $54.11').waitFor()
+  assert.match((await summaryRows())['Grand Total:'], /^\$/, 'an order placed in USD stays in USD')
+  await page.goto(`${base}/orders?tab=buy-again`)
+  await page.locator('#main li').filter({ has: page.getByRole('link', { name: 'Calvin Klein CK One' }) }).getByText('PKR', { exact: true }).waitFor()
+  await addToCart(90, 1)
+  await page.goto(`${base}/checkout`)
+  const fourth = await placeOrder()
+  await page.goto(`${base}/orders/${fourth}`)
+  const r = await summaryRows()
+  assert.match(r['Grand Total:'], /^PKR [\d,]+\.\d\d$/)
+  assert.equal(money(r['Total before tax:']), money(r['Item(s) Subtotal:']) + money(r['Shipping & Handling:']))
+  assert.equal(money(r['Grand Total:']), money(r['Total before tax:']) + money(r['Estimated tax to be collected:']), `summary adds up in PKR: ${JSON.stringify(r)}`)
+  await setCurrency('USD')
+  await page.goto(`${base}/orders/${fourth}`)
+  assert.equal((await summaryRows())['Grand Total:'], r['Grand Total:'], 'a PKR order stays PKR after switching to USD')
+  await page.goto(`${base}/orders/${fourth}/invoice`)
+  await page.getByText(`Order Total: ${r['Grand Total:']}`).waitFor()
+
   step('390px wide: order pages fit without horizontal scrolling')
   await page.setViewportSize({ width: 390, height: 844 })
-  for (const path of ['/orders', `/orders/${second}`, `/orders/${second}/track`, `/orders/${first}/cancel`, `/orders/${second}/invoice`, '/orders?tab=buy-again']) {
+  for (const path of ['/orders', `/orders/${second}`, `/orders/${second}/track`, `/orders/${first}/cancel`, `/orders/${second}/invoice`, '/orders?tab=buy-again', `/orders/${fourth}`]) {
     await page.goto(base + path)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path} overflows at 390px`)
   }

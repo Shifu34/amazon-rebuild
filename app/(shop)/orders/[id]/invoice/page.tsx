@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { AddressLines, OrderTotals } from '@/components/orders/order-card'
+import { AddressLines, orderMoney, OrderTotals } from '@/components/orders/order-card'
 import { PrintButton } from '@/components/orders/print-button'
 import { requireUser } from '@/lib/auth'
-import { fullDate, usdCents } from '@/lib/format'
+import { fullDate } from '@/lib/format'
 import { getOrder, orderView } from '@/lib/orders'
 
 export const metadata: Metadata = { title: 'Invoice' }
@@ -21,6 +21,7 @@ export default async function InvoicePage({ params }: Props) {
   const order = await getOrder(user.id, id)
   if (!order) notFound()
   const view = orderView(order)
+  const m = orderMoney(order, view)
   const back = `/orders/${order.id}`
   const speed = order.deliverySpeed === 'expedited' ? 'Expedited' : order.shippingCents ? 'Standard' : 'FREE Standard'
   const shipment = view.status === 'cancelled' ? 'Cancelled' : view.step >= 1 ? `Shipped on ${fullDate(view.shippedAt)}` : 'Not Yet Shipped'
@@ -36,7 +37,7 @@ export default async function InvoicePage({ params }: Props) {
       <h1 className="mt-4 text-xl font-bold">Final Details for Order #{order.id}</h1>
       <p className="mt-2">Order Placed: {fullDate(order.placedAt)}</p>
       <p>nile order number: {order.id}</p>
-      <p className="font-bold">Order Total: {usdCents(view.chargedCents)}</p>
+      <p className="font-bold">Order Total: {m.charged}</p>
 
       <section className={box}>
         <h2 className={boxHead}>{shipment}</h2>
@@ -55,7 +56,7 @@ export default async function InvoicePage({ params }: Props) {
                     {i.quantity} of: <i>{i.title}</i>
                     {i.state.kind === 'cancelled' && !i.state.wholeOrder && <span className="text-danger"> (Cancelled)</span>}
                   </td>
-                  <td className="py-1 text-right">{usdCents(i.priceCents)}</td>
+                  <td className="py-1 text-right whitespace-nowrap">{m.text(i.priceCents)}</td>
                 </tr>
               ))}
             </tbody>
@@ -84,7 +85,7 @@ export default async function InvoicePage({ params }: Props) {
         </div>
         {view.step >= 1 && view.chargedCents > 0 && (
           <p className="border-t border-[#999] px-3 py-2">
-            <b>Credit Card transactions:</b> {order.payment.brand} ending in {order.payment.last4}: {fullDate(view.shippedAt)}: {usdCents(view.chargedCents)}
+            <b>Credit Card transactions:</b> {order.payment.brand} ending in {order.payment.last4}: {fullDate(view.shippedAt)}: {m.charged}
           </p>
         )}
       </section>

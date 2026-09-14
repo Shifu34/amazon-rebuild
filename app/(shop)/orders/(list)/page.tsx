@@ -12,6 +12,7 @@ import { requireUser, type User } from '@/lib/auth'
 import { cartQuantities } from '@/lib/cart'
 import { fullDate, plural } from '@/lib/format'
 import { getOrders, type Order, orderView, pathWithQuery, purchasedProducts, reviewedProductIds } from '@/lib/orders'
+import { getRegion, type RequestRegion } from '@/lib/region-server'
 
 export const metadata: Metadata = { title: 'Your Orders' }
 
@@ -31,7 +32,8 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <div className="mt-4 rounded-lg border border-line px-4 py-8 text-center text-sm">{children}</div>
 }
 
-function BuyAgain({ orders, inCart }: { orders: Order[]; inCart: Map<number, number> }) {
+// product prices in the shopper's current display currency (not the old orders' currencies)
+function BuyAgain({ orders, inCart, region }: { orders: Order[]; inCart: Map<number, number>; region: RequestRegion }) {
   const bought = purchasedProducts(orders)
   if (!bought.length) {
     return (
@@ -57,7 +59,7 @@ function BuyAgain({ orders, inCart }: { orders: Order[]; inCart: Map<number, num
               <Stars rating={p.rating} className="h-3.5" />
               <span className="text-muted">({p.ratingCount.toLocaleString('en-US')})</span>
             </div>
-            {p.stock > 0 && <p className="mt-1 text-xl"><Price value={p.price} /></p>}
+            {p.stock > 0 && <p className="mt-1 text-xl"><Price value={p.price} currency={region.currency} rate={region.rate} /></p>}
             <p className="mt-1 text-xs text-muted">
               {times > 1 && `Purchased ${times} times · `}Last purchased {fullDate(lastPurchased)}
             </p>
@@ -90,7 +92,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
   }
   const tab = TABS.find((t) => t.key === param('tab'))?.key ?? 'orders'
   const q = param('q').trim().slice(0, 100)
-  const [orders, reviewed, inCart] = await Promise.all([getOrders(user.id), reviewedProductIds(user.id), cartQuantities()])
+  const [orders, reviewed, inCart, region] = await Promise.all([getOrders(user.id), reviewedProductIds(user.id), cartQuantities(), getRegion()])
   const now = new Date()
 
   // "placed in": last 30 days, past 3 months (default), then each year back to the oldest order (at least last year)
@@ -172,7 +174,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
       </nav>
 
       {tab === 'buy-again' && !q ? (
-        <BuyAgain orders={orders} inCart={inCart} />
+        <BuyAgain orders={orders} inCart={inCart} region={region} />
       ) : (
         <>
           <div className="mt-4 text-sm">

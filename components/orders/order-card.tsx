@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { Fragment } from 'react'
 import { CaretIcon, ChevronIcon } from '@/components/icons'
 import { getProduct } from '@/lib/catalog'
-import { fullDate, plural, usdCents } from '@/lib/format'
-import type { Order, OrderView, ShipTo, ViewItem } from '@/lib/orders'
+import { formatAddress } from '@/lib/addresses'
+import { fullDate, plural } from '@/lib/format'
+import { itemRefundCents, type Order, type OrderView, type ShipTo, type ViewItem } from '@/lib/orders'
+import { countryCodeFromName, formatMoney, IMPORT_FEES_NOTE, summarize } from '@/lib/region'
 import { BuyAgainButton } from './buy-again-button'
 
 const small = 'btn min-h-[29px] px-3 text-xs'
@@ -45,7 +47,7 @@ export function AddressLines({ shipTo: a }: { shipTo: ShipTo }) {
       <b className="block">{a.fullName}</b>
       <span className="block">{a.line1}</span>
       {a.line2 && <span className="block">{a.line2}</span>}
-      <span className="block">{a.city}, {a.state} {a.zip}</span>
+      <span className="block">{formatAddress({ line1: '', line2: '', city: a.city, state: a.state, zip: a.zip, country: a.country })}</span>
       <span className="block">{a.country}</span>
     </span>
   )
@@ -66,38 +68,64 @@ function ShipToDisclosure({ shipTo }: { shipTo: ShipTo }) {
   )
 }
 
+// An order's amounts, always in the order's own currency and rate (never the shopper's current one). Each component is
+// converted on its own and every total is the sum of converted components, so the Order Summary adds up in that currency.
+export function orderMoney(order: Order, view: OrderView) {
+  const { currency, fxRate } = order
+  const country = countryCodeFromName(order.shipTo.country)
+  const sum = (cents: number[]) => summarize(cents.map((usdCents) => ({ label: '', usdCents })), currency, fxRate).total.text
+  const parts = [order.itemsCents, order.shippingCents, order.taxCents]
+  // what came off: the whole order, or each cancelled item's price and tax share (as orderView counts cancelledCents)
+  const cancelled = view.status === 'cancelled' ? parts : view.items.filter((i) => i.cancelledAt).map((i) => itemRefundCents(i, country))
+  return {
+    country,
+    text: (cents: number) => formatMoney(cents, currency, fxRate),
+    sum,
+    beforeTax: sum(parts.slice(0, 2)),
+    cancelled: sum(cancelled),
+    charged: sum([...parts, ...cancelled.map((c) => -c)]),
+    refunded: sum(view.items.map((i) => (i.refundedAt ? (i.refundCents ?? 0) : 0))),
+  }
+}
+
+function Row({ label, value, className = '' }: { label: string; value: string; className?: string }) {
+  return (
+    <div className={`flex justify-between gap-2 ${className}`}>
+      <dt>{label}</dt>
+      <dd className="whitespace-nowrap">{value}</dd>
+    </div>
+  )
+}
+
 // Order Summary lines. Cancelled items come off before the Grand Total, so it is what the shopper is actually charged.
+// Pakistan orders have no sales tax: the import fees note stands where the tax lines are.
 export function OrderTotals({ order, view }: { order: Order; view: OrderView }) {
-  const rows: [string, string][] = [
-    ['Item(s) Subtotal:', usdCents(order.itemsCents)],
-    ['Shipping & Handling:', usdCents(order.shippingCents)],
-    ['Total before tax:', usdCents(order.itemsCents + order.shippingCents)],
-    ['Estimated tax to be collected:', usdCents(order.taxCents)],
-  ]
-  if (view.cancelledCents) rows.push([view.status === 'cancelled' ? 'Cancelled:' : 'Cancelled items:', `−${usdCents(view.cancelledCents)}`])
+  const m = orderMoney(order, view)
   return (
     <dl className="space-y-0.5">
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex justify-between gap-2">
-          <dt>{label}</dt>
-          <dd>{value}</dd>
+      <Row label="Item(s) Subtotal:" value={m.text(order.itemsCents)} />
+      <Row label="Shipping & Handling:" value={m.text(order.shippingCents)} />
+      {m.country === 'PK' ? (
+        <div>
+          <dt className="sr-only">Import fees:</dt>
+          <dd className="text-xs text-muted">{IMPORT_FEES_NOTE}</dd>
         </div>
-      ))}
-      <div className="flex justify-between gap-2 font-bold">
-        <dt>Grand Total:</dt>
-        <dd>{usdCents(view.chargedCents)}</dd>
-      </div>
-      {view.refundCents > 0 && (
-        <div className={`flex justify-between gap-2 font-bold ${green}`}>
-          <dt>Refund total:</dt>
-          <dd>{usdCents(view.refundCents)}</dd>
-        </div>
+      ) : (
+        <>
+          <Row label="Total before tax:" value={m.beforeTax} />
+          <Row label="Estimated tax to be collected:" value={m.text(order.taxCents)} />
+        </>
       )}
+      {view.cancelledCents > 0 && <Row label={view.status === 'cancelled' ? 'Cancelled:' : 'Cancelled items:'} value={`−${m.cancelled}`} />}
+      <Row label="Grand Total:" value={m.charged} className="font-bold" />
+      {view.refundCents > 0 && <Row label="Refund total:" value={m.refunded} className={`font-bold ${green}`} />}
     </dl>
   )
 }
 
-function ItemStatus({ item, orderId }: { item: ViewItem; orderId: string }) {
+type OrderRef = Pick<Order, 'id' | 'currency' | 'fxRate'>
+
+function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
   const s = item.state
   const replacement = item.replacementOrderId && (
     <>
@@ -125,7 +153,7 @@ function ItemStatus({ item, orderId }: { item: ViewItem; orderId: string }) {
       <p className="text-xs">
         <span className={`${chip} border-[#0b7b3c] font-bold ${green}`}>Return started</span>
         {item.returnMethod === 'ups-pickup' ? 'Pickup scheduled' : `Drop off by ${fullDate(s.dropOffBy)}`} ·{' '}
-        <Link href={`/orders/${orderId}/return?code=${item.returnCode}`} className="link whitespace-nowrap">View return code</Link>
+        <Link href={`/orders/${order.id}/return?code=${item.returnCode}`} className="link whitespace-nowrap">View return code</Link>
         {replacement}
       </p>
     )
@@ -134,7 +162,7 @@ function ItemStatus({ item, orderId }: { item: ViewItem; orderId: string }) {
     return (
       <p className="text-xs">
         <span className={`${chip} border-[#0b7b3c] font-bold ${green}`}>
-          {item.refundCents ? `Refund issued: ${usdCents(item.refundCents)}` : 'Return complete'}
+          {item.refundCents ? `Refund issued: ${formatMoney(item.refundCents, order.currency, order.fxRate)}` : 'Return complete'}
         </span>
         {replacement}
       </p>
@@ -143,8 +171,8 @@ function ItemStatus({ item, orderId }: { item: ViewItem; orderId: string }) {
   return null
 }
 
-// one ordered item: thumbnail, title, qty and unit price, return status, Buy it again / View your item (/ review)
-export function ItemRow({ item, orderId, review }: { item: ViewItem; orderId: string; review?: { reviewed: boolean } }) {
+// one ordered item: thumbnail, title, qty and unit price (in the order's currency), return status, Buy it again / View your item (/ review)
+export function ItemRow({ item, order, review }: { item: ViewItem; order: OrderRef; review?: { reviewed: boolean } }) {
   const p = getProduct(item.productId)
   return (
     <li className="flex gap-3">
@@ -158,10 +186,10 @@ export function ItemRow({ item, orderId, review }: { item: ViewItem; orderId: st
       <div className="min-w-0 flex-1 space-y-1 text-sm">
         {p ? <Link href={`/dp/${p.id}`} className="link line-clamp-2">{item.title}</Link> : <p className="line-clamp-2">{item.title}</p>}
         <p className="text-xs text-muted">
-          Qty: {item.quantity} · {item.priceCents ? usdCents(item.priceCents) : 'Free replacement'}
+          Qty: {item.quantity} · {item.priceCents ? formatMoney(item.priceCents, order.currency, order.fxRate) : 'Free replacement'}
           {item.quantity > 1 && item.priceCents > 0 && ' each'}
         </p>
-        <ItemStatus item={item} orderId={orderId} />
+        <ItemStatus item={item} order={order} />
         <div className="flex flex-wrap items-start gap-2 pt-1">
           {p && p.stock > 0 ? <BuyAgainButton productId={p.id} title={item.title} /> : <span className="self-center text-xs text-danger">Currently unavailable</span>}
           {p && <Link href={`/dp/${p.id}`} className={`${small} btn-plain`}>View your item</Link>}
@@ -204,6 +232,7 @@ function Meta({ label, children }: { label: string; children: React.ReactNode })
 // Your Orders card. Phones get a single tappable row (actions live on Order Details), like Amazon's app.
 export function OrderCard({ order, view, reviewed }: { order: Order; view: OrderView; reviewed: Set<number> }) {
   const base = `/orders/${order.id}`
+  const m = orderMoney(order, view)
   const reviewable = view.status === 'delivered' ? view.items.filter((i) => i.state.kind !== 'cancelled' && getProduct(i.productId)) : []
   const single = reviewable.length === 1 ? reviewable[0] : null
   const cancelledItems = view.status === 'cancelled' ? 0 : view.items.filter((i) => i.state.kind === 'cancelled').length
@@ -211,7 +240,7 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
   const note = [
     order.replacementFor && 'Free replacement',
     view.returnPending && 'Return started',
-    view.refundCents > 0 && `Refund issued: ${usdCents(view.refundCents)}`,
+    view.refundCents > 0 && `Refund issued: ${m.refunded}`,
     cancelledItems > 0 && `${plural(cancelledItems, 'item')} cancelled`,
   ].filter(Boolean).join(' · ')
   return (
@@ -231,8 +260,8 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
         <div className="flex flex-wrap items-start gap-x-8 gap-y-2 rounded-t-lg border-b border-line bg-[#f0f2f2] px-4 py-3 text-sm">
           <Meta label="Order placed">{fullDate(order.placedAt)}</Meta>
           <Meta label="Total">
-            {usdCents(view.chargedCents)}
-            {view.refundCents > 0 && <span className={`block text-xs ${green}`}>Refunded {usdCents(view.refundCents)}</span>}
+            <span className="whitespace-nowrap">{m.charged}</span>
+            {view.refundCents > 0 && <span className={`block text-xs whitespace-nowrap ${green}`}>Refunded {m.refunded}</span>}
           </Meta>
           <Meta label="Ship to"><ShipToDisclosure shipTo={order.shipTo} /></Meta>
           <div className="ml-auto text-right">
@@ -255,7 +284,7 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
             )}
             <ul className="mt-3 space-y-5">
               {view.items.map((i) => (
-                <ItemRow key={i.productId} item={i} orderId={order.id} review={!single && reviewable.includes(i) ? { reviewed: reviewed.has(i.productId) } : undefined} />
+                <ItemRow key={i.productId} item={i} order={order} review={!single && reviewable.includes(i) ? { reviewed: reviewed.has(i.productId) } : undefined} />
               ))}
             </ul>
           </div>

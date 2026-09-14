@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState } from 'react'
 import { startReturn, type OrderFormState } from '@/app/actions/orders'
-import { usdCents } from '@/lib/format'
+import { convertCents, formatMoney, summarize, type CountryCode, type CurrencyCode } from '@/lib/region'
 import { COMMENT_MAX, PROBLEM_REASONS, RETURN_METHODS, RETURN_REASONS, returnFeeCents, type ReturnMethod } from './rules'
 
 export type ReturnItem = {
@@ -11,7 +11,7 @@ export type ReturnItem = {
   thumbnail: string
   quantity: number
   priceCents: number
-  refundCents: number // price × qty + tax
+  refundCents: number // price × qty + tax (no tax for Pakistan orders), US cents
   note: string
   blocker: string | null
   canReplace: boolean
@@ -37,13 +37,16 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2">
       <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dd className="whitespace-nowrap">{value}</dd>
     </div>
   )
 }
 
 // One page: items, reason, comment, refund or replacement, return method, and a live refund summary.
-export function ReturnForm({ orderId, items, preselect, payment }: { orderId: string; items: ReturnItem[]; preselect: number | null; payment: string }) {
+// Amounts are in the order's own currency and rate.
+export function ReturnForm({ orderId, items, preselect, payment, currency, rate, country }: {
+  orderId: string; items: ReturnItem[]; preselect: number | null; payment: string; currency: CurrencyCode; rate: number; country: CountryCode
+}) {
   const eligible = items.filter((i) => !i.blocker)
   const [state, action, pending] = useActionState<OrderFormState, FormData>(startReturn, null)
   const [picked, setPicked] = useState<number[]>(() =>
@@ -69,7 +72,21 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
   const subtotal = chosen.reduce((s, i) => s + i.priceCents * i.quantity, 0)
   const tax = chosen.reduce((s, i) => s + i.refundCents - i.priceCents * i.quantity, 0)
   const fee = Math.min(subtotal + tax, returnFeeCents(reason, method, replace))
-  const total = replace ? 0 : subtotal + tax - fee
+  // The total is what startReturn stores: each item's refund less its share of the fee, converted item by item (Order
+  // Details sums issued refunds the same way). The tax and fee rows are converted as they are; the subtotal row takes
+  // the rounding, so the column adds up in the shown currency. USD never rounds.
+  let left = fee
+  const refunds = replace ? [] : chosen.map((i) => {
+    const kept = Math.min(left, i.refundCents)
+    left -= kept
+    return i.refundCents - kept
+  })
+  const sum = (cents: number[]) => summarize(cents.map((usdCents) => ({ label: '', usdCents })), currency, rate).total
+  const money = (cents: number) => formatMoney(cents, currency, rate)
+  const minorText = (minor: number) => formatMoney(minor, currency, 1) // already in the currency's minor units
+  const total = sum(refunds)
+  const taxMinor = sum(chosen.map((i) => i.refundCents - i.priceCents * i.quantity)).minor
+  const feeMinor = convertCents(fee, currency, rate)
 
   // the error sits under the field that failed; the field gets aria-invalid and points at it
   const errorFor = (field: Invalid['field']) =>
@@ -131,7 +148,7 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
                     <span className="line-clamp-2">{i.title}</span>
                     <span className="block text-xs text-muted">
                       Qty: {i.quantity}
-                      {i.quantity > 1 && ' (all units)'} · {usdCents(i.priceCents)}
+                      {i.quantity > 1 && ' (all units)'} · {money(i.priceCents)}
                     </span>
                     <span className={`block text-xs ${i.blocker ? 'text-danger' : 'text-muted'}`}>{i.blocker ?? i.note}</span>
                   </span>
@@ -211,7 +228,7 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
           <div className="mt-2 grid gap-2">
             {(Object.keys(RETURN_METHODS) as ReturnMethod[]).map((key) => {
               const m = RETURN_METHODS[key]
-              const cost = !m.feeCents ? 'Free' : returnFeeCents(reason, key, replace) ? `${usdCents(m.feeCents)} return shipping, taken from your refund` : 'Free (fee waived for this reason)'
+              const cost = !m.feeCents ? 'Free' : returnFeeCents(reason, key, replace) ? `${money(m.feeCents)} return shipping, taken from your refund` : 'Free (fee waived for this reason)'
               return <RadioCard key={key} name="method" value={key} checked={method === key} onChange={() => setMethod(key)} title={m.label} note={`${m.note} · ${cost}`} />
             })}
           </div>
@@ -222,17 +239,17 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
         <h2 className="text-lg font-bold">{replace ? 'Replacement summary' : 'Refund summary'}</h2>
         <dl className="mt-2 space-y-1 text-sm">
           {replace ? (
-            <Row label="Replacement order" value={usdCents(0)} />
+            <Row label="Replacement order" value={money(0)} />
           ) : (
             <>
-              <Row label="Refund subtotal" value={usdCents(subtotal)} />
-              <Row label="Tax refund" value={usdCents(tax)} />
-              <Row label="Return shipping" value={fee ? `−${usdCents(fee)}` : usdCents(0)} />
+              <Row label="Refund subtotal" value={minorText(total.minor + feeMinor - taxMinor)} />
+              {country === 'US' && <Row label="Tax refund" value={minorText(taxMinor)} />}
+              <Row label="Return shipping" value={fee ? `−${minorText(feeMinor)}` : money(0)} />
             </>
           )}
           <div className="flex justify-between gap-2 border-t border-line pt-2 text-base font-bold">
             <dt>Total estimated refund</dt>
-            <dd>{usdCents(total)}</dd>
+            <dd className="whitespace-nowrap">{total.text}</dd>
           </div>
         </dl>
         {!chosen.length && <p className="mt-2 text-xs text-muted">Select an item to see your refund.</p>}
@@ -246,7 +263,7 @@ export function ReturnForm({ orderId, items, preselect, payment }: { orderId: st
 
       <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-white px-4 py-3 shadow-[0_-1px_2px_rgba(15,17,17,0.08)] lg:hidden">
         <p className="text-sm">
-          Estimated refund <b className="block text-base">{usdCents(total)}</b>
+          Estimated refund <b className="block text-base whitespace-nowrap">{total.text}</b>
         </p>
         {confirm('')}
       </div>

@@ -9,6 +9,7 @@ import { queueOrderEmail } from '@/lib/order-emails'
 import {
   cancelOrderItems, createReturn, getOrder, itemRefundCents, markDelivered, newReturnCode, orderView, quote, receiveReturns, returnBlocker,
 } from '@/lib/orders'
+import { countryCodeFromName } from '@/lib/region'
 
 export type OrderFormState = { error: string } | null
 
@@ -71,15 +72,16 @@ export async function startReturn(_prev: OrderFormState, form: FormData): Promis
   if (replace && (!problem || lines.length < chosen.length)) return { error: "A replacement isn't available for this return. Please choose a refund." }
   const method = form.get('method') === 'ups-pickup' ? 'ups-pickup' : 'ups-store'
 
+  const country = countryCodeFromName(order.shipTo.country) // Pakistan refunds carry no tax, and replacements ship internationally
   let fee = returnFeeCents(reason, method, replace)
   const items = chosen.map((i) => {
-    const full = replace ? 0 : itemRefundCents(i)
+    const full = replace ? 0 : itemRefundCents(i, country)
     const kept = Math.min(fee, full)
     fee -= kept
     return { productId: i.productId, refundCents: full - kept }
   })
   const code = newReturnCode()
-  const replacement = replace ? { deliverBy: quote(lines, 'standard').deliverBy } : null
+  const replacement = replace ? { deliverBy: quote(lines, 'standard', undefined, country).deliverBy } : null
   const n = await createReturn({ userId: user.id, orderId: order.id, items, reason, comment, method, replacement, code })
   if (!n) {
     refresh()

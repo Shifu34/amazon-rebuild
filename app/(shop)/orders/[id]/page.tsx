@@ -92,7 +92,7 @@ export default async function OrderDetailsPage({ params, searchParams }: Props) 
                 <ItemRow
                   key={i.productId}
                   item={i}
-                  orderId={order.id}
+                  order={order}
                   review={delivered && i.state.kind !== 'cancelled' ? { reviewed: reviewed.has(i.productId) } : undefined}
                 />
               ))}

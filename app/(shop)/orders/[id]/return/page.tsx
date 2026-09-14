@@ -2,13 +2,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CheckCircleIcon } from '@/components/checkout/icons'
-import { Crumbs, Thumb } from '@/components/orders/order-card'
+import { Crumbs, orderMoney, Thumb } from '@/components/orders/order-card'
 import { ReturnForm } from '@/components/orders/return-form'
 import { RETURN_METHODS } from '@/components/orders/rules'
 import { requireUser } from '@/lib/auth'
 import { getProduct } from '@/lib/catalog'
 import { addBusinessDays } from '@/lib/delivery'
-import { fullDate, longDate, usdCents } from '@/lib/format'
+import { fullDate, longDate } from '@/lib/format'
+import { countryCodeFromName } from '@/lib/region'
 import { getOrder, itemRefundCents, type Order, type OrderView, orderView, pathWithQuery, returnBlocker, type ViewItem } from '@/lib/orders'
 
 export const metadata: Metadata = { title: 'Return or replace items' }
@@ -30,7 +31,7 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
   const first = items[0]
   const done = first.state.kind === 'returned'
   const pickup = first.returnMethod === 'ups-pickup'
-  const refund = items.reduce((s, i) => s + (i.refundCents ?? 0), 0)
+  const refund = orderMoney(order, view).sum(items.map((i) => i.refundCents ?? 0)) // in the order's currency
   const payment = `${order.payment.brand} ending in ${order.payment.last4}`
   const startedAt = first.returnedAt ?? new Date()
 
@@ -60,9 +61,9 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
               Your free replacement is on its way: <Link href={`/orders/${first.replacementOrderId}`} className="link">order # {first.replacementOrderId}</Link>
             </p>
           ) : done ? (
-            <p>Your refund of <b>{usdCents(refund)}</b> was issued to {payment}.</p>
+            <p>Your refund of <b>{refund}</b> was issued to {payment}.</p>
           ) : (
-            <p>Your refund of <b>{usdCents(refund)}</b> to {payment} will be issued after we receive your item.</p>
+            <p>Your refund of <b>{refund}</b> to {payment} will be issued after we receive your item.</p>
           )}
           <ul className="flex flex-wrap gap-2" aria-label="Items in this return">
             {items.map((i) => (
@@ -93,6 +94,7 @@ export default async function ReturnPage({ params, searchParams }: Props) {
   const itemParam = Number(typeof sp.item === 'string' ? sp.item : NaN)
   const view = orderView(order)
   const back = `/orders/${order.id}`
+  const country = countryCodeFromName(order.shipTo.country)
 
   const started = code ? view.items.filter((i) => i.returnCode === code) : []
   if (started.length) return <Confirmation order={order} view={view} items={started} code={code} />
@@ -103,7 +105,7 @@ export default async function ReturnPage({ params, searchParams }: Props) {
     thumbnail: i.thumbnail,
     quantity: i.quantity,
     priceCents: i.priceCents,
-    refundCents: itemRefundCents(i),
+    refundCents: itemRefundCents(i, country),
     note: i.state.kind === 'open' ? `Return window closes on ${fullDate(i.state.returnBy)}` : '',
     blocker: returnBlocker(i.state),
     canReplace: (getProduct(i.productId)?.stock ?? 0) > 0,
@@ -133,6 +135,9 @@ export default async function ReturnPage({ params, searchParams }: Props) {
           items={items}
           preselect={Number.isInteger(itemParam) ? itemParam : null}
           payment={`${order.payment.brand} ending in ${order.payment.last4}`}
+          currency={order.currency}
+          rate={order.fxRate}
+          country={country}
         />
       </div>
     </Shell>
