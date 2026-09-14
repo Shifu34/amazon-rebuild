@@ -20,10 +20,13 @@ const subscribe = (onChange: () => void) => {
   mq.addEventListener('change', onChange)
   return () => mq.removeEventListener('change', onChange)
 }
-const IMAGE_VISIBILITY = ['flex', 'hidden sm:flex', 'hidden md:flex']
+// fewer pictures on narrower screens so the copy keeps room to fit
+const IMAGE_VISIBILITY = ['flex', 'hidden lg:flex', 'hidden xl:flex']
 
 // Amazon's home "herotator": auto-advances, pauses on hover and keyboard focus, has a pause button and dots,
 // swipes on touch, and does not auto-play for people who prefer reduced motion.
+// Below lg slides grow with their copy (min height, never clipped). From lg the copy sits in the top 270px and the home
+// card row overlaps the faded rest of the 600px banner.
 export function Hero({ slides }: { slides: Slide[] }) {
   const n = slides.length
   const [index, setIndex] = useState(0)
@@ -41,7 +44,9 @@ export function Hero({ slides }: { slides: Slide[] }) {
 
   if (!n) return null
   const go = (i: number) => setIndex((i + n) % n)
-  const arrow = 'pointer-events-auto absolute inset-y-0 flex w-11 cursor-pointer items-center justify-center focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white sm:w-16'
+  // white chip with an ink ring on focus, visible on dark and light banners alike
+  const arrow = 'group/arrow pointer-events-auto absolute inset-y-0 flex w-11 cursor-pointer items-center justify-center outline-hidden sm:w-16'
+  const chip = 'rounded-full bg-white/85 p-1 text-ink shadow group-focus-visible/arrow:ring-2 group-focus-visible/arrow:ring-ink group-focus-visible/arrow:ring-offset-2'
 
   return (
     <section
@@ -66,19 +71,19 @@ export function Hero({ slides }: { slides: Slide[] }) {
     >
       <div className="flex motion-safe:transition-transform motion-safe:duration-700" style={{ transform: `translateX(-${index * 100}%)` }} aria-live={playing && !held ? 'off' : 'polite'}>
         {slides.map((s, i) => (
-          <div key={s.href} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${n}: ${s.kicker}`} inert={i !== index} className={`h-[220px] w-full shrink-0 sm:h-[280px] lg:h-[600px] ${TONES[s.tone]}`}>
-            <Link href={s.href} className="mx-auto flex h-full max-w-[1500px] items-center gap-4 px-12 focus-visible:outline-3 focus-visible:-outline-offset-8 focus-visible:outline-white sm:px-20 lg:h-[270px] lg:px-24">
+          <div key={s.href} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${n}: ${s.kicker}`} inert={i !== index} className={`flex min-h-[220px] w-full shrink-0 sm:min-h-[280px] lg:h-[600px] ${TONES[s.tone]}`}>
+            <Link href={s.href} className="mx-auto flex w-full max-w-[1500px] items-center gap-4 px-12 pt-4 pb-11 focus-visible:outline-3 focus-visible:-outline-offset-8 focus-visible:outline-current sm:px-20 lg:h-[270px] lg:px-24 lg:py-0">
               <span className="block min-w-0 max-w-lg">
                 <span className="block text-xs font-bold tracking-wide uppercase opacity-85 sm:text-sm">{s.kicker}</span>
-                <span className="mt-1 block text-[22px] leading-tight font-bold sm:text-4xl lg:text-[42px]">{s.title}</span>
+                <span className="mt-1 block text-[22px] leading-tight font-bold sm:text-3xl lg:text-[34px] xl:text-[42px]">{s.title}</span>
                 <span className="mt-2 hidden text-base sm:block lg:text-lg">{s.blurb}</span>
                 <span className="mt-3 inline-block rounded-full bg-cart px-4 py-1.5 text-sm font-bold text-ink shadow sm:mt-4 sm:px-5 sm:py-2">{s.cta}</span>
               </span>
               <span className="ml-auto flex shrink-0 items-center gap-3 lg:gap-5">
                 {s.images.slice(0, 3).map((src, k) => (
-                  <span key={src} className={`${IMAGE_VISIBILITY[k]} size-24 items-center justify-center rounded-2xl bg-white p-2 shadow-lg sm:size-36 lg:size-48 ${k === 1 ? 'lg:-translate-y-4' : ''}`}>
+                  <span key={src} className={`${IMAGE_VISIBILITY[k]} size-24 items-center justify-center rounded-2xl bg-white p-2 shadow-lg sm:size-36 lg:size-40 xl:size-48 ${k === 1 ? 'lg:-translate-y-4' : ''}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+                    <img src={src} alt="" fetchPriority={i === 0 && k === 0 ? 'high' : undefined} className="max-h-full max-w-full object-contain" />
                   </span>
                 ))}
               </span>
@@ -90,12 +95,12 @@ export function Hero({ slides }: { slides: Slide[] }) {
       <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-[350px] bg-linear-to-b from-transparent to-page lg:block" />
 
       {n > 1 && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-[220px] max-w-[1500px] sm:h-[280px] lg:h-[270px]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 bottom-0 mx-auto max-w-[1500px] lg:bottom-auto lg:h-[270px]">
           <button type="button" onClick={() => go(index - 1)} aria-label="Previous slide" className={`${arrow} left-0`}>
-            <span className="rounded-full bg-white/85 p-1 text-ink shadow"><ChevronIcon className="size-6 rotate-180" /></span>
+            <span className={chip}><ChevronIcon className="size-6 rotate-180" /></span>
           </button>
           <button type="button" onClick={() => go(index + 1)} aria-label="Next slide" className={`${arrow} right-0`}>
-            <span className="rounded-full bg-white/85 p-1 text-ink shadow"><ChevronIcon className="size-6" /></span>
+            <span className={chip}><ChevronIcon className="size-6" /></span>
           </button>
           <div className="pointer-events-auto absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center rounded-full bg-black/45 px-1">
             {slides.map((s, i) => (

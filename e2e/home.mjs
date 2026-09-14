@@ -31,7 +31,29 @@ try {
   }
   assert.ok((await region("Today's Deals").getByText('Limited time deal').count()) >= 5)
   await page.getByText('See personalized recommendations').waitFor()
-  assert.equal(await page.getByRole('region', { name: 'Keep shopping for' }).count(), 0)
+  assert.equal(await page.getByRole('heading', { name: 'Pick up where you left off' }).count(), 0)
+
+  step('keyboard: skip link comes first; the All drawer hands focus back when it closes')
+  await page.goto(base)
+  await page.keyboard.press('Tab')
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Skip to main content')
+  const allButton = page.getByRole('button', { name: 'Open menu: all departments' }).filter({ visible: true })
+  await allButton.click()
+  await page.getByRole('dialog', { name: 'All departments' }).waitFor()
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog', { name: 'All departments' }).waitFor({ state: 'detached' })
+  assert.ok(await allButton.evaluate((el) => el === document.activeElement), 'focus returns to the All button')
+
+  step('guest sets a delivery ZIP in place')
+  await page.getByRole('button', { name: /^Deliver to United States/ }).click()
+  const location = page.getByRole('dialog', { name: 'Choose your location' })
+  await location.getByLabel('US zip code').fill('98l09')
+  await location.getByRole('button', { name: 'Apply' }).click()
+  await location.getByText('Please enter a valid US zip code').waitFor()
+  await location.getByLabel('US zip code').fill('98109')
+  await location.getByRole('button', { name: 'Apply' }).click()
+  await page.getByRole('button', { name: /^Delivering to 98109/ }).waitFor()
+  assert.equal(page.url(), `${base}/`)
 
   step('deals: department chip, discount facet and sort narrow and order the grid')
   await page.goto(`${base}/deals`)
@@ -115,8 +137,9 @@ try {
   await page.goto(base + viewedHref)
   await page.goto(base)
   // the view is recorded after the product page's response, so allow one reload
-  if (!(await region('Keep shopping for').count())) await page.reload()
-  await region('Keep shopping for').locator(`a[href="${viewedHref}"]`).first().waitFor()
+  const pickUp = page.getByRole('heading', { name: 'Pick up where you left off' })
+  if (!(await pickUp.count())) await page.reload()
+  await pickUp.locator('..').locator(`a[href="${viewedHref}"]`).first().waitFor()
   await region('Inspired by your browsing history').waitFor()
   await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
 

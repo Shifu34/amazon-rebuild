@@ -1,33 +1,35 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useId, useRef, useState } from 'react'
 import { signOut } from '@/app/actions/auth'
-import { ChevronIcon, CloseIcon, MenuIcon, UserIcon } from './icons'
+import { CaretIcon, ChevronIcon, CloseIcon, MenuIcon, UserIcon } from './icons'
+
+// The header's client pieces: the All drawer, the Account & Lists menu and the guest location dialog.
 
 type Department = { slug: string; name: string; categories: { slug: string; name: string }[] }
 
 export function NavDrawer({ departments, userName, variant }: { departments: Department[]; userName: string | null; variant: 'icon' | 'all' }) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const closeRef = useRef<HTMLButtonElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
+  const closeButton = useRef<HTMLButtonElement>(null)
 
+  // a modal <dialog> keeps Tab inside, makes the page behind inert and closes on Escape
   useEffect(() => {
     if (!open) return
-    closeRef.current?.focus()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
+    dialog.current?.showModal()
+    closeButton.current?.focus()
   }, [open])
+  const close = () => dialog.current?.close()
 
   const item = 'block px-8 py-3 hover:bg-page'
   return (
     <>
       <button
+        ref={trigger}
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={open}
@@ -39,9 +41,17 @@ export function NavDrawer({ departments, userName, variant }: { departments: Dep
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="All departments">
-          <div className="absolute inset-0 bg-black/75" onClick={() => setOpen(false)} />
-          <button ref={closeRef} type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="absolute top-3 left-[min(365px,85vw)] ml-3 cursor-pointer text-white">
+        <dialog
+          ref={dialog}
+          aria-label="All departments"
+          onClose={() => {
+            setOpen(false)
+            trigger.current?.focus()
+          }}
+          className="fixed inset-0 m-0 size-full max-h-none max-w-none overflow-hidden bg-transparent p-0 backdrop:bg-transparent"
+        >
+          <div className="absolute inset-0 bg-black/75" onClick={close} />
+          <button ref={closeButton} type="button" onClick={close} aria-label="Close menu" className="absolute top-3 left-[min(365px,85vw)] ml-3 cursor-pointer text-white">
             <CloseIcon className="size-7" />
           </button>
           <nav
@@ -94,8 +104,151 @@ export function NavDrawer({ departments, userName, variant }: { departments: Dep
               <Link href="/ap/signin" className={item}>Sign in</Link>
             )}
           </nav>
-        </div>
+        </dialog>
       )}
+    </>
+  )
+}
+
+// Account & Lists: a mouse opens it on hover (after a short intent delay) and the page dims behind it. The caret is a real
+// toggle for keyboard and touch, so the panel's links only join the tab order when it's open. Escape or clicking away closes it.
+export function AccountMenu({ href, greeting, children }: { href: string; greeting: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+  const toggle = useRef<HTMLButtonElement>(null)
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const id = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      if (root.current?.contains(document.activeElement)) toggle.current?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div
+      ref={root}
+      className="relative hidden md:block"
+      onPointerEnter={(e) => {
+        if (e.pointerType === 'mouse') timer.current = setTimeout(() => setOpen(true), 150)
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType !== 'mouse') return
+        clearTimeout(timer.current)
+        setOpen(false)
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false)
+      }}
+    >
+      <div className={`flex rounded-[2px] border hover:border-white ${open ? 'border-white' : 'border-transparent'}`}>
+        <Link href={href} className="block py-2 pl-2 leading-4 focus-visible:outline-1 focus-visible:outline-white">
+          <span className="block text-xs whitespace-nowrap">{greeting}</span>
+          <span className="block text-sm font-bold whitespace-nowrap">Account &amp; Lists</span>
+        </Link>
+        <button
+          ref={toggle}
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          aria-controls={id}
+          aria-label="Account & Lists menu"
+          className="flex cursor-pointer items-end pr-2 pb-2.5 pl-1 focus-visible:outline-1 focus-visible:outline-white"
+        >
+          <CaretIcon className="h-1.5 w-2 text-[#a7acb2]" />
+        </button>
+      </div>
+      {/* the header row is a stacking context, so -z-10 dims the page but not the header's own content */}
+      {open && <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-black/50" />}
+      <div id={id} hidden={!open} className="absolute top-full right-0 w-[440px] pt-2">
+        <span aria-hidden className="absolute top-0.5 right-3 size-3 rotate-45 bg-white" />
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const ZIP = /^\d{5}$/
+
+// "Choose your location" for guests: sign in for saved addresses, or set a ZIP that the header reads from a cookie.
+// Applies in place (router.refresh) instead of reloading the page like Amazon.
+export function LocationPicker({ zip, className, children }: { zip?: string; className: string; children: React.ReactNode }) {
+  const router = useRouter()
+  const dialog = useRef<HTMLDialogElement>(null)
+  const [invalid, setInvalid] = useState(false)
+  const id = useId()
+  const close = () => dialog.current?.close()
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => {
+          setInvalid(false)
+          dialog.current?.showModal()
+        }}
+        className={className}
+      >
+        {children}
+      </button>
+      <dialog
+        ref={dialog}
+        aria-labelledby={`${id}-title`}
+        onClick={(e) => e.target === e.currentTarget && close()}
+        className="m-auto w-[min(375px,calc(100vw-2rem))] overflow-hidden rounded-lg bg-white p-0 text-left text-ink shadow-xl backdrop:bg-black/60"
+      >
+        <div className="flex items-center justify-between bg-[#f0f2f2] py-2 pr-2 pl-5">
+          <h2 id={`${id}-title`} className="text-base">Choose your location</h2>
+          <button type="button" onClick={close} aria-label="Close" className="cursor-pointer rounded-sm p-2 hover:bg-[#e3e6e6]">
+            <CloseIcon className="size-4" />
+          </button>
+        </div>
+        <div className="p-5">
+          <Link href="/ap/signin?return_to=/account/addresses" onClick={close} className="btn btn-cart btn-lg w-full">Sign in to see your addresses</Link>
+          <p className="my-4 flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+            or enter a US zip code
+          </p>
+          <form
+            noValidate
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const value = String(new FormData(e.currentTarget).get('zip') ?? '').trim()
+              if (!ZIP.test(value)) return setInvalid(true)
+              document.cookie = `zip=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+              close()
+              router.refresh()
+            }}
+          >
+            <input
+              name="zip"
+              defaultValue={zip}
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={5}
+              aria-label="US zip code"
+              aria-invalid={invalid}
+              aria-describedby={invalid ? `${id}-error` : undefined}
+              className="input h-9"
+            />
+            <button type="submit" className="btn btn-plain btn-lg">Apply</button>
+          </form>
+          {invalid && <p id={`${id}-error`} role="alert" className="field-error">Please enter a valid US zip code</p>}
+        </div>
+      </dialog>
     </>
   )
 }

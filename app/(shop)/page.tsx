@@ -48,10 +48,12 @@ export default async function Home() {
     { kicker: "Women's Fashion", title: 'Fresh looks for the new season', blurb: 'Dresses, bags and shoes to mix and match', cta: 'Shop the looks', href: '/s?i=womens-fashion', images: homeImages(['womens-dresses', 'womens-bags', 'womens-shoes']), tone: 'rose' },
   ]
   const sports = top('sports-accessories')
-  const grocery = top('groceries')
+  // picture groceries with fresh fruit, not whatever sells most (a tissue box)
+  const grocery = bestSellers('groceries', 50).find((p) => p.tags.includes('fruits')) ?? top('groceries')
   const homeTiles = categoryTiles({ 'kitchen-accessories': 'Kitchen & Dining', furniture: 'Furniture', 'home-decoration': 'Home Décor' }, (c) => `/s?i=${c}`)
   // picture the Best Sellers tile with a product the category tiles don't already show
   const homeBest = ranked('home-kitchen', 10).find((p) => !homeTiles.some((t) => t.image === p.thumbnail))
+  const grid = 'grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4'
 
   return (
     <div className="bg-page">
@@ -59,18 +61,27 @@ export default async function Home() {
       <Hero slides={slides} />
 
       {/* overflow-x-clip: sr-only prices inside the shared carousels are positioned outside its scroll box and would widen the page */}
-      <div className="relative z-10 mx-auto max-w-[1500px] space-y-5 overflow-x-clip px-3 pt-4 sm:px-5 lg:-mt-[330px] lg:pt-0">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="relative z-10 mx-auto max-w-[1500px] space-y-3 overflow-x-clip px-3 pt-3 sm:space-y-5 sm:px-5 sm:pt-4 lg:-mt-[330px] lg:pt-0">
+        <div className={grid}>
           <QuadCard
             title="Shop deals in Electronics"
             tiles={categoryTiles({ smartphones: 'Cell Phones', laptops: 'Laptops', tablets: 'Tablets', 'mobile-accessories': 'Accessories' }, (c) => (dealIn(c) ? `/deals?i=${c}` : `/bestsellers/${c}`), dealIn)}
             link={{ label: 'See all deals', href: '/deals?i=electronics' }}
           />
-          <QuadCard
-            title="Top categories in Home & Kitchen"
-            tiles={[...homeTiles, ...(homeBest ? [{ label: 'Best Sellers', href: '/bestsellers/home-kitchen', image: homeBest.thumbnail }] : [])]}
-            link={{ label: 'Explore all products in Home & Kitchen', href: '/s?i=home-kitchen' }}
-          />
+          {/* recently viewed sits in the grid like Amazon's "Pick up where you left off", so a short history leaves no empty band */}
+          {viewed.length > 0 ? (
+            <QuadCard
+              title="Pick up where you left off"
+              tiles={viewed.slice(0, 4).map((p) => ({ label: p.title, href: `/dp/${p.id}`, image: p.thumbnail }))}
+              link={{ label: 'View your browsing history', href: '/history' }}
+            />
+          ) : (
+            <QuadCard
+              title="Top categories in Home & Kitchen"
+              tiles={[...homeTiles, ...(homeBest ? [{ label: 'Best Sellers', href: '/bestsellers/home-kitchen', image: homeBest.thumbnail }] : [])]}
+              link={{ label: 'Explore all products in Home & Kitchen', href: '/s?i=home-kitchen' }}
+            />
+          )}
           <QuadCard
             className="lg:max-xl:hidden"
             title="Refresh your wardrobe"
@@ -85,10 +96,9 @@ export default async function Home() {
         </div>
 
         <DealRail products={allDeals.slice(0, 20)} />
-        {viewed.length > 0 && <ProductCarousel title="Keep shopping for" products={viewed} href="/history" />}
         <ProductCarousel title="Best Sellers in Home & Kitchen" products={ranked('home-kitchen', 20)} href="/bestsellers/home-kitchen" />
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className={grid}>
           {user && forYou.length > 1 ? (
             <QuadCard title="Deals for you" tiles={forYou.slice(1, 5).map((p) => ({ label: p.title, href: `/dp/${p.id}`, image: p.thumbnail }))} link={{ label: 'See all deals', href: '/deals' }} />
           ) : (
@@ -112,7 +122,8 @@ export default async function Home() {
         <ProductCarousel title="Best Sellers in Beauty & Personal Care" products={ranked('beauty-personal-care', 20)} href="/bestsellers/beauty-personal-care" />
       </div>
 
-      <section aria-labelledby="home-bottom" className="mt-6 border-y border-line bg-white px-4 py-6 text-center">
+      {/* -mb-10 cancels the footer's top margin so "Back to top" sits right under this band, as on Amazon */}
+      <section aria-labelledby="home-bottom" className="mt-6 -mb-10 border-y border-line bg-white px-4 py-6 text-center">
         {user ? (
           <>
             <h2 id="home-bottom" className="text-base">Your browsing history</h2>

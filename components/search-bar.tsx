@@ -41,11 +41,22 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
   }, [q])
 
   const data = q.trim() && results.q === q ? results.data : EMPTY
-  const options = [...data.terms.map((term) => ({ kind: 'term' as const, term })), ...data.products.map((p) => ({ kind: 'product' as const, p }))]
+  const prefix = q.trim().toLowerCase()
+  const titles = new Set(data.products.map((p) => p.title.toLowerCase()))
+  // where the typed text starts a word of the term, or -1
+  const at = (t: string) => (t.startsWith(prefix) ? 0 : t.indexOf(` ${prefix}`) + 1 || -1)
+  // query completions only: terms containing a word that starts with what was typed, never a copy of a product row below
+  const terms = data.terms.filter((t) => at(t) >= 0 && !titles.has(t))
+  const options = [...terms.map((term) => ({ kind: 'term' as const, term, at: at(term) })), ...data.products.map((p) => ({ kind: 'product' as const, p }))]
   const showList = open && options.length > 0
+  const highlighted = options[active]
+  // arrowing through queries previews each one in the box, like Amazon; typing then edits the previewed text
+  const shown = highlighted?.kind === 'term' ? highlighted.term : q
 
   const submit = (term: string) => {
     setOpen(false)
+    // an empty search in All goes nowhere; with a department it opens that department
+    if (!term.trim() && !scope) return
     const sp = new URLSearchParams()
     if (term.trim()) sp.set('k', term.trim())
     if (scope) sp.set('i', scope)
@@ -65,7 +76,6 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
   }
 
   const scopeLabel = departments.find((d) => d.slug === scope)?.name ?? 'All'
-  const prefix = q.trim().toLowerCase()
 
   return (
     <form
@@ -76,7 +86,8 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
       }}
       className="relative order-last flex h-10 w-full rounded-md text-ink focus-within:ring-[3px] focus-within:ring-brand md:order-none md:mx-2 md:flex-1"
     >
-      <label className="relative flex shrink-0 cursor-pointer items-center rounded-l-md border-r border-[#cdcdcd] bg-[#e6e6e6] px-2 text-xs text-[#555] hover:bg-[#d4d4d4] hover:text-ink">
+      {/* phones get a full-width box, like Amazon's mobile web */}
+      <label className="relative hidden shrink-0 cursor-pointer items-center rounded-l-md border-r border-[#cdcdcd] bg-[#e6e6e6] px-2 text-xs text-[#555] hover:bg-[#d4d4d4] hover:text-ink md:flex">
         <span className="pointer-events-none max-w-24 truncate">{scopeLabel}</span>
         <span className="pointer-events-none ml-1 text-[9px]">▼</span>
         <select value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Search in" className="absolute inset-0 cursor-pointer opacity-0">
@@ -88,7 +99,7 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
       </label>
 
       <input
-        value={q}
+        value={shown}
         onChange={(e) => {
           setQ(e.target.value)
           setActive(-1)
@@ -104,18 +115,19 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
             if (n) setActive((a) => (e.key === 'ArrowDown' ? (a + 1) % n : (a - 1 + n) % n))
           } else if (e.key === 'Escape') {
             setOpen(false)
+            setActive(-1)
           }
         }}
         role="combobox"
         aria-expanded={showList}
         aria-controls={listId}
         aria-autocomplete="list"
-        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
+        aria-activedescendant={showList && active >= 0 ? `${listId}-${active}` : undefined}
         aria-label="Search nile"
         placeholder="Search nile"
         autoComplete="off"
         spellCheck={false}
-        className="min-w-0 flex-1 bg-white px-2.5 text-[15px] outline-none"
+        className="min-w-0 flex-1 bg-white px-2.5 text-[15px] outline-none max-md:rounded-l-md"
       />
 
       <button type="submit" aria-label="Go" className="flex w-11 shrink-0 cursor-pointer items-center justify-center rounded-r-md bg-search hover:bg-search-hover">
@@ -137,20 +149,16 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
               aria-selected={active === index}
               onMouseEnter={() => setActive(index)}
               onClick={() => choose(index)}
-              className={`flex cursor-pointer items-center gap-3 px-3 py-1.5 ${active === index ? 'bg-page' : ''} ${o.kind === 'product' && data.terms.length && index === data.terms.length ? 'mt-1 border-t border-line pt-2' : ''}`}
+              className={`flex cursor-pointer items-center gap-3 px-3 py-1.5 ${active === index ? 'bg-page' : ''} ${o.kind === 'product' && terms.length && index === terms.length ? 'mt-1 border-t border-line pt-2' : ''}`}
             >
               {o.kind === 'term' ? (
                 <>
                   <SearchIcon className="size-4 shrink-0 text-muted" />
+                  {/* what was typed in normal weight, the completion around it in bold, like Amazon */}
                   <span className="truncate">
-                    {o.term.startsWith(prefix) ? (
-                      <>
-                        {prefix}
-                        <b>{o.term.slice(prefix.length)}</b>
-                      </>
-                    ) : (
-                      o.term
-                    )}
+                    <b>{o.term.slice(0, o.at)}</b>
+                    {o.term.slice(o.at, o.at + prefix.length)}
+                    <b>{o.term.slice(o.at + prefix.length)}</b>
                   </span>
                 </>
               ) : (

@@ -33,13 +33,14 @@ export function DeliveryLine({ product: p }: { product: Product }) {
 }
 
 // Search-result style card. `children` is the action slot (e.g. an Add to cart form).
-export function ProductCard({ product: p, children }: { product: Product; children?: React.ReactNode }) {
+// Pass `priority` for the first row of a grid so those above-the-fold images load first.
+export function ProductCard({ product: p, priority = false, children }: { product: Product; priority?: boolean; children?: React.ReactNode }) {
   const href = `/dp/${p.id}`
   return (
     <article className="flex h-full flex-col">
       <Link href={href} className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.thumbnail} alt={p.title} loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
       </Link>
       <div className="flex flex-1 flex-col gap-1 pt-2">
         {p.badge && <div><Badge badge={p.badge} /></div>}

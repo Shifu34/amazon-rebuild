@@ -38,6 +38,8 @@
     line-height: 20px;
   }
   h1, h2, h3 { font-weight: 700; }
+  /* the page behind a modal <dialog> (All drawer, location picker) doesn't scroll */
+  body:has(dialog:modal) { overflow: hidden; }
 }
 
 @layer components {

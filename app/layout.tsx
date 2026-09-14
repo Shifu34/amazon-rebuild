@@ -4,6 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: { default: 'nile: shop everything, delivered', template: '%s | nile' },
   description: 'A working rebuild of Amazon.com: search, product pages, cart, checkout, orders, returns and lists.',
+  robots: { index: false, follow: false },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

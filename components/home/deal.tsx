@@ -19,13 +19,14 @@ export function DealBadge({ discount }: { discount: number }) {
 }
 
 // Today's Deals tile. `compact` (home rail) drops the rating row and the cart button.
-export function DealCard({ product: p, compact = false }: { product: Product; compact?: boolean }) {
+// `inCart` is the server cart quantity; `priority` loads the image first (first grid row).
+export function DealCard({ product: p, compact = false, inCart, priority = false }: { product: Product; compact?: boolean; inCart?: number; priority?: boolean }) {
   const href = `/dp/${p.id}`
   return (
     <article data-price={p.price} className="relative flex h-full flex-col">
       <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
       </Link>
       <div className="mt-2 flex flex-1 flex-col gap-1">
         <DealBadge discount={p.discount} />
@@ -43,7 +44,7 @@ export function DealCard({ product: p, compact = false }: { product: Product; co
               <span className="text-xs text-link">{p.ratingCount.toLocaleString('en-US')}</span>
             </div>
             <div className="mt-auto pt-2">
-              <AddToCartButton productId={p.id} />
+              <AddToCartButton productId={p.id} inCart={inCart} />
             </div>
           </>
         )}
