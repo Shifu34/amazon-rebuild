@@ -216,7 +216,7 @@ function NoResults({ q, filtered }: { q: Query; filtered: boolean }) {
       </section>
 
       <div className="-mx-4 border-t border-line">
-        <ProductCarousel title="Best Sellers" products={bestSellers(undefined, 12)} />
+        <ProductCarousel title="Best Sellers" products={bestSellers(undefined, 12)} href="/bestsellers" />
       </div>
     </div>
   )

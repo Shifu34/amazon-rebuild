@@ -1,7 +1,5 @@
 import Link from 'next/link'
 
-export const MAX_ADDRESSES = 20
-
 // "Your Account › Your Addresses": every crumb but the last is a link.
 export function Crumbs({ trail }: { trail: [label: string, href?: string][] }) {
   return (

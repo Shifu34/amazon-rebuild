@@ -114,13 +114,11 @@ try {
   const viewedHref = await region('Best Sellers in Electronics').locator('a[href^="/dp/"]').first().getAttribute('href')
   await page.goto(base + viewedHref)
   await page.goto(base)
-  if (await region('Keep shopping for').count()) {
-    await region('Keep shopping for').locator(`a[href="${viewedHref}"]`).first().waitFor()
-    await region('Inspired by your browsing history').waitFor()
-    await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
-  } else {
-    console.log('  (history rows not checked: the product page does not record browsing_history yet)')
-  }
+  // the view is recorded after the product page's response, so allow one reload
+  if (!(await region('Keep shopping for').count())) await page.reload()
+  await region('Keep shopping for').locator(`a[href="${viewedHref}"]`).first().waitFor()
+  await region('Inspired by your browsing history').waitFor()
+  await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
 
   console.log('e2e home ok')
 } catch (e) {

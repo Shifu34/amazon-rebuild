@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Crumbs, MAX_ADDRESSES } from '@/components/account/ui'
+import { Crumbs } from '@/components/account/ui'
 import { AddressForm } from '@/components/address-form'
-import { getAddresses } from '@/lib/addresses'
+import { getAddresses, MAX_ADDRESSES } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 
 export const metadata: Metadata = { title: 'Add a new address' }

@@ -10,7 +10,7 @@ export function Scroller({ label, children }: { label: string; children: React.R
   const arrow = 'absolute top-1/2 z-10 hidden h-24 w-11 -translate-y-1/2 cursor-pointer items-center justify-center bg-white/95 shadow-[0_1px_3px_rgba(15,17,17,0.3)] opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100 md:flex'
   return (
     <div className="group relative">
-      <ul ref={ref} className="flex snap-x gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">{children}</ul>
+      <ul ref={ref} className="relative flex snap-x gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">{children}</ul>
       <button type="button" onClick={() => page(-1)} aria-label={`Previous items: ${label}`} className={`${arrow} left-0 rounded-r-md`}>
         <ChevronIcon className="size-6 rotate-180" />
       </button>

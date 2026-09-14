@@ -2,7 +2,7 @@
 
 import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { validateAddress, type AddressErrors } from '@/lib/addresses'
+import { MAX_ADDRESSES, validateAddress, type AddressErrors } from '@/lib/addresses'
 import { getUser, safeReturnTo } from '@/lib/auth'
 import { one, query } from '@/lib/db'
 
@@ -18,6 +18,10 @@ export async function saveAddress(_prev: AddressState, form: FormData): Promise<
   if (Object.keys(errors).length) return { errors }
 
   const id = String(form.get('id') ?? '')
+  if (!id) {
+    const { n } = (await one<{ n: number }>('select count(*)::int as n from addresses where user_id = $1', [user.id]))!
+    if (n >= MAX_ADDRESSES) return { problem: `You can save up to ${MAX_ADDRESSES} addresses. Remove one to add another.` }
+  }
   const params = [user.id, input.fullName, input.phone, input.line1, input.line2, input.city, input.state, input.zip, input.instructions, input.makeDefault]
   // one statement each, so there is never a moment with two defaults
   const row = id

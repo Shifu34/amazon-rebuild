@@ -108,7 +108,7 @@ export default async function DealsPage({ searchParams }: PageProps<'/deals'>) {
                   <Option href={href({ i: d.slug })} active={i === d.slug}>{d.name}</Option>
                   {dept === d &&
                     d.categories
-                      .filter((c) => c !== d.slug && (c === i || count('i', (p) => p.category === c) > 0))
+                      .filter((c) => c === i || count('i', (p) => p.category === c) > 0)
                       .map((c) => (
                         <Option key={c} href={href({ i: c })} active={i === c} indent>{CATEGORY_NAMES[c]}</Option>
                       ))}

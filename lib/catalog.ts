@@ -63,7 +63,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
 export const DEPARTMENTS: { slug: string; name: string; categories: string[] }[] = [
   { slug: 'electronics', name: 'Electronics', categories: ['smartphones', 'laptops', 'tablets', 'mobile-accessories'] },
   { slug: 'home-kitchen', name: 'Home & Kitchen', categories: ['kitchen-accessories', 'furniture', 'home-decoration'] },
-  { slug: 'beauty', name: 'Beauty & Personal Care', categories: ['beauty', 'skin-care', 'fragrances'] },
+  { slug: 'beauty-personal-care', name: 'Beauty & Personal Care', categories: ['beauty', 'skin-care', 'fragrances'] },
   { slug: 'womens-fashion', name: "Women's Fashion", categories: ['tops', 'womens-dresses', 'womens-shoes', 'womens-bags', 'womens-jewellery', 'womens-watches'] },
   { slug: 'mens-fashion', name: "Men's Fashion", categories: ['mens-shirts', 'mens-shoes', 'mens-watches', 'sunglasses'] },
   { slug: 'grocery', name: 'Grocery', categories: ['groceries'] },
@@ -71,9 +71,11 @@ export const DEPARTMENTS: { slug: string; name: string; categories: string[] }[]
   { slug: 'automotive', name: 'Automotive', categories: ['vehicle', 'motorcycle'] },
 ]
 
-export const categoryName = (slug: string) => CATEGORY_NAMES[slug] ?? slug
+// hasOwn: URL input like `toString` must not resolve to Object.prototype members
+export const categoryName = (slug: string) => (Object.hasOwn(CATEGORY_NAMES, slug) ? CATEGORY_NAMES[slug] : slug)
 // `i` in search URLs is a department slug or a category slug, like Amazon's search-alias
-export const scopeName = (slug: string) => DEPARTMENTS.find((d) => d.slug === slug)?.name ?? CATEGORY_NAMES[slug]
+export const scopeName = (slug: string): string | undefined =>
+  DEPARTMENTS.find((d) => d.slug === slug)?.name ?? (Object.hasOwn(CATEGORY_NAMES, slug) ? CATEGORY_NAMES[slug] : undefined)
 const inScope = (p: Product, slug: string) => DEPARTMENTS.find((d) => d.slug === slug)?.categories.includes(p.category) ?? p.category === slug
 
 // deterministic pseudo-random in [0, 1) so derived signals are stable across renders and deploys

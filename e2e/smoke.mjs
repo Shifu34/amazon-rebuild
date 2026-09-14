@@ -13,10 +13,10 @@ const cartLabel = () => page.getByRole('link', { name: /^Cart, / }).getAttribute
 const step = (name) => console.log(`- ${name}`)
 
 try {
-  step('guest adds an item from the home page')
-  await page.goto(base)
-  await page.getByRole('button', { name: 'Add to cart' }).first().click()
-  await page.getByText('1 in cart').first().waitFor()
+  step('guest adds an item from a product page')
+  await page.goto(`${base}/dp/1`)
+  await page.getByRole('button', { name: 'Add to Cart', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Added to cart' }).waitFor()
   assert.equal(await cartLabel(), 'Cart, 1 item')
 
   step('guest creates an account; the guest cart follows')

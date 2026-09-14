@@ -95,7 +95,7 @@ export default async function Home() {
             <QuadCard
               title="Beauty & personal care"
               tiles={categoryTiles({ 'skin-care': 'Skin Care', fragrances: 'Fragrances', 'womens-jewellery': 'Jewelry', 'womens-watches': 'Watches' }, (c) => `/s?i=${c}`)}
-              link={{ label: 'See more in Beauty', href: '/s?i=beauty' }}
+              link={{ label: 'See more in Beauty', href: '/s?i=beauty-personal-care' }}
             />
           )}
           <QuadCard
@@ -109,7 +109,7 @@ export default async function Home() {
 
         {inspired.length > 0 && <ProductCarousel title="Inspired by your browsing history" products={inspired} />}
         <ProductCarousel title="Best Sellers in Electronics" products={ranked('electronics', 20)} href="/bestsellers/electronics" />
-        <ProductCarousel title="Best Sellers in Beauty & Personal Care" products={ranked('beauty', 20)} href="/bestsellers/beauty" />
+        <ProductCarousel title="Best Sellers in Beauty & Personal Care" products={ranked('beauty-personal-care', 20)} href="/bestsellers/beauty-personal-care" />
       </div>
 
       <section aria-labelledby="home-bottom" className="mt-6 border-y border-line bg-white px-4 py-6 text-center">

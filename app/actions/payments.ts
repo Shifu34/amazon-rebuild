@@ -32,16 +32,18 @@ export async function addCard(_prev: CardState, form: FormData): Promise<CardSta
   return { id: row?.id }
 }
 
-// removing the default promotes the newest remaining card
+// removing the default promotes the newest remaining card that hasn't expired (same rule as isExpired, in UTC)
 export async function removeCard(form: FormData) {
   const user = await getUser()
   if (!user) return
+  const now = new Date()
   await query(
     `with gone as (delete from payment_methods where user_id = $1 and id::text = $2 returning is_default)
      update payment_methods set is_default = true
-     where id = (select id from payment_methods where user_id = $1 and id::text <> $2 order by created_at desc limit 1)
+     where id = (select id from payment_methods where user_id = $1 and id::text <> $2 and exp_year * 12 + exp_month >= $3
+                 order by created_at desc limit 1)
        and exists (select 1 from gone where is_default)`,
-    [user.id, String(form.get('id') ?? '')],
+    [user.id, String(form.get('id') ?? ''), now.getUTCFullYear() * 12 + now.getUTCMonth() + 1],
   )
   refresh()
 }

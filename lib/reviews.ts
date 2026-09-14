@@ -88,7 +88,7 @@ export async function productReviews(p: Product, viewerId?: string) {
   const rows = await query<Row>(
     `select r.id, r.user_id, u.name, r.rating, r.headline, r.body, r.created_at, r.helpful,
        exists (select 1 from order_items oi join orders o on o.id = oi.order_id
-               where o.user_id = r.user_id and oi.product_id = r.product_id and o.cancelled_at is null) as verified,
+               where o.user_id = r.user_id and oi.product_id = r.product_id and o.cancelled_at is null and oi.cancelled_at is null) as verified,
        exists (select 1 from review_votes v where v.review_id = r.id and v.user_id = $2) as voted
      from reviews r join users u on u.id = r.user_id
      where r.product_id = $1`,
@@ -136,7 +136,7 @@ export async function saveReview(userId: string, productId: number, rating: numb
   await query(
     `insert into reviews (user_id, product_id, rating, headline, body, verified)
      values ($1, $2, $3, $4, $5, exists (select 1 from order_items oi join orders o on o.id = oi.order_id
-                                         where o.user_id = $1 and oi.product_id = $2 and o.cancelled_at is null))
+                                         where o.user_id = $1 and oi.product_id = $2 and o.cancelled_at is null and oi.cancelled_at is null))
      on conflict (user_id, product_id) do update
        set rating = excluded.rating, headline = excluded.headline, body = excluded.body, verified = excluded.verified, created_at = now()`,
     [userId, productId, rating, headline, body],

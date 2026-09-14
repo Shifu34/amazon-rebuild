@@ -101,7 +101,7 @@ export type Chip = { label: string; href: string }
 
 export function appliedFilters(q: Query): Chip[] {
   const chips: Chip[] = []
-  if (q.i) chips.push({ label: scopeName(q.i), href: toHref(q, { i: '' }) })
+  if (q.i) chips.push({ label: scopeName(q.i) ?? q.i, href: toHref(q, { i: '' }) })
   for (const b of q.brand) chips.push({ label: b, href: toHref(q, { brand: q.brand.filter((x) => x !== b) }) })
   if (q.rating) chips.push({ label: `${q.rating} Stars & Up`, href: toHref(q, { rating: undefined }) })
   if (q.min !== undefined || q.max !== undefined) chips.push({ label: priceLabel(q.min, q.max), href: toHref(q, { min: undefined, max: undefined }) })

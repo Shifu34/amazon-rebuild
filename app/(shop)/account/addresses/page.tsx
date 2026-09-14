@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { makeDefaultAddress, removeAddress } from '@/app/actions/account'
 import { ConfirmDialog } from '@/components/account/modal'
-import { alertFrom, Crumbs, MAX_ADDRESSES, Notice } from '@/components/account/ui'
-import { formatAddress, getAddresses } from '@/lib/addresses'
+import { alertFrom, Crumbs, Notice } from '@/components/account/ui'
+import { formatAddress, getAddresses, MAX_ADDRESSES } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 
 export const metadata: Metadata = { title: 'Your Addresses' }

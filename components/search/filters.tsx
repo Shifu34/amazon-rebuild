@@ -60,8 +60,7 @@ function SeeMore({ label, open, children }: { label: string; open: boolean; chil
 
 function Departments({ q, facets }: { q: Query; facets: Facets }) {
   const counts = new Map(facets.categories.map((c) => [c.slug, c.count]))
-  // a category that shares its department's slug (beauty) can't be addressed on its own, so don't list it twice
-  const children = (d: Department) => d.categories.filter((c) => c !== d.slug && (counts.has(c) || c === q.i))
+  const children = (d: Department) => d.categories.filter((c) => counts.has(c) || c === q.i)
   const total = (d: Department) => d.categories.reduce((n, c) => n + (counts.get(c) ?? 0), 0)
   const child = (c: string) =>
     c === q.i ? (

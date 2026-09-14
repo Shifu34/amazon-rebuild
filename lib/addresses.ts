@@ -16,6 +16,8 @@ export type Address = {
   isDefault: boolean
 }
 
+export const MAX_ADDRESSES = 20
+
 export type AddressInput = Omit<Address, 'id' | 'isDefault' | 'country'> & { makeDefault: boolean }
 export type AddressErrors = Partial<Record<'fullName' | 'phone' | 'line1' | 'city' | 'state' | 'zip', string>>
 
