@@ -1,14 +1,26 @@
 type P = { className?: string }
 
-export function Logo({ className = '', tone = 'light' }: P & { tone?: 'light' | 'dark' }) {
+// sized in em: the font size in className (26px by default) scales the word and the smile together
+export function Logo({ className = 'text-[26px]', tone = 'light' }: P & { tone?: 'light' | 'dark' }) {
   return (
     <span className={`inline-flex flex-col items-start leading-none ${tone === 'dark' ? 'text-ink' : 'text-white'} ${className}`}>
-      <span className="text-[26px] font-black tracking-[-0.05em]">nile</span>
-      <svg viewBox="0 0 56 12" className="-mt-1 ml-0.5 h-[9px] w-[44px]" aria-hidden>
+      <span className="font-black tracking-[-0.05em]">nile</span>
+      <svg viewBox="0 0 56 12" className="-mt-[0.15em] ml-[0.08em] h-[0.35em] w-[1.7em]" aria-hidden>
         <path d="M2 3q26 11 48 1" fill="none" stroke="#ff9900" strokeWidth="3" strokeLinecap="round" />
         <path d="M45 1l6 2.6-4 5" fill="none" stroke="#ff9900" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
+  )
+}
+
+export function FlagUS({ className }: P) {
+  return (
+    <svg viewBox="0 0 39 26" className={className} aria-hidden>
+      <rect width="39" height="26" fill="#b22234" />
+      <path d="M0 3h39M0 7h39M0 11h39M0 15h39M0 19h39M0 23h39" stroke="#fff" strokeWidth="2" />
+      <rect width="17" height="14" fill="#3c3b6e" />
+      <path d="M2.5 2.5h12M5 5.5h8M2.5 8.5h12M5 11.5h8" stroke="#fff" strokeWidth="1" strokeDasharray="1 2" />
+    </svg>
   )
 }
 
@@ -25,7 +37,8 @@ export function CartIcon({ className }: P) {
 export function PinIcon({ className }: P) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" fill="currentColor" />
+      <path d="M12 21.5s-7-7.2-7-12.3a7 7 0 0 1 14 0c0 5.1-7 12.3-7 12.3z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <circle cx="12" cy="9.2" r="2.6" fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
   )
 }

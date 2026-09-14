@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useId, useState } from 'react'
 import { usd } from '@/lib/format'
-import { SearchIcon } from './icons'
+import { CaretIcon, SearchIcon } from './icons'
 
 type Suggestions = { terms: string[]; products: { id: number; title: string; thumbnail: string; price: number }[] }
 const EMPTY: Suggestions = { terms: [], products: [] }
@@ -93,12 +93,12 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
         e.preventDefault()
         choose(active)
       }}
-      className="relative order-last flex h-10 w-full rounded-md text-ink focus-within:ring-[3px] focus-within:ring-brand md:order-none md:mx-2 md:flex-1"
+      className="relative order-last flex h-10 w-full rounded-md text-ink focus-within:ring-[3px] focus-within:ring-brand md:order-none md:mx-3.5 md:flex-1 md:rounded"
     >
       {/* phones get a full-width box, like Amazon's mobile web */}
-      <label className="relative hidden shrink-0 cursor-pointer items-center rounded-l-md border-r border-[#cdcdcd] bg-[#e6e6e6] px-2 text-xs text-[#555] hover:bg-[#d4d4d4] hover:text-ink md:flex">
+      <label className="relative hidden shrink-0 cursor-pointer items-center rounded-l border-r border-[#cdcdcd] bg-[#e6e6e6] pr-2 pl-2.5 text-xs text-[#555] hover:bg-[#d4d4d4] hover:text-ink md:flex">
         <span className="pointer-events-none max-w-24 truncate">{scopeLabel}</span>
-        <span className="pointer-events-none ml-1 text-[9px]">▼</span>
+        <CaretIcon className="pointer-events-none ml-2.5 h-1 w-2 shrink-0" />
         <select value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Search in" className="absolute inset-0 cursor-pointer opacity-0">
           <option value="">All Departments</option>
           {departments.map((d) => (
@@ -139,8 +139,8 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
         className="min-w-0 flex-1 bg-white px-2.5 text-[15px] outline-none max-md:rounded-l-md"
       />
 
-      <button type="submit" aria-label="Go" className="flex w-11 shrink-0 cursor-pointer items-center justify-center rounded-r-md bg-search hover:bg-search-hover">
-        <SearchIcon className="size-5 text-ink" />
+      <button type="submit" aria-label="Go" className="flex w-11 shrink-0 cursor-pointer items-center justify-center rounded-r-md bg-search hover:bg-search-hover md:w-[45px] md:rounded-r">
+        <SearchIcon className="size-5 text-ink md:size-6" />
       </button>
 
       {showList && (
@@ -148,7 +148,7 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
           id={listId}
           role="listbox"
           onMouseDown={(e) => e.preventDefault()}
-          className="absolute top-full right-11 left-0 z-50 mt-px overflow-hidden rounded-b-md border border-line bg-white py-1 shadow-lg"
+          className="absolute top-full right-11 left-0 z-50 md:right-[45px] mt-px overflow-hidden rounded-b-md border border-line bg-white py-1 shadow-lg"
         >
           {options.map((o, index) => (
             <li

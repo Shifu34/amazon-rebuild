@@ -37,9 +37,28 @@ async function check(label, found) {
   assert.deepEqual(bad, [], `${label}: broken links`)
 }
 
+// direct children only: the All drawer renders its own links inside this nav
+const shortcuts = () => page.locator('nav[aria-label="Shortcuts"] > a').allTextContents()
+
 try {
   step('signed out: header, drawer and footer')
   await check('signed out', await linksOn('/', 'header a[href], footer a[href]'))
+  assert.deepEqual(await shortcuts(), ["Today's Deals", 'Best Sellers', 'New Releases', 'Customer Service'])
+
+  step('signed out: Customer Service')
+  await check('help', await linksOn('/help', 'main a[href]'))
+
+  step('the EN menu works from the keyboard: Enter opens it, Escape closes it and keeps focus')
+  const en = page.getByRole('button', { name: 'EN: language and currency' })
+  await en.focus()
+  await page.keyboard.press('Enter')
+  const locale = page.locator(`[id="${await en.getAttribute('aria-controls')}"]`)
+  assert.ok(await locale.getByRole('radio', { name: 'English - EN' }).isChecked())
+  assert.ok(await locale.getByRole('radio', { name: '$ - USD - US Dollar' }).isChecked())
+  await locale.getByText('You are shopping on nile.com').waitFor()
+  await page.keyboard.press('Escape')
+  await locale.waitFor({ state: 'hidden' })
+  assert.ok(await en.evaluate((el) => el === document.activeElement), 'focus stays on EN')
 
   step('signed out: an unknown URL is a real 404 with a way home')
   const res = await page.goto(`${base}/no-such-page`)
@@ -59,6 +78,7 @@ try {
 
   step('signed in: header, drawer and footer')
   await check('signed in', await linksOn('/', 'header a[href], footer a[href]'))
+  assert.deepEqual(await shortcuts(), ["Today's Deals", 'Buy Again', 'Best Sellers', 'New Releases', 'Customer Service', 'Browsing History'])
 
   step('signed in: account pages')
   const found = []

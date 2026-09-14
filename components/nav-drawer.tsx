@@ -111,14 +111,23 @@ export function NavDrawer({ departments, userName, variant }: { departments: Dep
   )
 }
 
-// Account & Lists: a mouse opens it on hover (after a short intent delay) and the page dims behind it. The caret is a real
-// toggle for keyboard and touch, so the panel's links only join the tab order when it's open. Escape, clicking away, or
-// choosing a link or Sign Out closes it (the header outlives navigation, so nothing else would).
-export function AccountMenu({ href, greeting, children }: { href: string; greeting: string; children: React.ReactNode }) {
+// Account & Lists and EN: a mouse opens them on hover (after a short intent delay) and the page below the header dims.
+// A real toggle button serves keyboard and touch, so the panel's links only join the tab order when it's open. Escape,
+// clicking away, or choosing a link or Sign Out closes it (the header outlives navigation, so nothing else would).
+// With `href` the label is a link and the caret beside it toggles; without, the whole label is the toggle.
+export function Flyout({ href, label, toggleLabel, className, panelClassName, children }: {
+  href?: string
+  label: React.ReactNode
+  toggleLabel: string
+  className: string
+  panelClassName: string
+  children: React.ReactNode
+}) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const hovering = useRef(false)
   const id = useId()
 
   useEffect(() => {
@@ -139,15 +148,35 @@ export function AccountMenu({ href, greeting, children }: { href: string; greeti
     }
   }, [open])
 
+  const caret = <CaretIcon className={`h-[5px] w-2 shrink-0 self-end text-[#a7acb2] ${href ? 'mb-3' : 'mb-[15px]'}`} />
+  const focus = 'cursor-pointer focus-visible:outline-1 focus-visible:outline-white'
+  const toggleButton = (className: string, content: React.ReactNode) => (
+    <button
+      ref={toggle}
+      type="button"
+      // a click while the mouse already holds the menu open keeps it open instead of snapping it shut
+      onClick={() => setOpen(hovering.current || !open)}
+      aria-expanded={open}
+      aria-controls={id}
+      aria-label={toggleLabel}
+      className={`flex ${focus} ${className}`}
+    >
+      {content}
+    </button>
+  )
+
   return (
     <div
       ref={root}
-      className="relative hidden md:block"
+      className={`relative ${className}`}
       onPointerEnter={(e) => {
-        if (e.pointerType === 'mouse') timer.current = setTimeout(() => setOpen(true), 150)
+        if (e.pointerType !== 'mouse') return
+        hovering.current = true
+        timer.current = setTimeout(() => setOpen(true), 150)
       }}
       onPointerLeave={(e) => {
         if (e.pointerType !== 'mouse') return
+        hovering.current = false
         clearTimeout(timer.current)
         setOpen(false)
       }}
@@ -155,33 +184,25 @@ export function AccountMenu({ href, greeting, children }: { href: string; greeti
         if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false)
       }}
     >
-      <div className={`flex rounded-[2px] border hover:border-white ${open ? 'border-white' : 'border-transparent'}`}>
-        <Link href={href} className="block py-2 pl-2 leading-4 focus-visible:outline-1 focus-visible:outline-white">
-          <span className="block text-xs whitespace-nowrap">{greeting}</span>
-          <span className="block text-sm font-bold whitespace-nowrap">Account &amp; Lists</span>
-        </Link>
-        <button
-          ref={toggle}
-          type="button"
-          onClick={() => setOpen(!open)}
-          aria-expanded={open}
-          aria-controls={id}
-          aria-label="Account & Lists menu"
-          className="flex cursor-pointer items-end pr-2 pb-2.5 pl-1 focus-visible:outline-1 focus-visible:outline-white"
-        >
-          <CaretIcon className="h-1.5 w-2 text-[#a7acb2]" />
-        </button>
+      <div className={`flex h-[50px] rounded-[2px] border hover:border-white ${open ? 'border-white' : 'border-transparent'}`}>
+        {href ? (
+          <>
+            <Link href={href} className={`flex flex-col justify-center pl-[9px] ${focus}`}>{label}</Link>
+            {toggleButton('pr-[9px] pl-1', caret)}
+          </>
+        ) : (
+          toggleButton('items-center gap-0.5 px-[9px]', <>{label}{caret}</>)
+        )}
       </div>
-      {/* the header row is a stacking context, so -z-10 dims the page but not the header's own content */}
-      {open && <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-black/50" />}
+      {/* the header is a stacking context, so -z-10 dims the page but not the header's own bars */}
+      {open && <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-black/60" />}
       <div
         id={id}
         hidden={!open}
         onClick={(e) => (e.target as HTMLElement).closest('a') && setOpen(false)}
         onSubmit={() => setOpen(false)}
-        className="absolute top-full right-0 w-[440px] pt-2"
+        className={`absolute top-full ${panelClassName}`}
       >
-        <span aria-hidden className="absolute top-0.5 right-3 size-3 rotate-45 bg-white" />
         {children}
       </div>
     </div>
