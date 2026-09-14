@@ -7,22 +7,24 @@ import { removeFromCart, updateQuantity } from '@/app/actions/cart'
 import { placedOrderId, placeOrder, type PlaceOrderState } from '@/app/actions/checkout'
 import { AddressForm } from '@/components/address-form'
 import { CardForm } from '@/components/card-form'
+import { useRegion } from '@/components/region-provider'
 import type { Address } from '@/lib/addresses'
-import { longDate, plural, usd, usdCents } from '@/lib/format'
+import { longDate, plural } from '@/lib/format'
 import type { Quote, Speed } from '@/lib/orders'
 import type { Card } from '@/lib/payments'
+import { countryCodeFromName, formatDollars, formatMoney, type CountryCode } from '@/lib/region'
 import { CheckCircleIcon } from './icons'
 import { shipments } from './shipments'
+import { deliveryName, summaryRows } from './summary'
 
-type Line = { id: number; title: string; thumbnail: string; price: number; quantity: number; stock: number; max: number; arrives: Record<Speed, Date> }
+type Line = { id: number; title: string; thumbnail: string; price: number; quantity: number; stock: number; max: number; arrives: Record<CountryCode, Record<Speed, Date>> }
 type View = 'summary' | 'list' | 'new'
 type Props = {
   token: string
   buy: { id: string; qty: number } | null
   lines: Line[]
   linesKey: string
-  quotes: Record<Speed, Quote>
-  taxRate: number
+  quotes: Record<CountryCode, Record<Speed, Quote>> // shipping and tax follow the selected address's country
   addresses: (Address & { oneLine: string })[]
   cards: (Card & { label: string; expiry: string })[]
   notices: string[]
@@ -34,7 +36,8 @@ const ADDRESS_HEADING = '#address-heading'
 const PAYMENT_HEADING = '#payment-heading'
 const CARD_NUMBER = 'section[aria-labelledby="payment-heading"] input[name="number"]'
 
-export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, addresses, cards, notices }: Props) {
+export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards, notices }: Props) {
+  const { currency, rate, country: regionCountry } = useRegion()
   // the shopper's picks live in the URL, so a trip to the cart (or a product page) and Back keeps them
   const params = useSearchParams()
   const choose = (key: 'address' | 'card' | 'speed', value: string) => {
@@ -79,8 +82,11 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
   const aView = addressView === 'summary' && !address ? 'new' : addressView
   // a first-time shopper adds the address first; payment opens once it is saved
   const cView = cardView === 'summary' && !card ? (cards.length ? 'list' : address ? 'new' : 'locked') : cardView
-  const q = quotes[speed]
-  const groups = shipments(lines, (l) => l.arrives[speed])
+  // before an address is saved, quote for the shopper's delivery country
+  const country = address ? countryCodeFromName(address.country) : regionCountry
+  const q = quotes[country][speed]
+  const summary = summaryRows({ ...q, taxCents: q.taxLabel ? q.taxCents : null }, currency, rate)
+  const groups = shipments(lines, (l) => l.arrives[country][speed])
   const blocker = !address ? 'Add a delivery address to continue.' : !card ? 'Add a payment method to continue.' : null
   const error = editError || state?.error
   const doneId = placedId ?? state?.orderId
@@ -319,9 +325,9 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
             <fieldset className="self-start">
               <legend className="mb-1 text-sm font-bold">Choose your delivery option:</legend>
               {(['standard', 'expedited'] as const).map((s) => {
-                const o = quotes[s]
-                const price = o.freeShippingCents ? 'FREE' : usdCents(o.shippingCents)
-                const split = shipments(lines, (l) => l.arrives[s]).length > 1
+                const o = quotes[country][s]
+                const price = o.freeShippingCents ? 'FREE' : formatMoney(o.shippingCents, currency, rate)
+                const split = shipments(lines, (l) => l.arrives[country][s]).length > 1
                 return (
                   <label key={s} className="flex cursor-pointer gap-2 rounded-md p-1.5 text-sm has-[:checked]:bg-[#f0f8f9]">
                     <input type="radio" name="delivery-speed" checked={speed === s} onChange={() => choose('speed', s)} className="mt-0.5 size-4 shrink-0 accent-link" />
@@ -331,7 +337,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
                         {longDate(o.deliverBy)}
                       </b>
                       <span className="block">
-                        {price} {s === 'standard' ? 'Standard Delivery' : 'Expedited Delivery'}
+                        {price} {deliveryName(s, country)}
                         <span className="text-xs text-muted"> · {s === 'standard' ? 'Cheapest' : 'Fastest'}</span>
                       </span>
                     </span>
@@ -345,7 +351,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
         <section aria-label="Place your order" className="hidden items-center gap-3 rounded-lg border border-line bg-white p-5 lg:flex">
           {placeButton('px-8')}
           <div>
-            <p className="text-lg font-bold text-danger">Order total: {usdCents(q.totalCents)}</p>
+            <p className="text-lg font-bold text-danger">Order total: {summary.total}</p>
             <p className="text-xs">{blocker ? <span className="text-danger">{blocker}</span> : LEGAL}</p>
           </div>
         </section>
@@ -364,14 +370,12 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
           </div>
           <h2 className="mb-2 text-lg leading-6">Order Summary</h2>
           <dl className="space-y-1 text-[13px]">
-            <Row label={`Items (${q.itemCount}):`} value={usdCents(q.itemsCents)} />
-            <Row label="Shipping & handling:" value={usdCents(q.shippingCents)} />
-            {q.freeShippingCents > 0 && <Row label="Free Shipping:" value={`-${usdCents(q.freeShippingCents)}`} />}
-            <Row label="Total before tax:" value={usdCents(q.beforeTaxCents)} />
-            <Row label="Estimated tax to be collected:" value={usdCents(q.taxCents)} />
-            <Row label="Order total:" value={usdCents(q.totalCents)} total />
+            {summary.rows.map((r) => (
+              <Row key={r.label} label={r.label} value={r.text} />
+            ))}
+            <Row label="Order total:" value={summary.total} total />
           </dl>
-          <p className="mt-3 text-xs text-muted">Estimated tax is a flat {(taxRate * 100).toFixed(2)}% of items and shipping.</p>
+          <p className="mt-3 text-xs text-muted">{summary.note ?? `Estimated tax is a flat ${(q.taxRate * 100).toFixed(2)}% of items and shipping.`}</p>
           <p className="mt-2 text-xs lg:hidden">{blocker ? <span className="text-danger">{blocker}</span> : LEGAL}</p>
         </div>
       </aside>
@@ -381,7 +385,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
         <div className="sticky bottom-0 z-10 -mx-3 -mb-4 flex items-center gap-3 border-t border-line bg-white px-3 py-2.5 shadow-[0_-2px_8px_rgba(15,17,17,0.1)] sm:-mx-4 sm:px-4 lg:hidden">
           <p className="min-w-0 flex-1 text-xs">
             Order total
-            <b className="block text-lg leading-6 text-danger">{usdCents(q.totalCents)}</b>
+            <b className="block text-lg leading-6 text-danger">{summary.total}</b>
           </p>
           {placeButton('px-6')}
         </div>
@@ -391,6 +395,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, taxRate, address
 }
 
 function ReviewLine({ line: l, editable, onEdit }: { line: Line; editable: boolean; onEdit: (action: () => Promise<unknown>) => void }) {
+  const { currency, rate } = useRegion()
   const fields = (quantity: string | number) => {
     const f = new FormData()
     f.set('productId', String(l.id))
@@ -405,7 +410,7 @@ function ReviewLine({ line: l, editable, onEdit }: { line: Line; editable: boole
       </Link>
       <div className="min-w-0 text-sm">
         <Link href={`/dp/${l.id}`} className="line-clamp-2 font-bold hover:text-link-hover hover:underline">{l.title}</Link>
-        <p className="font-bold text-danger">{usd(l.price)}</p>
+        <p className="font-bold text-danger">{formatDollars(l.price, currency, rate)}</p>
         {editable ? (
           <div className="mt-1 flex items-center gap-3">
             {/* keyed by the saved quantity: it resets to the server's value after each change */}
@@ -486,8 +491,8 @@ function Choices({ legend, options, value, onChange }: { legend: string; options
 function Row({ label, value, total }: { label: string; value: string; total?: boolean }) {
   return (
     <div className={`flex justify-between gap-2 ${total ? 'mt-2 border-t border-line pt-2 text-lg font-bold text-danger' : ''}`}>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dt className="min-w-0">{label}</dt>
+      <dd className="whitespace-nowrap">{value}</dd>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { canReceiveEmail } from './email'
 import { orderEmail } from './email-templates'
 import type { Order, OrderItem } from './orders'
+import { IMPORT_FEES_NOTE } from './region'
 
 const item = (productId: number, title: string, priceCents: number, quantity: number, extra: Partial<OrderItem> = {}): OrderItem => ({
   productId, title, thumbnail: `https://cdn.dummyjson.com/${productId}.webp`, priceCents, quantity, returnReason: null, returnedAt: null, cancelledAt: null,
@@ -43,6 +44,26 @@ assert.ok(ret.html.includes('RT-ABC234') && ret.html.includes('$32.46') && ret.h
 const del = orderEmail('delivered', { order, name: 'Ada', origin })
 assert.match(del.subject, /^Delivered: "Essence Mascara/)
 assert.ok(del.html.includes('October 17, 2026'), '30-day return date')
+
+// a Pakistan order shown in PKR at the rate it was placed with: flat international shipping, no tax, the import-fees note
+const pk: Order = {
+  ...order, currency: 'PKR', fxRate: 277.07, shippingCents: 1499, taxCents: 0, totalCents: 6496,
+  shipTo: { ...order.shipTo, fullName: 'Ayesha Khan', phone: '0300 1234567', line1: '12 Mall Road', city: 'Lahore', state: 'PB', zip: '54000', country: 'Pakistan' },
+}
+const pkConf = orderEmail('confirmation', { order: pk, name: 'Ayesha', origin })
+for (const s of ['PKR 5,535.86', 'PKR 13,845.19', 'PKR 4,153.28', 'PKR 17,998.47', 'Lahore, Punjab 54000, Pakistan', 'Standard International Delivery', IMPORT_FEES_NOTE]) {
+  assert.ok(pkConf.html.includes(s), `PK confirmation html has ${s}`)
+}
+assert.ok(pkConf.text.includes('Order total: PKR 17,998.47') && pkConf.text.includes(IMPORT_FEES_NOTE))
+assert.ok(!pkConf.html.includes('$') && !pkConf.html.includes('tax') && !pkConf.html.includes('FREE'), 'no dollars, tax line or free shipping')
+const pkCancel = orderEmail('cancelled', { order: { ...pk, items: partial.items }, name: 'Ayesha', origin, productIds: [1] })
+assert.ok(pkCancel.html.includes('PKR 5,535.86') && pkCancel.html.includes(IMPORT_FEES_NOTE), 'PK refunds carry no tax share')
+const pkWhole = orderEmail('cancelled', { order: { ...pk, cancelledAt: new Date(), items: pk.items.map((i) => ({ ...i, cancelledAt: new Date() })) }, name: 'Ayesha', origin })
+assert.ok(pkWhole.text.includes('Not charged: PKR 17,998.47'), 'whole cancel matches the shown order total')
+const pkRet = orderEmail('return', { order: { ...pk, items: returned.items.map((i) => ({ ...i, refundCents: 2999 })) }, name: 'Ayesha', origin, productIds: [2] })
+assert.ok(pkRet.text.includes('Estimated refund: PKR 8,309.33') && pkRet.html.includes(IMPORT_FEES_NOTE))
+const pkDel = orderEmail('delivered', { order: pk, name: 'Ayesha', origin })
+assert.ok(pkDel.html.includes('PKR 8,309.33') && pkDel.html.includes(IMPORT_FEES_NOTE) && !pkDel.html.includes('$'))
 
 assert.equal(canReceiveEmail('demo-abc@example.com'), false)
 assert.equal(canReceiveEmail('qa@mail.test'), false)

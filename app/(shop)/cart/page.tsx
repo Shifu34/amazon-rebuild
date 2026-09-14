@@ -9,27 +9,33 @@ import { Badge } from '@/components/product-card'
 import { getUser } from '@/lib/auth'
 import { getCart, MAX_QTY, type CartLine } from '@/lib/cart'
 import { deals, related, type Product } from '@/lib/catalog'
-import { deliveryPromise, FREE_SHIPPING_MIN, relativeDay } from '@/lib/delivery'
-import { plural, toCents, usd, usdCents } from '@/lib/format'
+import { deliveryPromise, relativeDay, shippingRates } from '@/lib/delivery'
+import { plural, toCents } from '@/lib/format'
 import { getHistory } from '@/lib/history'
 import { cartLines, quote } from '@/lib/orders'
+import { COUNTRIES, formatDollars, formatMoney, summarize } from '@/lib/region'
+import { getRegion, type RequestRegion } from '@/lib/region-server'
 
 export const metadata: Metadata = { title: 'Shopping Cart' }
 
 export default async function CartPage() {
-  const [user, lines, buyable] = await Promise.all([getUser(), getCart(), cartLines()])
+  const [user, lines, buyable, region] = await Promise.all([getUser(), getCart(), cartLines(), getRegion()])
+  const { currency, rate, country } = region
   const active = lines.filter((l) => !l.savedForLater)
   const saved = lines.filter((l) => l.savedForLater)
   const unavailable = active.filter((l) => l.product.stock <= 0)
-  const { itemCount, itemsCents } = quote(buyable, 'standard')
+  const { itemCount, itemsCents } = quote(buyable, 'standard', undefined, country)
   const subtotal = (
     <>
-      Subtotal ({plural(itemCount, 'item')}): <b>{usdCents(itemsCents)}</b>
+      Subtotal ({plural(itemCount, 'item')}): <b className="whitespace-nowrap">{formatMoney(itemsCents, currency, rate)}</b>
     </>
   )
   const inCart = new Set(lines.map((l) => l.product.id))
   const recs = (active[0] ? related(active[0].product, 20) : deals(20)).filter((p) => !inCart.has(p.id)).slice(0, 12)
-  const toFree = toCents(FREE_SHIPPING_MIN) - itemsCents
+  // null: this country never ships free (Pakistan). The amount left is the converted threshold minus the converted subtotal,
+  // so it adds up with the subtotal shown
+  const freeMin = shippingRates(country).freeMin
+  const toFree = freeMin === null ? null : summarize([{ label: 'free', usdCents: toCents(freeMin) }, { label: 'subtotal', usdCents: -itemsCents }], currency, rate).total
   // an empty cart fills its rail with what the shopper looked at recently, like Amazon
   const viewed = user && !active.length ? (await getHistory(user.id, 12)).map((h) => h.product).filter((p) => p.stock > 0 && !inCart.has(p.id)).slice(0, 4) : []
 
@@ -40,7 +46,12 @@ export default async function CartPage() {
           {/* first in the page so phones, keyboards and screen readers reach the subtotal first; the rail on desktop */}
           {active.length > 0 && (
             <aside aria-label="Cart subtotal" className="self-start rounded-lg bg-white p-4 sm:p-5 lg:sticky lg:top-4 lg:col-start-2 lg:row-start-1">
-              {itemCount > 0 && toFree <= 0 && (
+              {itemCount > 0 && !toFree && (
+                <p className="mb-3 text-[13px]">
+                  Ships to {COUNTRIES[country].name} · <span className="text-muted">International shipping calculated at checkout</span>
+                </p>
+              )}
+              {itemCount > 0 && toFree && toFree.usdCents <= 0 && (
                 <p className="mb-3 flex gap-2 text-[13px]">
                   <CheckCircleIcon className="size-5 shrink-0 text-success" />
                   <span>
@@ -48,15 +59,15 @@ export default async function CartPage() {
                   </span>
                 </p>
               )}
-              {itemCount > 0 && toFree > 0 && (
+              {itemCount > 0 && toFree && toFree.usdCents > 0 && (
                 <div className="mb-3 text-[13px]">
                   <progress
                     value={itemsCents}
-                    max={toCents(FREE_SHIPPING_MIN)}
+                    max={itemsCents + toFree.usdCents}
                     aria-label="Progress toward FREE Shipping"
                     className="mb-1.5 block h-2 w-full appearance-none overflow-hidden rounded-full [&::-moz-progress-bar]:bg-success [&::-webkit-progress-bar]:bg-[#e3e6e6] [&::-webkit-progress-value]:bg-success"
                   />
-                  Add <b className="text-danger">{usdCents(toFree)}</b> of eligible items to your order to qualify for FREE Shipping.
+                  Add <b className="whitespace-nowrap text-danger">{toFree.text}</b> of eligible items to your order to qualify for FREE Shipping.
                 </div>
               )}
               <p className="text-lg">{subtotal}</p>
@@ -94,7 +105,7 @@ export default async function CartPage() {
                   </div>
                   <ul>
                     {active.map((l, i) => (
-                      <Line key={l.product.id} line={l} eager={i < 3} />
+                      <Line key={l.product.id} line={l} eager={i < 3} region={region} />
                     ))}
                   </ul>
                   <p className="border-t border-line pt-3 text-right text-lg">{subtotal}</p>
@@ -129,7 +140,7 @@ export default async function CartPage() {
                 <h2 id="saved-heading" className="border-b border-line pb-2 text-xl">Saved for later ({plural(saved.length, 'item')})</h2>
                 <ul className="grid grid-cols-2 gap-x-4 gap-y-6 pt-4 sm:grid-cols-3 xl:grid-cols-5">
                   {saved.map((l) => (
-                    <SavedItem key={l.product.id} line={l} />
+                    <SavedItem key={l.product.id} line={l} region={region} />
                   ))}
                 </ul>
               </section>
@@ -150,7 +161,7 @@ export default async function CartPage() {
                     <Thumb product={p} eager className="size-20" />
                     <div className="min-w-0 text-sm">
                       <Link href={`/dp/${p.id}`} className="link line-clamp-2">{p.title}</Link>
-                      <p className="font-bold">{usd(p.price)}</p>
+                      <p className="font-bold">{formatDollars(p.price, currency, rate)}</p>
                       <AddToCartButton productId={p.id} className="mt-1" />
                     </div>
                   </li>
@@ -187,7 +198,7 @@ function StockLine({ product: p }: { product: Product }) {
 }
 
 // phones: image and details side by side, controls full width underneath; desktop: controls under the details
-function Line({ line: { product: p, quantity }, eager }: { line: CartLine; eager: boolean }) {
+function Line({ line: { product: p, quantity }, eager, region: { currency, rate, country } }: { line: CartLine; eager: boolean; region: RequestRegion }) {
   const available = p.stock > 0
   const max = Math.min(p.stock, MAX_QTY)
   return (
@@ -200,8 +211,8 @@ function Line({ line: { product: p, quantity }, eager }: { line: CartLine; eager
           </h3>
           {available && (
             <div className="shrink-0 sm:text-right">
-              <p className="text-lg leading-6 font-bold">{usd(p.price)}</p>
-              {p.listPrice && <p className="text-xs text-muted">List: <s>{usd(p.listPrice)}</s></p>}
+              <p className="text-lg leading-6 font-bold">{formatDollars(p.price, currency, rate)}</p>
+              {p.listPrice && <p className="text-xs text-muted">List: <s>{formatDollars(p.listPrice, currency, rate)}</s></p>}
             </div>
           )}
         </div>
@@ -209,7 +220,8 @@ function Line({ line: { product: p, quantity }, eager }: { line: CartLine; eager
         <StockLine product={p} />
         {available && (
           <p className="text-xs">
-            Arrives <b>{relativeDay(deliveryPromise(p).standard)}</b> · Eligible for FREE Shipping
+            Arrives <b>{relativeDay(deliveryPromise(p, undefined, country).standard)}</b>
+            {country === 'US' ? ' · Eligible for FREE Shipping' : ` · Ships to ${COUNTRIES[country].name}`}
           </p>
         )}
         {available && quantity > max && <p className="text-xs text-danger">Only {max} available, so {max} will be ordered at checkout.</p>}
@@ -221,12 +233,12 @@ function Line({ line: { product: p, quantity }, eager }: { line: CartLine; eager
   )
 }
 
-function SavedItem({ line: { product: p, quantity } }: { line: CartLine }) {
+function SavedItem({ line: { product: p, quantity }, region: { currency, rate } }: { line: CartLine; region: RequestRegion }) {
   return (
-    <li className="flex flex-col transition-opacity has-[[data-pending]]:opacity-50">
+    <li className="flex min-w-0 flex-col transition-opacity has-[[data-pending]]:opacity-50">
       <Thumb product={p} className="aspect-square w-full p-3" />
       <Link href={`/dp/${p.id}`} className="mt-2 line-clamp-2 text-sm hover:text-link-hover hover:underline">{p.title}</Link>
-      {p.stock > 0 && <p className="font-bold">{usd(p.price)}</p>}
+      {p.stock > 0 && <p className="font-bold">{formatDollars(p.price, currency, rate)}</p>}
       <StockLine product={p} />
       <SavedControls productId={p.id} title={p.title} quantity={quantity} available={p.stock > 0} />
     </li>

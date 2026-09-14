@@ -4,13 +4,14 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { CheckCircleIcon } from '@/components/checkout/icons'
 import { shipments } from '@/components/checkout/shipments'
+import { orderSummary } from '@/components/checkout/summary'
 import { ProductCarousel } from '@/components/product-carousel'
 import { formatAddress } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 import { bestSellers, getProduct, related } from '@/lib/catalog'
 import { canReceiveEmail, emailConfigured } from '@/lib/email'
-import { deliveryPromise, STANDARD_SHIPPING } from '@/lib/delivery'
-import { longDate, toCents, usdCents } from '@/lib/format'
+import { deliveryPromise } from '@/lib/delivery'
+import { longDate } from '@/lib/format'
 import { getOrder } from '@/lib/orders'
 
 // Only the order's owner sees it; anyone else (or a bad id) gets the not-found page.
@@ -29,24 +30,15 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
 
   const { shipTo } = order
   const user = await requireUser(`/thankyou/${encodeURIComponent(order.id)}`) // cached; the owner check already ran
-  const itemCount = order.items.reduce((n, i) => n + i.quantity, 0)
   const first = getProduct(order.items[0]?.productId)
   const ordered = new Set(order.items.map((i) => i.productId))
   const recs = (first ? related(first, 20) : bestSellers(undefined, 20)).filter((p) => !ordered.has(p.id)).slice(0, 12)
-  // shipping is stored net of the free-shipping discount; show the same rows checkout showed
-  const freeCents = order.deliverySpeed === 'standard' && !order.shippingCents && order.itemsCents > 0 ? toCents(STANDARD_SHIPPING) : 0
-  const speed = order.deliverySpeed === 'expedited' ? 'Expedited Delivery' : freeCents ? 'FREE Standard Delivery' : 'Standard Delivery'
-  const rows: [string, string][] = [
-    [`Items (${itemCount}):`, usdCents(order.itemsCents)],
-    ['Shipping & handling:', usdCents(order.shippingCents + freeCents)],
-    ...(freeCents ? [['Free Shipping:', `-${usdCents(freeCents)}`] as [string, string]] : []),
-    ['Total before tax:', usdCents(order.itemsCents + order.shippingCents)],
-    ['Estimated tax to be collected:', usdCents(order.taxCents)],
-  ]
+  // the same rows checkout showed, in the order's own currency and rate
+  const { rows, total, note, speed, country } = orderSummary(order)
   // the per-item dates checkout showed, never later than the order's own delivery date
   const groups = shipments(order.items, (i) => {
     const p = getProduct(i.productId)
-    return p ? new Date(Math.min(deliveryPromise(p, order.placedAt)[order.deliverySpeed].getTime(), order.deliverBy.getTime())) : order.deliverBy
+    return p ? new Date(Math.min(deliveryPromise(p, order.placedAt, country)[order.deliverySpeed].getTime(), order.deliverBy.getTime())) : order.deliverBy
   })
 
   return (
@@ -105,17 +97,18 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
           <p className="text-muted">Order number</p>
           <p className="font-mono text-base font-bold">{order.id}</p>
           <dl className="mt-3 space-y-1 border-t border-line pt-3 text-[13px]">
-            {rows.map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-2">
-                <dt>{label}</dt>
-                <dd>{value}</dd>
+            {rows.map((r) => (
+              <div key={r.label} className="flex justify-between gap-2">
+                <dt className="min-w-0">{r.label}</dt>
+                <dd className="whitespace-nowrap">{r.text}</dd>
               </div>
             ))}
             <div className="flex justify-between gap-2 border-t border-line pt-2 text-base font-bold text-danger">
-              <dt>Order total:</dt>
-              <dd>{usdCents(order.totalCents)}</dd>
+              <dt className="min-w-0">Order total:</dt>
+              <dd className="whitespace-nowrap">{total}</dd>
             </div>
           </dl>
+          {note && <p className="mt-3 text-xs text-muted">{note}</p>}
           <p className="mt-3 text-[13px] text-muted">
             Paid with {order.payment.brand} ending in {order.payment.last4}
           </p>

@@ -1,9 +1,10 @@
 'use client'
 
-import { startTransition, useActionState, useEffect, useId, useRef } from 'react'
+import { startTransition, useActionState, useEffect, useId, useRef, useState } from 'react'
 import { saveAddress, type AddressState } from '@/app/actions/addresses'
+import { useRegion } from '@/components/region-provider'
 import type { Address } from '@/lib/addresses'
-import { COUNTRIES } from '@/lib/region'
+import { COUNTRIES, countryCodeFromName, type CountryCode } from '@/lib/region'
 
 type A11y = { id: string; 'aria-invalid': boolean; 'aria-describedby'?: string }
 
@@ -70,6 +71,12 @@ type Props = {
   defaultName?: string // prefill Full name on a new address
 }
 
+// what changes with the country; everything else in the form is shared, so typed values survive a switch
+const PHONE: Record<CountryCode, { placeholder: string; hint: string }> = {
+  US: { placeholder: '(206) 555-0100', hint: 'May be used to assist delivery' },
+  PK: { placeholder: '0300 1234567', hint: 'Mobile (03XX XXXXXXX or +92 3XX XXXXXXX) or landline. May be used to assist delivery' },
+}
+
 export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel = address ? 'Save changes' : 'Add address', openInstructions = false, defaultName }: Props) {
   const { state, pending, ref, onSubmit } = useFormAction<AddressState>(async (prev, form) => {
     const next = await saveAddress(prev, form)
@@ -77,6 +84,11 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
     return next
   }, null)
   const e = state?.errors ?? {}
+  // a new address starts in the shopper's delivery country, like Amazon's form
+  const region = useRegion()
+  const saved = address ? countryCodeFromName(address.country) : null
+  const [code, setCode] = useState<CountryCode>(saved ?? region.country)
+  const country = COUNTRIES[code]
 
   return (
     <form ref={ref} onSubmit={onSubmit} noValidate className="space-y-3.5">
@@ -86,16 +98,18 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
 
       <Field label="Country/Region">
         {(a) => (
-          <select {...a} name="country" className="input" autoComplete="country-name" defaultValue="United States">
-            <option>United States</option>
+          <select {...a} name="country" className="input" autoComplete="country" value={code} onChange={(ev) => setCode(ev.target.value as CountryCode)}>
+            {Object.values(COUNTRIES).map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
           </select>
         )}
       </Field>
       <Field label="Full name (First and Last name)" error={e.fullName}>
         {(a) => <input {...a} name="fullName" className="input" autoComplete="name" defaultValue={address?.fullName ?? defaultName} maxLength={80} />}
       </Field>
-      <Field label="Phone number" error={e.phone} hint="May be used to assist delivery">
-        {(a) => <input {...a} name="phone" type="tel" className="input" autoComplete="tel" inputMode="tel" defaultValue={address?.phone} maxLength={30} />}
+      <Field label="Phone number" error={e.phone} hint={PHONE[code].hint}>
+        {(a) => <input {...a} name="phone" type="tel" className="input" autoComplete="tel" inputMode="tel" placeholder={PHONE[code].placeholder} defaultValue={address?.phone} maxLength={30} />}
       </Field>
       <Field label="Address" error={e.line1}>
         {(a) => (
@@ -109,18 +123,19 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
         <Field label="City" error={e.city}>
           {(a) => <input {...a} name="city" className="input" autoComplete="address-level2" defaultValue={address?.city} maxLength={60} />}
         </Field>
-        <Field label="State" error={e.state}>
+        <Field label={country.regionLabel} error={e.state}>
           {(a) => (
-            <select {...a} name="state" className="input" autoComplete="address-level1" defaultValue={address?.state ?? ''}>
+            // keyed by country: a US state is no answer for Pakistan, so the choice resets on a switch
+            <select key={code} {...a} name="state" className="input" autoComplete="address-level1" defaultValue={code === saved ? address?.state : ''}>
               <option value="">Select</option>
-              {COUNTRIES.US.regions.map(({ code, name }) => (
-                <option key={code} value={code}>{name}</option>
+              {country.regions.map((r) => (
+                <option key={r.code} value={r.code}>{r.name}</option>
               ))}
             </select>
           )}
         </Field>
-        <Field label="ZIP Code" error={e.zip}>
-          {(a) => <input {...a} name="zip" className="input" autoComplete="postal-code" inputMode="numeric" defaultValue={address?.zip} maxLength={10} />}
+        <Field label={country.postalLabel} error={e.zip}>
+          {(a) => <input {...a} name="zip" className="input" autoComplete="postal-code" inputMode="numeric" defaultValue={address?.zip} maxLength={code === 'PK' ? 5 : 10} />}
         </Field>
       </div>
 

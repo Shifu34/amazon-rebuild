@@ -1,5 +1,6 @@
 // Cart and checkout end to end in headless Chrome: guest cart edits, sign-in gate, address and card validation,
-// delivery speed, place order, thank-you, empty cart, buy now (declined card first) and 390px layout.
+// delivery speed, place order, thank-you, empty cart, buy now (declined card first), a Pakistan address and order shown in
+// PKR (international shipping, import-fees note, the order keeps its currency) and 390px layout in USD and PKR.
 // Run with the app up: node e2e/checkout.mjs [baseUrl]   (default http://localhost:3000)
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
@@ -158,11 +159,76 @@ try {
   await page.goto(`${base}/checkout?buy=999999`)
   await page.getByRole('heading', { name: "We couldn't find that item." }).waitFor()
 
-  step('390px wide: cart and checkout fit without horizontal scrolling')
+  step('PKR display: cart subtotal and checkout summary in rupees; the US address still has US tax')
+  await page.context().addCookies([{ name: 'currency', value: 'PKR', url: base }])
+  await page.goto(`${base}/cart`)
+  await page.getByText(/Subtotal \(1 item\): PKR [\d,]+\.\d{2}/).first().waitFor()
+  await page.getByRole('link', { name: 'Proceed to checkout' }).click()
+  await page.waitForURL(`${base}/checkout`)
+  await summary().getByText('Estimated tax to be collected:').waitFor()
+  assert.match(await summary().locator('dl > div').filter({ hasText: 'Order total:' }).locator('dd').textContent(), /^PKR [\d,]+\.\d{2}$/)
+
+  step('Pakistan address: the form swaps province, postal code and phone rules and keeps typed values')
+  await page.getByRole('button', { name: 'Change delivery address' }).click()
+  await page.getByRole('button', { name: '+ Add a new delivery address' }).click()
+  await page.getByLabel('Full name (First and Last name)').fill('Ayesha Khan')
+  await page.getByLabel('City').fill('Lahore')
+  await page.getByLabel('Country/Region').selectOption('PK')
+  assert.equal(await page.getByLabel('Full name (First and Last name)').inputValue(), 'Ayesha Khan')
+  assert.equal(await page.getByLabel('City').inputValue(), 'Lahore')
+  assert.equal(await page.getByLabel('State', { exact: true }).count(), 0)
+  await page.getByLabel('Phone number').fill('0300 1234567')
+  await page.getByLabel('Address', { exact: true }).fill('12 Mall Road')
+  await page.getByLabel('Province/Territory').selectOption('PB')
+  await page.getByLabel('Postal Code').fill('5400')
+  await page.getByRole('button', { name: 'Use this address' }).click()
+  await page.getByText('Please enter a valid postal code.').waitFor()
+  await page.getByLabel('Postal Code').fill('54000')
+  await page.getByRole('button', { name: 'Use this address' }).click()
+  await page.getByRole('heading', { name: 'Delivering to Ayesha Khan' }).waitFor()
+  await page.getByText('12 Mall Road, Lahore, Punjab 54000, Pakistan').waitFor()
+  const pkAddress = new URL(page.url()).searchParams.get('address')
+
+  step('Pakistan checkout: international options, flat shipping, no tax line, import-fees note, the column adds up')
+  await review.getByLabel(/Standard International Delivery/).waitFor()
+  await summary().getByText('Import fees and duties, if any, are collected by the carrier on delivery.').waitFor()
+  assert.equal(await summary().getByText('Estimated tax to be collected:').count(), 0)
+  assert.equal(await amount('Shipping & handling:'), 4153.28) // $14.99 at 277.07
+  assert.equal(await amount('Order total:'), Math.round(((await amount('Items (')) + 4153.28) * 100) / 100)
+
+  step('switching the address to the US and back updates options and totals')
+  await page.getByRole('button', { name: 'Change delivery address' }).click()
+  const addressList = page.getByRole('region', { name: 'Select a delivery address' })
+  await addressList.getByLabel(/Eve Tester/).check()
+  await summary().getByText('Estimated tax to be collected:').waitFor()
+  await review.getByLabel(/Standard Delivery/).waitFor()
+  await addressList.getByLabel(/Ayesha Khan/).check()
+  await summary().getByText('Estimated tax to be collected:').waitFor({ state: 'detached' })
+  await page.getByRole('button', { name: 'Deliver to this address' }).click()
+
+  step('place the Pakistan order; its thank-you page stays in PKR after the shopper switches back to USD')
+  await page.getByRole('button', { name: 'Place your order' }).first().click()
+  await page.waitForURL(/\/thankyou\/113-\d{7}-\d{7}$/)
+  await page.getByText('Lahore, Punjab 54000, Pakistan').waitFor()
+  await page.getByText('Standard International Delivery').waitFor()
+  const details = page.getByRole('complementary', { name: 'Order details' })
+  await details.getByText('Import fees and duties, if any, are collected by the carrier on delivery.').waitFor()
+  const pkTotal = () => details.locator('dl > div').filter({ hasText: 'Order total:' }).locator('dd').textContent()
+  const placedTotal = await pkTotal()
+  assert.match(placedTotal, /^PKR [\d,]+\.\d{2}$/)
+  await page.context().clearCookies({ name: 'currency' })
+  await page.reload()
+  assert.equal(await pkTotal(), placedTotal)
+
+  step('390px wide: cart and checkout (US and Pakistan addresses) fit without horizontal scrolling, in USD and PKR')
+  await addFromProductPage(1, 1)
   await page.setViewportSize({ width: 390, height: 844 })
-  for (const path of ['/cart', '/checkout?buy=5&qty=1']) {
-    await page.goto(base + path)
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path} overflows at 390px`)
+  for (const currency of ['USD', 'PKR']) {
+    await page.context().addCookies([{ name: 'currency', value: currency, url: base }])
+    for (const path of ['/cart', '/checkout?buy=5&qty=1', `/checkout?address=${pkAddress}`]) {
+      await page.goto(base + path)
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path} overflows at 390px in ${currency}`)
+    }
   }
 
   console.log('e2e checkout ok')

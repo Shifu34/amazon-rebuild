@@ -50,9 +50,8 @@ export default async function AddressesPage({ searchParams }: { searchParams: Pr
                 <p className="font-bold">{a.fullName}</p>
                 <p>{a.line1}</p>
                 {a.line2 && <p>{a.line2}</p>}
-                <p>
-                  {a.city}, {a.state} {a.zip}
-                </p>
+                {/* "Seattle, WA 98109" | "Lahore, Punjab 54000" */}
+                <p>{formatAddress({ ...a, line1: '', line2: '' })}</p>
                 <p>{a.country}</p>
                 <p>Phone number: {a.phone}</p>
                 {a.instructions ? (
@@ -67,7 +66,7 @@ export default async function AddressesPage({ searchParams }: { searchParams: Pr
                 <ConfirmDialog label="Remove" ariaLabel={`Remove address for ${a.fullName}`} title="Confirm removal" action={removeAddress} fields={{ id: a.id }}>
                   <p className="mb-2">Remove this address from your address book?</p>
                   <p className="font-bold">{a.fullName}</p>
-                  <p className="break-words">{formatAddress(a)}</p>
+                  <p className="break-words">{formatAddress(a)}, {a.country}</p>
                 </ConfirmDialog>
                 {!a.isDefault && (
                   <>
