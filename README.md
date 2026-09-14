@@ -22,7 +22,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 | **Search** | Header search with instant suggestions and a department scope. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
 | **Product page** | Image gallery with zoom and full-screen view. The buy box shows the delivery date with an order-by countdown, stock messages and quantity, plus Add to Cart (with an "Added to cart" sheet), Buy Now and Add to List. Below: frequently bought together, related products, reviews with a rating histogram and filters, a full reviews page, and writing a review with "Verified Purchase". |
 | **Cart** | Guest cart that merges on sign-in, quantity stepper, save for later, free-shipping progress, and an empty state for guests and for signed-in shoppers. |
-| **Checkout** | Sign-in gate that returns you to checkout, address book with validation, saved cards (test cards only), a delivery-speed choice for each shipment, and an order summary with tax. "Place your order" is safe to double-click. Ends on a thank-you page. |
+| **Checkout** | Sign-in gate that returns you to checkout, address book with validation, saved cards (test cards only), a delivery-speed choice for the order, and an order summary with tax. "Place your order" is safe to double-click. Ends on a thank-you page. |
 | **Orders** | Tabs (Orders, Buy Again, Not Yet Shipped, Cancelled), a date filter, order search, order details with an invoice, a tracking timeline, cancel before shipping, returns and replacements with a refund summary, and Buy it again. |
 | **Account** | Amazon's email-first "Sign in or create account" flow. Your Account hub; Login & Security (name, email, password); addresses; payments wallet; lists (create, rename, move, add to cart); browsing history (remove, clear, pause). |
 
@@ -58,7 +58,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 ## How it's built
 
 - **App:** Next.js 16 App Router (Server Components and Server Actions), React 19, Tailwind 4, TypeScript. No ORM, no UI kit, no auth library.
-- **Catalog:** 194 products from [DummyJSON](https://dummyjson.com), held in memory. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
+- **Catalog:** 184 products from [DummyJSON](https://dummyjson.com), held in memory. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
 - **Data:** Postgres. Production uses Neon through the Vercel Marketplace. Locally the app uses an embedded PGlite database, so `npm run dev` needs no setup. Money is stored in integer cents. Writes that must be atomic, like placing an order or merging a guest cart, are single SQL statements with CTEs, because Neon's HTTP driver has no interactive transactions.
 - **Auth:** scrypt password hashes, random session tokens stored hashed, httpOnly cookies, and same-site-only `return_to` redirects.
 - **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, pdp, checkout, orders, account, links, demo), plus assert-based checks for the catalog, delivery dates and payments.

@@ -7,7 +7,7 @@ import { Stars } from './stars'
 
 export function Badge({ badge }: { badge: Product['badge'] }) {
   if (badge === 'best-seller') {
-    return <span className="inline-block rounded-sm bg-[#e67a00] px-1.5 py-0.5 text-xs leading-4 font-bold text-white">Best Seller</span>
+    return <span className="inline-block rounded-sm bg-[#c45500] px-1.5 py-0.5 text-xs leading-4 font-bold text-white">Best Seller</span>
   }
   if (badge === 'amazons-choice') {
     return (

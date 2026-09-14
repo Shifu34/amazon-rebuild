@@ -1,6 +1,5 @@
 'use server'
 
-import { cartQuantities } from '@/lib/cart'
 import { getProduct } from '@/lib/catalog'
 import { addToCart } from './cart'
 
@@ -17,13 +16,4 @@ export async function addBundle(_prev: BundleState, form: FormData): Promise<Bun
     if ((await addToCart(null, item))?.ok) added.push(id)
   }
   return added.length ? { ok: true, ids: added } : { ok: false, error: 'There was a problem adding these items to Cart. Please try again.' }
-}
-
-// Buy box "Add to Cart": addToCart clamps to the cap, so report how many actually went in, measured against the cart
-// right before the add, not the page's last render (another tab may have added since).
-// ponytail: read-then-add can miscount two simultaneous adds of one item; have addToCart return its SQL `before` if that matters.
-export async function addFromBuyBox(form: FormData) {
-  const before = (await cartQuantities()).get(Number(form.get('productId'))) ?? 0
-  const result = await addToCart(null, form)
-  return result?.ok ? { ...result, added: result.inCart - before } : result
 }

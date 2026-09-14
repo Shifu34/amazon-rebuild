@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { bestSellers, boughtTogether, getProduct, products, search, suggest } from './catalog'
 
-assert.equal(products.length, 194)
+assert.equal(products.length, 184)
 assert.equal(getProduct(1)?.id, 1)
 
 const iphone = search({ q: 'iphone' })

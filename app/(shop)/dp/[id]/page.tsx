@@ -15,7 +15,7 @@ import { Scroller } from '@/components/scroller'
 import { Stars } from '@/components/stars'
 import { getUser } from '@/lib/auth'
 import { cartSummary, MAX_QTY } from '@/lib/cart'
-import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, popularity, products, related, type Product } from '@/lib/catalog'
+import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, isDeal, popularity, products, related, type Product } from '@/lib/catalog'
 import { one } from '@/lib/db'
 import { deliveryPromise, EXPEDITED_SHIPPING, relativeDay } from '@/lib/delivery'
 import { compactCount, fullDate, longDate, plural, usd } from '@/lib/format'
@@ -179,7 +179,7 @@ export default async function ProductPage({ params }: Props) {
 
         {inStock && (
           <div className="border-t border-line pt-3 md:col-start-2 md:row-start-2">
-            {p.discount >= 10 && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span>}
+            {isDeal(p) && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span>}
             <div className="mt-1 flex items-start gap-2">
               {p.discount > 0 && <span className="text-[28px] leading-8 font-light text-deal">-{p.discount}%</span>}
               <span className="text-[28px] leading-8"><Price value={p.price} /></span>

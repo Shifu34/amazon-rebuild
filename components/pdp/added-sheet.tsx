@@ -86,8 +86,8 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
         <p className="mt-3 text-lg">
           Cart subtotal <span className="text-sm text-muted">({count})</span>: <b>{usdCents(cart.subtotalCents)}</b>
         </p>
-        <Link href="/checkout" className="btn btn-cart btn-lg max-md:min-h-11 mt-3 w-full">Proceed to checkout ({count})</Link>
-        <Link href="/cart" className="btn btn-plain btn-lg max-md:min-h-11 mt-2 w-full">Go to Cart</Link>
+        <Link href="/checkout" className="btn btn-cart btn-lg mt-3 w-full">Proceed to checkout ({count})</Link>
+        <Link href="/cart" className="btn btn-plain btn-lg mt-2 w-full">Go to Cart</Link>
 
         {picks.length > 0 && (
           <section aria-labelledby={`${titleId}-picks`} className="mt-6 border-t border-line pt-4">

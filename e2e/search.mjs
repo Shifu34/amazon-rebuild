@@ -30,6 +30,8 @@ try {
   assert.ok(total > 24, 'phone needs more than one page')
   assert.equal(await page.title(), 'nile.com : phone')
   assert.equal(await page.locator('main article').count(), 24)
+  // white 12px bold on the Best Seller badge needs AA (4.5:1): #c45500 reaches it, the old #e67a00 was 2.93:1
+  assert.equal(await page.getByText('Best Seller', { exact: true }).first().evaluate((el) => getComputedStyle(el).backgroundColor), 'rgb(196, 85, 0)')
 
   step('brand filter narrows results and shows a chip')
   await page.getByRole('checkbox', { name: /^Samsung/ }).click()

@@ -6,7 +6,7 @@ import { MAX_QTY } from '@/lib/cart'
 import { getProduct } from '@/lib/catalog'
 import { one, query } from '@/lib/db'
 
-export type AddToCartState = { ok: true; inCart: number } | { ok: false; error: string } | null
+export type AddToCartState = { ok: true; inCart: number; added: number } | { ok: false; error: string } | null
 
 const product = (form: FormData) => getProduct(Number(form.get('productId')))
 const qtyFrom = (form: FormData, max: number) => Math.max(1, Math.min(max, Math.floor(Number(form.get('quantity') ?? 1)) || 1))
@@ -34,7 +34,8 @@ export async function addToCart(_prev: AddToCartState, form: FormData): Promise<
     return { ok: false, error: max === MAX_QTY ? `This item has a limit of ${max} per customer, and your cart already has ${max}.` : `Only ${max} available, and your cart already has ${max}.` }
   }
   refresh()
-  return { ok: true, inCart: row?.quantity ?? 1 }
+  // `added` comes from the same statement, so a stale page or a second tab can't overstate it
+  return { ok: true, inCart: row?.quantity ?? 1, added: row ? row.quantity - row.before : 1 }
 }
 
 // quantity 0 removes the line, like Amazon's "0 (Delete)" option

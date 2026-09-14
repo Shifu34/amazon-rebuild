@@ -79,7 +79,7 @@ export function ReviewCard({ review, productId, signedIn, returnTo }: { review: 
         {review.helpful > 0 && <p>{review.helpful === 1 ? 'One person found this helpful' : `${review.helpful.toLocaleString('en-US')} people found this helpful`}</p>}
         {review.own ? (
           <p className="mt-1.5">
-            Your review · <Link href={`/review/create/${productId}`} className="link">Edit</Link>
+            Your review · <Link href={`/review/create/${productId}`} className="link underline">Edit</Link>
           </p>
         ) : (
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">

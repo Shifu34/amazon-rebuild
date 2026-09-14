@@ -86,6 +86,9 @@ try {
   await buyNow.click()
   await page.waitForURL(`${base}/checkout?buy=${product.id}&qty=1`)
   await page.goto(`${base}/dp/${product.id}`)
+  // the merged guest cart holds this product: the inline "cart" link inside the green line is underlined, not colour-only
+  const inlineCart = page.locator('main p a[href="/cart"]', { hasText: /^cart$/ })
+  assert.equal(await inlineCart.evaluate((a) => getComputedStyle(a).textDecorationLine), 'underline')
 
   step('Add to List: default list, duplicate, validation, new list')
   await page.getByRole('button', { name: 'Add to List' }).click()
@@ -115,6 +118,8 @@ try {
   const reviews = page.getByRole('region', { name: 'Customer reviews' })
   await reviews.getByText(headline).waitFor()
   await reviews.getByRole('link', { name: 'Edit your review' }).waitFor()
+  // "Your review · Edit" sits in muted text: the link is underlined so it isn't told apart by colour alone
+  assert.equal(await reviews.getByRole('link', { name: 'Edit', exact: true }).evaluate((a) => getComputedStyle(a).textDecorationLine), 'underline')
 
   await page.goto(`${base}/product-reviews/${product.id}?filterByStar=four_star`)
   await page.getByText(headline).waitFor()
