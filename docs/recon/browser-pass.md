@@ -101,3 +101,59 @@ Done in a real Chrome session via Claude in Chrome, signed out first (visitor lo
 - The card reads "Sign in or create account", "Enter mobile number or email", a yellow "Continue", "By continuing, you agree to Amazon's Conditions of Use and Privacy Notice.", "Need help?", then a divider and "Buying for work? Create a free business account".
 - Thin footer: Conditions of Use · Privacy Notice · Help, "© 1996-2026, Amazon.com, Inc. or its affiliates".
 - nile's `/ap/signin` already follows this unified flow (email first, then password or create account), with `return_to`.
+
+## Signed in (`screenshots-private/50`–`58`, kept out of git because they show account details)
+
+The account used is an **Amazon Business** account, so the chrome differs from the consumer site:
+- the "amazon business" logo, "Delivering to <city zip> / Update location" and a bell icon;
+- "Hello, <name> / Account for Your Business";
+- business sub-nav items (Business Essentials, Add Users, Subscribe & Save).
+
+nile follows the consumer layout. Personal details are omitted below.
+
+- **Home (signed in):**
+  - The hero, then a row of five promo cards with carousel arrows ("Get up to $60 off", "Today's Deals", "Save on Case Packs"…).
+  - Then personalized cards: "Continue searching for", "**Pick up where you left off**" (recently viewed products with price), "Continue shopping deals" (strikethrough prices), "Recommended for you in …".
+  - nile's "Keep shopping for" / "Inspired by your browsing history" rows match this.
+- **Your Account:**
+  - An H1 with a "Manage your profile" link above a 2-column grid of big bordered cards (line icon, bold title, one-line description).
+  - Cards: Your Orders "Track, return, or buy things again"; Login & security "Edit login, name, and mobile number"; Your Payments "Manage payment methods and settings, view balances and offers"; Gift cards "View balance or redeem a card"; Your Lists "View, modify, and share your lists, or create new ones"; plus a dark Prime promo card.
+- **Your Orders (empty):**
+  - Breadcrumb "Your Account > Your Orders"; H1 with a search box on the right ("Item, order or PO number...") and a dark "Search Orders" pill.
+  - Tabs: Orders | Buy Again | Not Yet Shipped | Digital Orders | Amazon Pay | Cancelled Orders, with an orange underline on the active tab.
+  - "Viewing 0 orders placed in [All orders ▾] [Last 3 months ▾]" and a "View order reports" pill.
+  - Empty copy: "You have not placed any orders in Last 3 months. View orders in 2026."
+  - A "Related to items you viewed" carousel below.
+- **Your Addresses (empty):**
+  - Breadcrumb, then a big dashed tile "＋ **Add Address**".
+  - "Related: 1-Click Settings · Change address on an open order".
+- **Add a new address:**
+  - Breadcrumb "Your Account › Your Addresses › New Address"; "Or find an Amazon pickup location near you".
+  - A light-blue banner "Save time. Autofill your current location. [Autofill]".
+  - Fields, in order:
+    - Country/Region (select).
+    - "Full name (First and Last name)", prefilled from the account.
+    - "Phone number", prefilled, with the hint "May be used to assist delivery".
+    - "Street address" (placeholder "Street address or P.O. Box").
+    - "Unit or suite number" (placeholder "Apt, suite, unit, building, floor, etc.").
+    - **City / State (Select) / ZIP Code on one row.**
+    - "☐ Make this my default address".
+- **Lists (none yet):**
+  - Left rail "Lists" with a "Create a list" pill.
+  - Collapsible groups (Your reorder lists / Your shopping lists / Shared with you), each "None".
+  - Main area: hero "Lists for all your shopping needs" with a yellow "Create a List", explainer tiles (Reorder List / Shopping List), and "Add items" / "Share your list" with "Show me how".
+- **Wallet:**
+  - Sub-tabs Overview | **Wallet** | Transactions | Settings; left column "Cards & accounts" with a dashed "⊕ Add a payment method" row; "Rewards & balances" (Gift Card balance $0.00).
+  - White right panel: "You don't have any payment methods saved." with a yellow "Add a payment method".
+- **Browsing history:**
+  - Sub-nav: Your Amazon.com | Your Browsing History | Recommended For You | Improve Your Recommendations | Your Profile.
+  - H1 "Your Browsing History" with a gear icon (turns history on or off); "These items were viewed recently. We use them to personalize recommendations."
+  - Bordered tiles: image, title link, stars + count, red price, "FREE delivery **Sat, Sep 19**", and a "Remove from view" pill.
+- **Empty cart (signed in):**
+  - "Your Amazon Cart is empty" / "Your Shopping Cart lives to serve. Give it purpose — fill it with groceries, clothing, household supplies, electronics, and more. Continue shopping on the Amazon.com homepage, learn about today's deals, or visit your Wish List."
+  - A "Your Items" box with tabs: No items saved for later | Buy it again | Lists.
+  - Right rail "Your recently viewed items" ("Get it as soon as Saturday, Sep 19", "FREE Shipping by Amazon", "Add to cart").
+- **Not captured:**
+  - Signed-in checkout: on the Business account, Add to cart went through a business pricing flow and the cart stayed empty, so checkout wasn't reachable without placing orders.
+  - Login & Security: it asks for the password again.
+  - `research-cart-checkout.json` and `research-auth-account.json` cover both.
