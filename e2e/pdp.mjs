@@ -15,6 +15,8 @@ const headline = `Heats evenly ${stamp}`
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage() // a context, so a second tab can share the cart
+// US in dollars wherever the test runs from (the live site picks Pakistan for a Pakistani IP); Pakistan is checked below
+await page.context().addCookies([{ name: 'currency', value: 'USD', url: base }, { name: 'ship_country', value: 'US', url: base }])
 const step = (name) => console.log(`- ${name}`)
 // lib/region.ts's display format: US cents × 277.07 rounded half away from zero, "PKR 1,234.56"
 const pkr = (usd) => `PKR ${(Math.round(Number((Math.round(usd * 100) * 277.07).toFixed(4))) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

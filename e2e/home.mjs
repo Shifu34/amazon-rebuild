@@ -6,6 +6,8 @@ import { chromium } from 'playwright-core'
 const base = process.argv[2] ?? 'http://localhost:3000'
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await browser.newPage({ viewport: { width: 1536, height: 820 } })
+// US in dollars wherever the test runs from (the live site picks Pakistan for a Pakistani IP); the rupee view is checked below
+await page.context().addCookies([{ name: 'currency', value: 'USD', url: base }, { name: 'ship_country', value: 'US', url: base }])
 const step = (name) => console.log(`- ${name}`)
 const region = (name) => page.getByRole('region', { name, exact: true })
 const cartCount = async () => Number((await page.getByRole('link', { name: /^Cart, / }).getAttribute('aria-label')).match(/\d+/)[0])
