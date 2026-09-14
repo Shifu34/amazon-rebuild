@@ -129,3 +129,6 @@ create table if not exists review_votes (
 );
 create index if not exists reviews_product on reviews (product_id);
 create index if not exists browsing_history_recent on browsing_history (user_id, viewed_at desc);
+
+-- account slice: shoppers can turn browsing history off (views are not recorded while paused)
+alter table users add column if not exists history_paused boolean not null default false;
