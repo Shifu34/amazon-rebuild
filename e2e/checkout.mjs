@@ -97,6 +97,13 @@ try {
   await page.locator('select[aria-label^="Quantity of"]:has(option[value="2"]:checked)').selectOption('1')
   await summary().getByText('Items (2):').waitFor()
 
+  step('two shipments share one delivery-speed choice for the whole order (product map §2.16; split shipments are out)')
+  const review = page.getByRole('region', { name: 'Review items and delivery' })
+  assert.equal(await review.getByText(/^Shipment \d of 2/).count(), 2)
+  assert.equal(await review.getByRole('group', { name: 'Choose your delivery option:' }).count(), 1)
+  assert.equal(await review.getByRole('radio').count(), 2)
+  await review.getByLabel(/^All by .*Standard Delivery/).waitFor()
+
   step('expedited delivery changes shipping and total')
   const standardTotal = await amount('Order total:')
   await page.getByLabel(/Expedited Delivery/).check()
