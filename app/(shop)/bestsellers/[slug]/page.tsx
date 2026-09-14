@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { ranked, scopeLabel } from '@/components/home/scope'
-import { getCart } from '@/lib/cart'
+import { cartQuantities } from '@/lib/cart'
 import { BestSellersLayout, RankTile } from '../shared'
 
 export async function generateMetadata({ params }: PageProps<'/bestsellers/[slug]'>): Promise<Metadata> {
@@ -14,7 +14,7 @@ export default async function BestSellersIn({ params }: PageProps<'/bestsellers/
   const name = scopeLabel(slug)
   if (!name) notFound()
   const items = ranked(slug, 50)
-  const inCart = new Map((await getCart()).filter((l) => !l.savedForLater).map((l): [number, number] => [l.product.id, l.quantity]))
+  const inCart = await cartQuantities()
 
   return (
     <BestSellersLayout slug={slug}>

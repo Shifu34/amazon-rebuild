@@ -8,7 +8,7 @@ import { ProductCarousel } from '@/components/product-carousel'
 import { formatAddress } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 import { bestSellers, getProduct, related } from '@/lib/catalog'
-import { fastestDelivery, STANDARD_SHIPPING, standardDelivery } from '@/lib/delivery'
+import { deliveryPromise, STANDARD_SHIPPING } from '@/lib/delivery'
 import { longDate, toCents, usdCents } from '@/lib/format'
 import { getOrder } from '@/lib/orders'
 
@@ -42,10 +42,9 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
     ['Estimated tax to be collected:', usdCents(order.taxCents)],
   ]
   // the per-item dates checkout showed, never later than the order's own delivery date
-  const arrive = order.deliverySpeed === 'expedited' ? fastestDelivery : standardDelivery
   const groups = shipments(order.items, (i) => {
     const p = getProduct(i.productId)
-    return p ? new Date(Math.min(arrive(p, order.placedAt).getTime(), order.deliverBy.getTime())) : order.deliverBy
+    return p ? new Date(Math.min(deliveryPromise(p, order.placedAt)[order.deliverySpeed].getTime(), order.deliverBy.getTime())) : order.deliverBy
   })
 
   return (

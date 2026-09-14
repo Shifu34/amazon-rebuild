@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Product } from '@/lib/catalog'
-import { FREE_SHIPPING_MIN, standardDelivery } from '@/lib/delivery'
-import { compactCount, shortDate, usd } from '@/lib/format'
+import { deliveryPromise, relativeDay } from '@/lib/delivery'
+import { compactCount, usd } from '@/lib/format'
 import { Price } from './price'
 import { Stars } from './stars'
 
@@ -19,15 +19,15 @@ export function Badge({ badge }: { badge: Product['badge'] }) {
   return null
 }
 
-export function DeliveryLine({ product: p }: { product: Product }) {
-  if (p.stock === 0) return <p className="text-sm text-danger">Currently unavailable.</p>
-  const date = shortDate(standardDelivery(p))
-  return p.price >= FREE_SHIPPING_MIN ? (
-    <p className="text-sm">FREE delivery <b>{date}</b></p>
-  ) : (
-    <p className="text-sm">
-      Delivery <b>{date}</b>
-      <span className="block text-xs text-muted">FREE delivery on ${FREE_SHIPPING_MIN} of items</span>
+// the same date the product page, cart and checkout show (lib/delivery); `compact` for carousels drops the threshold note
+export function DeliveryLine({ product: p, compact = false }: { product: Product; compact?: boolean }) {
+  const size = compact ? 'text-xs' : 'text-sm'
+  if (p.stock === 0) return <p className={`${size} text-danger`}>Currently unavailable.</p>
+  const { standard, label, note } = deliveryPromise(p)
+  return (
+    <p className={size}>
+      {label} <b>{relativeDay(standard)}</b>
+      {note && !compact && <span className="block text-xs text-muted">{note}</span>}
     </p>
   )
 }

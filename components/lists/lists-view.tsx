@@ -1,5 +1,6 @@
 import Form from 'next/form'
 import Link from 'next/link'
+import { cartQuantities } from '@/lib/cart'
 import { plural } from '@/lib/format'
 import { listItems, type List } from '@/lib/lists'
 import { CreateListDialog, ListActions } from './list-dialogs'
@@ -7,7 +8,7 @@ import { ListItems } from './list-items'
 
 // Your Lists: rail of lists (a scrolling strip on phones) + the active list's items.
 export async function ListsView({ lists, active, path, create }: { lists: List[]; active: List; path: string; create: boolean }) {
-  const items = await listItems(active.id)
+  const [items, inCart] = await Promise.all([listItems(active.id), cartQuantities()])
   const count = (l: List) => `${l.isDefault ? 'Default List · ' : ''}${plural(l.itemCount, 'item')}`
 
   return (
@@ -45,7 +46,7 @@ export async function ListsView({ lists, active, path, create }: { lists: List[]
             listId={active.id}
             items={items.map(({ product: p, addedAt }) => ({
               id: p.id, title: p.title, brand: p.brand, thumbnail: p.thumbnail, price: p.price, listPrice: p.listPrice,
-              rating: p.rating, ratingCount: p.ratingCount, stock: p.stock, addedAt: addedAt.toISOString(),
+              rating: p.rating, ratingCount: p.ratingCount, stock: p.stock, addedAt: addedAt.toISOString(), inCart: inCart.get(p.id),
             }))}
             otherLists={lists.filter((l) => l.id !== active.id).map(({ id, name }) => ({ id, name }))}
             empty={

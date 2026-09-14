@@ -9,7 +9,7 @@ import { Badge } from '@/components/product-card'
 import { getUser } from '@/lib/auth'
 import { getCart, MAX_QTY, type CartLine } from '@/lib/cart'
 import { deals, related, type Product } from '@/lib/catalog'
-import { FREE_SHIPPING_MIN } from '@/lib/delivery'
+import { deliveryPromise, FREE_SHIPPING_MIN, relativeDay } from '@/lib/delivery'
 import { plural, toCents, usd, usdCents } from '@/lib/format'
 import { getHistory } from '@/lib/history'
 import { cartLines, quote } from '@/lib/orders'
@@ -162,7 +162,7 @@ export default async function CartPage() {
         {recs.length > 0 && (
           // overflow-hidden: the carousel's sr-only price text is absolutely positioned outside its scroll container
           <div className="mx-auto max-w-[1500px] overflow-hidden px-3 pb-6 sm:px-4">
-            <ProductCarousel title={active[0] ? 'Customers who bought items in your cart also bought' : "Today's Deals"} products={recs} />
+            <ProductCarousel title={active[0] ? 'Customers who bought items in your cart also bought' : "Today's Deals"} products={recs} loading={active[0] ? 'lazy' : 'eager'} />
           </div>
         )}
       </div>
@@ -207,7 +207,11 @@ function Line({ line: { product: p, quantity }, eager }: { line: CartLine; eager
         </div>
         {p.badge && <Badge badge={p.badge} />}
         <StockLine product={p} />
-        {available && <p className="text-xs">Eligible for FREE Shipping</p>}
+        {available && (
+          <p className="text-xs">
+            Arrives <b>{relativeDay(deliveryPromise(p).standard)}</b> · Eligible for FREE Shipping
+          </p>
+        )}
         {available && quantity > max && <p className="text-xs text-danger">Only {max} available, so {max} will be ordered at checkout.</p>}
       </div>
       <div className="col-span-2 sm:col-span-1 sm:col-start-2">

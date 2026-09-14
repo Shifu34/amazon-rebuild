@@ -62,7 +62,7 @@ export async function Header() {
             <PinIcon className="mb-0.5 size-4 shrink-0" />
             <span className="leading-4">
               <span className="block text-xs text-[#ccc]">{location.label}</span>
-              <span className="block text-sm font-bold whitespace-nowrap">{location.place}</span>
+              <span className="block max-w-[150px] truncate text-sm font-bold" title={location.place}>{location.place}</span>
             </span>
           </>,
         )}
@@ -123,7 +123,8 @@ export async function Header() {
           <Link href="/cart" className="nav-item flex items-end px-2 py-1.5" aria-label={`Cart, ${count} ${count === 1 ? 'item' : 'items'}`}>
             <span className="relative">
               <CartIcon className="h-8 w-10" />
-              <span className="absolute -top-1 left-[17px] w-5 text-center text-base leading-5 font-bold text-brand">{count > 99 ? '99+' : count}</span>
+              {/* centered over the basket at any width: 1, 12 or 99+ */}
+              <span className={`absolute -top-1 left-[27px] -translate-x-1/2 leading-5 font-bold text-brand ${count > 99 ? 'text-sm' : 'text-base'}`}>{count > 99 ? '99+' : count}</span>
             </span>
             <span className="hidden text-sm font-bold md:inline">Cart</span>
           </Link>

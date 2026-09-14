@@ -77,9 +77,11 @@ type Props = {
   onSaved?: (id: string) => void // or hand the id back (client parents such as checkout)
   onCancel?: () => void
   submitLabel?: string
+  openInstructions?: boolean // open and focus delivery instructions (the address book's "Add delivery instructions" link)
+  defaultName?: string // prefill Full name on a new address
 }
 
-export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel = address ? 'Save changes' : 'Add address' }: Props) {
+export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel = address ? 'Save changes' : 'Add address', openInstructions = false, defaultName }: Props) {
   const { state, pending, ref, onSubmit } = useFormAction<AddressState>(async (prev, form) => {
     const next = await saveAddress(prev, form)
     if (next?.id) onSaved?.(next.id)
@@ -101,7 +103,7 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
         )}
       </Field>
       <Field label="Full name (First and Last name)" error={e.fullName}>
-        {(a) => <input {...a} name="fullName" className="input" autoComplete="name" defaultValue={address?.fullName} maxLength={80} />}
+        {(a) => <input {...a} name="fullName" className="input" autoComplete="name" defaultValue={address?.fullName ?? defaultName} maxLength={80} />}
       </Field>
       <Field label="Phone number" error={e.phone} hint="May be used to assist delivery">
         {(a) => <input {...a} name="phone" type="tel" className="input" autoComplete="tel" inputMode="tel" defaultValue={address?.phone} maxLength={30} />}
@@ -138,11 +140,11 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
         Make this my default address
       </label>
 
-      <details open={!!address?.instructions} className="text-sm">
+      <details open={!!address?.instructions || openInstructions} className="text-sm">
         <summary className="link cursor-pointer">Add preferences, notes, access codes and more</summary>
         <Field label="Delivery instructions (optional)" className="mt-2">
           {(a) => (
-            <textarea {...a} name="instructions" className="input" maxLength={500} defaultValue={address?.instructions} placeholder="Gate code, where to leave packages, best time to deliver" />
+            <textarea {...a} name="instructions" className="input" maxLength={500} autoFocus={openInstructions} defaultValue={address?.instructions} placeholder="Gate code, where to leave packages, best time to deliver" />
           )}
         </Field>
       </details>

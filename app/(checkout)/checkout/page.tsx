@@ -7,7 +7,7 @@ import { formatAddress, getAddresses } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 import { getCart, MAX_QTY } from '@/lib/cart'
 import { getProduct } from '@/lib/catalog'
-import { fastestDelivery, standardDelivery } from '@/lib/delivery'
+import { deliveryPromise } from '@/lib/delivery'
 import { buyNowLine, cartLines, linesKey, quote, TAX_RATE, type OrderLine } from '@/lib/orders'
 import { cardExpiry, cardLabel, getCards } from '@/lib/payments'
 
@@ -44,11 +44,11 @@ export default async function CheckoutPage({ searchParams }: PageProps<'/checkou
     <Checkout
       token={randomUUID()}
       buy={buy ? { id: buy, qty: lines[0].quantity } : null}
-      lines={lines.map(({ product: p, quantity }) => ({
-        id: p.id, title: p.title, thumbnail: p.thumbnail, price: p.price, quantity, stock: p.stock, max: Math.min(p.stock, MAX_QTY),
-        // each line's own date, from the same functions as quote() (whose deliverBy is the latest of these)
-        arrives: { standard: standardDelivery(p, now), expedited: fastestDelivery(p, now) },
-      }))}
+      lines={lines.map(({ product: p, quantity }) => {
+        // each line's own date, from the same promise as the product page and quote() (whose deliverBy is the latest of these)
+        const { standard, expedited } = deliveryPromise(p, now)
+        return { id: p.id, title: p.title, thumbnail: p.thumbnail, price: p.price, quantity, stock: p.stock, max: Math.min(p.stock, MAX_QTY), arrives: { standard, expedited } }
+      })}
       linesKey={linesKey(lines)}
       quotes={{ standard: quote(lines, 'standard', now), expedited: quote(lines, 'expedited', now) }}
       taxRate={TAX_RATE}

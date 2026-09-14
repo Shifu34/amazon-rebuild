@@ -20,6 +20,11 @@ export const getCart = cache(async (): Promise<CartLine[]> => {
   })
 })
 
+// productId → quantity in the cart (not saved for later), so "✓ 2 in cart" buttons survive Back and reloads
+export async function cartQuantities() {
+  return new Map((await getCart()).filter((l) => !l.savedForLater).map((l): [number, number] => [l.product.id, l.quantity]))
+}
+
 export async function cartCount() {
   return (await getCart()).filter((l) => !l.savedForLater).reduce((n, l) => n + l.quantity, 0)
 }

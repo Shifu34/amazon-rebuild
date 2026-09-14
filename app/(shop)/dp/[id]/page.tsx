@@ -17,7 +17,7 @@ import { getUser } from '@/lib/auth'
 import { cartSummary, MAX_QTY } from '@/lib/cart'
 import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, popularity, products, related, type Product } from '@/lib/catalog'
 import { one } from '@/lib/db'
-import { EXPEDITED_SHIPPING, fastestDelivery, FREE_SHIPPING_MIN, relativeDay, STANDARD_SHIPPING, standardDelivery } from '@/lib/delivery'
+import { deliveryPromise, EXPEDITED_SHIPPING, relativeDay } from '@/lib/delivery'
 import { compactCount, fullDate, longDate, plural, usd } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
@@ -33,26 +33,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const DAY = 86_400_000
-// ponytail: one national order cutoff (22:00 UTC, 6 PM Eastern); per-warehouse cutoffs if delivery ever becomes regional
-const CUTOFF_HOUR_UTC = 22
-
-function deliveryPromise(p: Product, now = new Date()) {
-  const cutoff = new Date(now)
-  cutoff.setUTCHours(CUTOFF_HOUR_UTC, 0, 0, 0)
-  const missedToday = cutoff.getTime() <= now.getTime()
-  if (missedToday) cutoff.setTime(cutoff.getTime() + DAY)
-  const shipsFrom = missedToday ? new Date(now.getTime() + DAY) : now
-  const standard = standardDelivery(p, shipsFrom)
-  const fastest = fastestDelivery(p, shipsFrom)
-  const earliest = fastest.getTime() < standard.getTime() ? fastest : null
-  const mins = Math.ceil((cutoff.getTime() - now.getTime()) / 60_000)
-  return {
-    standard,
-    fastest: earliest,
-    // the countdown sits next to a near date only; a promise weeks out doesn't need a stopwatch
-    within: (earliest ?? standard).getTime() - now.getTime() > 3 * DAY ? null : mins >= 60 ? `${Math.floor(mins / 60)} hrs ${mins % 60} mins` : `${mins} mins`,
-  }
-}
 
 const dayLabel = (d: Date) => {
   const rel = relativeDay(d)
@@ -125,7 +105,7 @@ export default async function ProductPage({ params }: Props) {
   const dept = DEPARTMENTS.find((d) => d.categories.includes(p.category))
   const category = categoryName(p.category)
   const inStock = p.stock > 0
-  const { standard, fastest, within } = deliveryPromise(p)
+  const { standard, fastest, within, label, note } = deliveryPromise(p)
   const countdown = within && (
     <>
       . Order within <span className="whitespace-nowrap text-success">{within}</span>
@@ -221,10 +201,10 @@ export default async function ProductPage({ params }: Props) {
               <div className="mb-2 hidden text-[28px] leading-8 lg:block"><Price value={p.price} /></div>
               <div className="space-y-2 text-sm">
                 <p>
-                  {p.price >= FREE_SHIPPING_MIN ? 'FREE delivery' : <><b>{usd(STANDARD_SHIPPING)}</b> delivery</>} <b>{dayLabel(standard)}</b>
+                  {label} <b>{dayLabel(standard)}</b>
                   {!fastest && countdown}
                 </p>
-                {p.price < FREE_SHIPPING_MIN && <p className="text-xs text-muted">FREE delivery on orders of ${FREE_SHIPPING_MIN} or more</p>}
+                {note && <p className="text-xs text-muted">{note}</p>}
                 {fastest && (
                   <p>
                     Or fastest delivery <b>{dayLabel(fastest)}</b> for <b>{usd(EXPEDITED_SHIPPING)}</b>

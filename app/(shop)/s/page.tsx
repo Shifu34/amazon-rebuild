@@ -10,6 +10,7 @@ import { Filters } from '@/components/search/filters'
 import { PER_PAGE, appliedFilters, clearFilters, departmentOf, parseQuery, toHref, toSearch, withoutFilters, type Chip, type Query } from '@/components/search/params'
 import { SortSelect } from '@/components/search/sort-select'
 import { correctSpelling } from '@/components/search/spelling'
+import { cartQuantities } from '@/lib/cart'
 import { DEPARTMENTS, SORTS, bestSellers, scopeName, search } from '@/lib/catalog'
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> }
@@ -38,6 +39,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const dept = q.i ? departmentOf(q.i) : undefined
   const scope = !q.i ? '' : dept && dept.slug !== q.i ? `${dept.name} : ${scopeName(q.i)}` : scopeName(q.i)
   const start = (r.page - 1) * PER_PAGE + 1
+  const inCart = await cartQuantities()
 
   // Amazon's mobile quick chips: one tap, only when they narrow without emptying the page
   const quick = [
@@ -122,9 +124,9 @@ export default async function SearchPage({ searchParams }: Props) {
               <h2 className="mb-3 text-xl max-lg:sr-only">Results</h2>
               {/* phones get Amazon's one-column list card (image left); the card's own markup stays a grid tile elsewhere */}
               <ul className="grid gap-x-4 gap-y-6 max-sm:[&>li>article]:flex-row max-sm:[&>li>article]:gap-3 max-sm:[&>li>article>a]:w-[40%] max-sm:[&>li>article>a]:shrink-0 max-sm:[&>li>article>a]:self-start max-sm:[&>li>article>div]:pt-0 sm:grid-cols-2 sm:gap-y-8 md:grid-cols-3 xl:grid-cols-4">
-                {r.items.map((p) => (
+                {r.items.map((p, i) => (
                   <li key={p.id}>
-                    <ProductCard product={p}>{p.stock > 0 && <AddToCartButton productId={p.id} />}</ProductCard>
+                    <ProductCard product={p} priority={i < 4}>{p.stock > 0 && <AddToCartButton productId={p.id} inCart={inCart.get(p.id)} />}</ProductCard>
                   </li>
                 ))}
               </ul>

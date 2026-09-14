@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import type { Product } from '@/lib/catalog'
 import { Price } from './price'
+import { DeliveryLine } from './product-card'
 import { Scroller } from './scroller'
 import { Stars } from './stars'
 
-// "Best Sellers in Kitchen", "Customers also viewed"... `details` adds title, stars and price under each image.
-export function ProductCarousel({ title, products, href, details = true }: { title: string; products: Product[]; href?: string; details?: boolean }) {
+// "Best Sellers in Kitchen", "Customers also viewed"... `details` adds title, stars, price and delivery date under each image.
+// `loading="eager"` when the row is visible as the page opens.
+export function ProductCarousel({ title, products, href, details = true, loading = 'lazy' }: { title: string; products: Product[]; href?: string; details?: boolean; loading?: 'lazy' | 'eager' }) {
   if (!products.length) return null
   return (
     <section aria-label={title} className="bg-white px-4 pt-4 pb-1">
@@ -16,9 +18,16 @@ export function ProductCarousel({ title, products, href, details = true }: { tit
       <Scroller label={title}>
         {products.map((p) => (
           <li key={p.id} className={`${details ? 'w-[170px]' : 'w-[150px]'} shrink-0 snap-start`}>
-            <Link href={`/dp/${p.id}`} className="flex h-[170px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2" aria-label={details ? undefined : p.title}>
+            {/* with details the title link below is the one tab stop per product */}
+            <Link
+              href={`/dp/${p.id}`}
+              className="flex h-[170px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2"
+              aria-label={details ? undefined : p.title}
+              aria-hidden={details || undefined}
+              tabIndex={details ? -1 : undefined}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.thumbnail} alt={details ? '' : p.title} loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+              <img src={p.thumbnail} alt={details ? '' : p.title} loading={loading} className="max-h-full max-w-full object-contain mix-blend-multiply" />
             </Link>
             {details && (
               <div className="mt-1.5 space-y-0.5">
@@ -28,6 +37,7 @@ export function ProductCarousel({ title, products, href, details = true }: { tit
                   <span className="text-xs text-link">{p.ratingCount.toLocaleString('en-US')}</span>
                 </div>
                 <div className="text-lg leading-6"><Price value={p.price} /></div>
+                <DeliveryLine product={p} compact />
               </div>
             )}
           </li>

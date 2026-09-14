@@ -6,13 +6,14 @@ import { ConfirmDialog } from '@/components/account/modal'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { ProductCard } from '@/components/product-card'
 import { requireUser } from '@/lib/auth'
+import { cartQuantities } from '@/lib/cart'
 import { getHistory, historyPaused } from '@/lib/history'
 
 export const metadata: Metadata = { title: 'Your Browsing History' }
 
 export default async function HistoryPage() {
   const user = await requireUser('/history')
-  const [items, paused] = await Promise.all([getHistory(user.id, 200), historyPaused(user.id)])
+  const [items, paused, inCart] = await Promise.all([getHistory(user.id, 200), historyPaused(user.id), cartQuantities()])
 
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-6">
@@ -56,11 +57,11 @@ export default async function HistoryPage() {
         </Empty>
       ) : (
         <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {items.map(({ product: p }) => (
+          {items.map(({ product: p }, i) => (
             <li key={p.id}>
-              <ProductCard product={p}>
+              <ProductCard product={p} priority={i < 5}>
                 <div className="space-y-2">
-                  {p.stock > 0 && <AddToCartButton productId={p.id} />}
+                  {p.stock > 0 && <AddToCartButton productId={p.id} inCart={inCart.get(p.id)} />}
                   <form action={removeViewed}>
                     <input type="hidden" name="productId" value={p.id} />
                     <button type="submit" aria-label={`Remove ${p.title} from view`} className="link cursor-pointer text-sm">Remove from view</button>

@@ -58,7 +58,7 @@ export default async function AddressesPage({ searchParams }: { searchParams: Pr
                 {a.instructions ? (
                   <p className="line-clamp-2 text-muted">Delivery instructions: {a.instructions}</p>
                 ) : (
-                  <Link href={`/account/addresses/${a.id}/edit`} className="link">Add delivery instructions</Link>
+                  <Link href={`/account/addresses/${a.id}/edit?instructions=1`} className="link">Add delivery instructions</Link>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2 px-5 pb-4 text-sm">

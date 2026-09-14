@@ -19,7 +19,7 @@ export default async function NewAddressPage() {
           You can save up to {MAX_ADDRESSES} addresses. <Link href="/account/addresses" className="link">Remove one</Link> to add another.
         </p>
       ) : (
-        <AddressForm returnTo="/account/addresses?alert=saved" />
+        <AddressForm returnTo="/account/addresses?alert=saved" defaultName={user.name} />
       )}
     </div>
   )

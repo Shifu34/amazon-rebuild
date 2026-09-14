@@ -4,7 +4,7 @@ import { DealCard } from '@/components/home/deal'
 import { FilterToggle } from '@/components/home/filter-toggle'
 import { inScope, scopeLabel } from '@/components/home/scope'
 import { Stars } from '@/components/stars'
-import { getCart } from '@/lib/cart'
+import { cartQuantities } from '@/lib/cart'
 import { CATEGORY_NAMES, deals, DEPARTMENTS, popularity, type Product } from '@/lib/catalog'
 import { plural } from '@/lib/format'
 import { SortSelect } from './sort-select'
@@ -79,7 +79,7 @@ export default async function DealsPage({ searchParams }: PageProps<'/deals'>) {
     (skip === 'rating' || !rating || p.rating >= rating)
   const count = (skip: Filter, test: (p: Product) => boolean) => all.filter((p) => pass(p, skip) && test(p)).length
   const results = all.filter((p) => pass(p)).sort(SORTS[sort][1])
-  const inCart = new Map((await getCart()).filter((l) => !l.savedForLater).map((l): [number, number] => [l.product.id, l.quantity]))
+  const inCart = await cartQuantities()
 
   const applied = (
     [

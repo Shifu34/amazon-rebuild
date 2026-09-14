@@ -10,7 +10,7 @@ import { Stars } from '@/components/stars'
 import type { Product } from '@/lib/catalog'
 import { fullDate, usd } from '@/lib/format'
 
-export type ListRowItem = Pick<Product, 'id' | 'title' | 'brand' | 'thumbnail' | 'price' | 'listPrice' | 'rating' | 'ratingCount' | 'stock'> & { addedAt: string }
+export type ListRowItem = Pick<Product, 'id' | 'title' | 'brand' | 'thumbnail' | 'price' | 'listPrice' | 'rating' | 'ratingCount' | 'stock'> & { addedAt: string; inCart?: number }
 type ListRef = { id: string; name: string }
 // A row that was just deleted (undo = its added date) or moved; it stays collapsed in place after the server drops it.
 type Ghost = { item: ListRowItem; movedTo?: ListRef; undo?: string }
@@ -99,7 +99,7 @@ function Row({ item: p, listId, otherLists, onGone }: { item: ListRowItem; listI
           {p.stock > 0 ? <p className="text-xs text-success">In Stock</p> : <p className="text-sm text-danger">Currently unavailable.</p>}
         </div>
         <div className="flex shrink-0 flex-col items-start gap-2 sm:w-44 sm:items-stretch">
-          {p.stock > 0 && <AddToCartButton productId={p.id} className="w-full" />}
+          {p.stock > 0 && <AddToCartButton productId={p.id} inCart={p.inCart} className="w-full" />}
           <div className="flex items-center gap-4 text-sm">
             {otherLists.length > 0 && <MoveMenu title={p.title} lists={otherLists} disabled={pending} onPick={move} />}
             <button type="button" onClick={remove} disabled={pending} aria-label={`Delete ${p.title}`} className="link cursor-pointer disabled:opacity-50">

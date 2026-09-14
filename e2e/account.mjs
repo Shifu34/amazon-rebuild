@@ -121,6 +121,9 @@ try {
 
   step('addresses: validation, add two, set the second as default, Deliver to follows')
   await page.goto(`${base}/account/addresses/new`)
+  const nameField = page.getByLabel('Full name (First and Last name)')
+  assert.notEqual(await nameField.inputValue(), '', 'a new address starts with the account name')
+  await nameField.fill('')
   await page.getByRole('button', { name: 'Add address' }).click()
   await page.getByText('Please enter a name.').waitFor()
   await addAddress('Ann Seattle', 'Seattle', 'WA', '98101')

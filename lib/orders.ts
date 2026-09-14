@@ -6,7 +6,7 @@ import type { Address } from './addresses'
 import { getCart, MAX_QTY } from './cart'
 import { getProduct, type Product } from './catalog'
 import { query } from './db'
-import { EXPEDITED_SHIPPING, FREE_SHIPPING_MIN, fastestDelivery, STANDARD_SHIPPING, standardDelivery } from './delivery'
+import { deliveryPromise, EXPEDITED_SHIPPING, FREE_SHIPPING_MIN, STANDARD_SHIPPING } from './delivery'
 import { fullDate, toCents } from './format'
 import type { Card } from './payments'
 
@@ -55,8 +55,7 @@ export function quote(lines: OrderLine[], speed: Speed, now = new Date()): Quote
   const freeShippingCents = free ? shippingCents : 0
   const beforeTaxCents = itemsCents + shippingCents - freeShippingCents
   const taxCents = Math.round(beforeTaxCents * TAX_RATE)
-  const arrive = speed === 'expedited' ? fastestDelivery : standardDelivery
-  const deliverBy = new Date(Math.max(now.getTime(), ...lines.map((l) => arrive(l.product, now).getTime())))
+  const deliverBy = new Date(Math.max(now.getTime(), ...lines.map((l) => deliveryPromise(l.product, now)[speed].getTime())))
   deliverBy.setUTCHours(20, 0, 0, 0) // delivered by 8pm UTC on the arrival day
   return { speed, itemCount, itemsCents, shippingCents, freeShippingCents, beforeTaxCents, taxCents, totalCents: beforeTaxCents + taxCents, deliverBy }
 }
@@ -95,17 +94,20 @@ export type PaymentSnapshot = { brand: string; last4: string; nameOnCard: string
 
 // Inserts the order, its items and (for cart checkouts) deletes the purchased cart lines in ONE statement, so it is
 // atomic without transactions. Returns null when this idempotency key already placed an order.
-export async function createOrder(o: { userId: string; key: string; address: Address; card: Card; lines: OrderLine[]; speed: Speed; fromCart: boolean }) {
+// `placedAt` (quoted as of then) and `deliverBy` back-date an order; only the demo shopper passes them.
+export async function createOrder(o: {
+  userId: string; key: string; address: Address; card: Card; lines: OrderLine[]; speed: Speed; fromCart: boolean; placedAt?: Date; deliverBy?: Date
+}) {
   await ensureSchema()
-  const q = quote(o.lines, o.speed)
+  const q = quote(o.lines, o.speed, o.placedAt)
   const a = o.address
   const shipTo: ShipTo = { fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, zip: a.zip, country: a.country, instructions: a.instructions }
   const payment: PaymentSnapshot = { brand: o.card.brand, last4: o.card.last4, nameOnCard: o.card.nameOnCard }
   const items = o.lines.map((l) => ({ product_id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price_cents: toCents(l.product.price), quantity: l.quantity }))
   const [row] = await query<{ id: string }>(
     `with o as (
-       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key)
-       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11)
+       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at)
+       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()))
        on conflict (idempotency_key) do nothing
        returning id
      ), items as (
@@ -119,7 +121,7 @@ export async function createOrder(o: { userId: string; key: string; address: Add
      )
      select id from o`,
     [newOrderId(), o.userId, JSON.stringify(shipTo), JSON.stringify(payment), o.speed, q.itemsCents, q.shippingCents - q.freeShippingCents,
-      q.taxCents, q.totalCents, q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`],
+      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null],
   )
   return row?.id ?? null
 }

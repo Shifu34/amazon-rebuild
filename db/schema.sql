@@ -145,3 +145,13 @@ alter table order_items
 
 -- account slice: shoppers can turn browsing history off (views are not recorded while paused)
 alter table users add column if not exists history_paused boolean not null default false;
+
+-- product detail polish: Helpful votes on catalog reviews and Report on any review, one per shopper per kind.
+-- review_key is a shopper review's uuid or seed-{productId}-{index} for the catalog's reviews
+create table if not exists review_feedback (
+  review_key text not null,
+  user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('helpful', 'report')),
+  created_at timestamptz not null default now(),
+  primary key (review_key, user_id, kind)
+);

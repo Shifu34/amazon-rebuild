@@ -7,6 +7,7 @@ import { RangeSelect } from '@/components/orders/range-select'
 import { Price } from '@/components/price'
 import { Stars } from '@/components/stars'
 import { requireUser } from '@/lib/auth'
+import { cartQuantities } from '@/lib/cart'
 import { fullDate, plural } from '@/lib/format'
 import { getOrders, type Order, orderView, purchasedProducts, reviewedProductIds } from '@/lib/orders'
 
@@ -27,7 +28,7 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <div className="mt-4 rounded-lg border border-line px-4 py-8 text-center text-sm">{children}</div>
 }
 
-function BuyAgain({ orders }: { orders: Order[] }) {
+function BuyAgain({ orders, inCart }: { orders: Order[]; inCart: Map<number, number> }) {
   const bought = purchasedProducts(orders)
   if (!bought.length) {
     return (
@@ -58,7 +59,7 @@ function BuyAgain({ orders }: { orders: Order[] }) {
               {times > 1 && `Purchased ${times} times · `}Last purchased {fullDate(lastPurchased)}
             </p>
             <div className="mt-auto pt-2">
-              {p.stock > 0 ? <AddToCartButton productId={p.id} className="w-full" /> : <p className="text-sm text-danger">Currently unavailable</p>}
+              {p.stock > 0 ? <AddToCartButton productId={p.id} inCart={inCart.get(p.id)} className="w-full" /> : <p className="text-sm text-danger">Currently unavailable</p>}
             </div>
           </li>
         ))}
@@ -76,7 +77,7 @@ export default async function OrdersPage({ searchParams }: Props) {
   const tab = TABS.find((t) => t.key === param('tab'))?.key ?? 'orders'
   const q = param('q').trim().slice(0, 100)
   const user = await requireUser(tab === 'orders' ? '/orders' : `/orders?tab=${tab}`)
-  const [orders, reviewed] = await Promise.all([getOrders(user.id), reviewedProductIds(user.id)])
+  const [orders, reviewed, inCart] = await Promise.all([getOrders(user.id), reviewedProductIds(user.id), cartQuantities()])
   const now = new Date()
 
   // "placed in": last 30 days, past 3 months (default), then each year back to the oldest order (at least last year)
@@ -158,7 +159,7 @@ export default async function OrdersPage({ searchParams }: Props) {
       </nav>
 
       {tab === 'buy-again' && !q ? (
-        <BuyAgain orders={orders} />
+        <BuyAgain orders={orders} inCart={inCart} />
       ) : (
         <>
           <div className="mt-4 text-sm">

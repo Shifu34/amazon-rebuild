@@ -27,8 +27,8 @@ Coding agents build straight from this file. Read it with `docs/build-guide.md` 
 | Images | Plain `<img>` from `cdn.dummyjson.com` with `object-contain mix-blend-multiply` on a `#f7f7f7` tile. No `next/image` optimization, because of the Hobby transformation quota. | [exists] |
 | Email | None: no OTP, no order emails, no password-reset emails. Copy never promises an email. | [exists] |
 | Prime | Removed everywhere. Every shopper gets the same delivery rules. | [exists] |
-| Location | Header "Deliver to" shows the default address when signed in, or the Vercel IP city and ZIP when signed out, and links to the address book. **Delivery dates don't depend on ZIP** (one simulated warehouse), so there is no ZIP modal. | [exists] |
-| Delivery math | One function, `deliveryPromise(product, now)` in `lib/delivery.ts`, used by cards, the PDP, cart, the checkout quote and orders (§4.4) | **[change] P0** |
+| Location | Header "Deliver to" shows the default address when signed in (links to the address book). Signed out it opens a "Choose your location" dialog: sign in, or enter a ZIP (saved in the `zip` cookie, shown as "Delivering to {ZIP}"). **Delivery dates don't depend on ZIP** (one simulated warehouse). | [exists] |
+| Delivery math | One function, `deliveryPromise(product, now)` in `lib/delivery.ts`, used by cards, carousels, the PDP, cart, the checkout quote and orders (§4.4); checked by `lib/delivery.check.ts` | [exists] |
 | Tax | A flat **8.25%** estimate on items + shipping, labelled as an estimate | [exists] |
 | Demo controls | Dashed "Demo:" buttons on order pages fast-forward delivery and return receipt (§4.9). Always on, since this is a demo store. | **[new] P0** |
 | Routes | Keep the shipped routes: `/ap/signin`, `/thankyou/[orderId]`, `/review/create/[id]`, `/checkout?buy=`. Don't rename them. | [exists] |
@@ -168,8 +168,11 @@ Coding agents build straight from this file. Read it with `docs/build-guide.md` 
    | Situation | Line 1 (12px `#ccc`) | Line 2 (14px bold) |
    |---|---|---|
    | Signed in, has an address | "Deliver to {FirstName}" | "{City} {ZIP}" |
+   | Signed out, ZIP chosen in the location dialog | "Delivering to" | "{ZIP}" |
    | Signed out, Vercel IP headers present | "Delivering to" | "{City} {ZIP}" |
    | No headers (local dev) | "Deliver to" | "United States" |
+
+   Line 2 truncates at 150px. Signed out, the pin opens the "Choose your location" dialog instead of a link.
 
 3. Search (`flex-1`): department `<select>` (grey `#e6e6e6`; label "All" or the department name; options "All Departments" + 7 departments), input with placeholder "Search nile", 44px `#febd69` button with a magnifier and `aria-label="Go"`. Focusing the input puts a 3px `#ff9900` ring around the whole bar.
 4. Account: "Hello, sign in" or "Hello, {FirstName}" (12px) over "**Account & Lists** ▾" (14px bold) → the menu in §2.2.
@@ -262,7 +265,7 @@ Coding agents build straight from this file. Read it with `docs/build-guide.md` 
    - Quad "Refresh your wardrobe": Tops, Dresses, Shoes, Handbags · "Shop Women's Fashion" (hidden at lg–xl)
    - **Signed out**: "Sign in for the best experience" + yellow "Sign in securely" + a deal image. **Signed in**: greeting card "Hi, {FirstName}" with shortcuts and a deal pick. First card on mobile.
 3. **"Today's Deals" rail** (20 deals): red "-12%" tag, price, "List: $x" struck through, 2-line title.
-4. Signed in with history: **"Keep shopping for"** rail (recently viewed) → `/history`.
+4. Signed in with history: a **"Pick up where you left off"** card in the first card row (recently viewed) → `/history`. Phones get compact cards (one row of 4 small tiles).
 5. **"Best Sellers in Home & Kitchen"** rail → `/bestsellers/home-kitchen`.
 6. **Second card row**, in order:
    - Signed in: "Deals for you" quad (deals in browsed categories first). Otherwise: "Beauty & personal care" quad.
@@ -302,7 +305,7 @@ Coding agents build straight from this file. Read it with `docs/build-guide.md` 
 | `min`, `max` | dollars; min > max is swapped |
 | `rating` | 1–4, meaning "{n} Stars & Up" |
 | `deals=1` | discount ≥ 10 |
-| `instock=1` | hide out-of-stock items. **The default shows them** (only 3 exist, and they demo the state) |
+| `oos=1` | "Include Out of Stock". **Out-of-stock items are hidden by default**, like Amazon |
 | `sort` | `featured`, `price-asc`, `price-desc`, `rating`, `newest`, `bestsellers` |
 | `page` | 1-based, 24 per page |
 | `nfpr=1` | skip the spelling correction |
@@ -912,10 +915,11 @@ Each flow lists the shopper's step, then what the system does. Copy in quotes is
 2. The header shows "Hello, sign in" and cart 0.
 3. Back button to `/orders` → redirected to sign-in.
 
-### F13 Try a demo shopper — P1 [new]
+### F13 Explore with a demo account — P1 [exists]
 
-1. `/ap/signin` → "Try a demo shopper" → `startDemo` creates a throwaway account seeded from the template (§4.22), starts a session and redirects to `/orders`.
-2. The header says "Hello, Demo". Your Orders shows not-yet-shipped, shipped, returnable, window-closed and cancelled orders; lists, history, addresses and cards are pre-filled. Every post-purchase path is testable within 3 clicks.
+1. `/ap/signin` → "Explore with a demo account" (`app/actions/demo.ts` `startDemo`) creates a fresh shopper (`demo-…@example.com`) with a default address, a Visa 4242 test card, a Shopping List of 4 items and browsing history, then signs in and redirects to `/orders`.
+2. Orders go through checkout's `createOrder`, back-dated (`placedAt`, `deliverBy`) so `orderStatus` derives: not yet shipped, shipped, out for delivery, delivered (returnable and reviewable), delivered with a return started, and cancelled.
+3. The rendered page's token makes it idempotent (a double submit signs into the same shopper for 10 minutes). One new demo per IP per minute (in-process memory). Covered by `e2e/demo.mjs`.
 
 ---
 
@@ -939,7 +943,7 @@ All rules below live in one function each. Components never re-derive them.
 | Signal | Rule | Display |
 |---|---|---|
 | Deal | `discount ≥ 10` and `stock > 0` | Tag (white 12px bold on `#cc0c39`). **[change] P1**: label **"Deal"** instead of "Limited time deal", because nothing expires. No countdown, no "% claimed" |
-| Best Seller | Per category: highest `boughtPastMonth`, tie broken by `ratingCount` | Card: "Best Seller". PDP: "#1 Best Seller" + "in {Category}". **[change] P2**: card tag color `#e67a00` → `#c45500` (white text reaches AA) |
+| Best Seller | Per category, among products rated 4 or higher: highest `boughtPastMonth`, tie broken by `ratingCount` | Card: "Best Seller". PDP: "#1 Best Seller" + "in {Category}". **[change] P2**: card tag color `#e67a00` → `#c45500` (white text reaches AA) |
 | nile's Choice | Per category: highest `rating` among in-stock products, excluding the Best Seller | Navy tag "nile's **Choice**" (orange "Choice") + (i) popover on the PDP |
 | Bought in past month | Synthetic: about 55% of products get one of 50, 100, 200, 300, 500, 1000, 2000, 5000 | `compactCount`: under 1000 → "{n}+", otherwise "{n/1000}K+", followed by "bought in past month". Hidden when 0 |
 | Rating count | Synthetic `40 + noise² × 24000` | Card "(12,345)"; PDP "{n} ratings" |
@@ -964,7 +968,7 @@ All rules below live in one function each. Components never re-derive them.
 
 ### 4.4 Delivery estimate — one function [exists, **change P0**]
 
-**[change] P0**: move `deliveryPromise(p, now)` from `app/(shop)/dp/[id]/page.tsx` into `lib/delivery.ts`. Card `DeliveryLine`, cart, checkout `quote()` and orders must all call it. Today cards and `quote()` ignore the cutoff, so after 22:00 UTC the PDP and checkout dates disagree.
+`deliveryPromise(p, now)` in `lib/delivery.ts` is the only source of dates: card and carousel `DeliveryLine`, the buy box, cart lines, checkout lines and `quote()` (so `deliver_by`), and the thank-you page (as of `placed_at`). It also returns the §4.5 wording (`label`, `note`). Checked by `lib/delivery.check.ts`.
 
 - **Ship days** `shipDays(p)`, from `shippingInformation`:
 
@@ -982,7 +986,7 @@ All rules below live in one function each. Components never re-derive them.
   - Standard = `addBusinessDays(start, shipDays + 1)`
   - Expedited = `addBusinessDays(start, max(1, ceil(shipDays / 2)))`
   - "Or fastest delivery" shows only when expedited is earlier than standard.
-- **Countdown** (buy box only): minutes to the cutoff → "{h} hrs {m} mins", or "{m} mins" under an hour.
+- **Countdown** (buy box only): minutes to the cutoff → "{h} hrs {m} mins", or "{m} mins" under an hour. Hidden when the date is more than 3 days out, and when missing the cutoff wouldn't move the date (a Friday or Saturday start counts from Monday either way).
 - **Multi-item orders**: arrival = the latest line's arrival for the chosen speed; `deliver_by` = that day at 20:00 UTC.
 - **Labels**:
   - Cards and cart: `relativeDay` → "Today" / "Tomorrow" / "Wed, Sep 16"

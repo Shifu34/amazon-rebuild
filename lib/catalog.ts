@@ -118,10 +118,10 @@ function derive(p: RawProduct): Product {
 
 export const products: Product[] = raw.products.map(derive)
 
-// one Best Seller (most bought) and one Amazon's Choice (best rated of the rest) per category
+// one Best Seller (most bought among those rated 4 or higher) and one Amazon's Choice (best rated of the rest) per category
 for (const slug of Object.keys(CATEGORY_NAMES)) {
   const inCat = products.filter((p) => p.category === slug)
-  const best = [...inCat].sort((a, b) => b.boughtPastMonth - a.boughtPastMonth || b.ratingCount - a.ratingCount)[0]
+  const best = inCat.filter((p) => p.rating >= 4).sort((a, b) => b.boughtPastMonth - a.boughtPastMonth || b.ratingCount - a.ratingCount)[0]
   if (best) best.badge = 'best-seller'
   const choice = inCat.filter((p) => p !== best && p.stock > 0).sort((a, b) => b.rating - a.rating)[0]
   if (choice) choice.badge = 'amazons-choice'
@@ -159,21 +159,33 @@ export type SearchParams = {
 const tokens = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean)
 const stem = (t: string) => (t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t)
 
-// every query token must prefix-match a word somewhere; title and brand hits weigh most
+// Search fields by weight, heaviest first, tokenized once per product (the catalog is static). The last word of a category or
+// tag names what it is: "Cell Phone Accessories" and "phone accessories" are accessories, so "phone" there weighs like a
+// description word and phones rank above their cases.
+const FIELDS = new Map<number, [string[], number][]>()
+function fieldsOf(p: Product) {
+  let f = FIELDS.get(p.id)
+  if (!f) {
+    const names = [categoryName(p.category), ...p.tags].map(tokens)
+    f = [
+      [tokens(p.title), 5],
+      [tokens(p.brand ?? ''), 4],
+      [[...names.map((n) => n.at(-1) ?? ''), ...tokens(p.category)], 3],
+      [[...names.flatMap((n) => n.slice(0, -1)), ...tokens(p.description)], 1],
+    ]
+    FIELDS.set(p.id, f)
+  }
+  return f
+}
+
+// every query token must prefix-match a word somewhere (a one-letter token only a whole word); title and brand hits weigh most
 function score(p: Product, q: string[]): number {
   if (!q.length) return 1
-  const fields: [string[], number][] = [
-    [tokens(p.title), 5],
-    [tokens(p.brand ?? ''), 4],
-    [[...tokens(categoryName(p.category)), ...tokens(p.category), ...p.tags.flatMap(tokens)], 3],
-    [tokens(p.description), 1],
-  ]
   let total = 0
   for (const t of q.map(stem)) {
-    let best = 0
-    for (const [words, weight] of fields) if (words.some((w) => w.startsWith(t) || stem(w) === t)) best = Math.max(best, weight)
-    if (!best) return 0
-    total += best
+    const hit = fieldsOf(p).find(([words]) => words.some((w) => (t.length === 1 ? w === t : w.startsWith(t) || stem(w) === t)))
+    if (!hit) return 0
+    total += hit[1]
   }
   return total
 }
@@ -181,7 +193,8 @@ function score(p: Product, q: string[]): number {
 export function search(params: SearchParams) {
   const { q = '', category, brands = [], min, max, rating, deals, inStock, sort = 'featured', page = 1, perPage = 24 } = params
   const qt = tokens(q)
-  const matched = products.map((p) => ({ p, s: score(p, qt) })).filter((x) => x.s > 0)
+  // text with no searchable words ("%") finds nothing, not everything
+  const matched = q.trim() && !qt.length ? [] : products.map((p) => ({ p, s: score(p, qt) })).filter((x) => x.s > 0)
 
   // facets are computed before the facet's own filter is applied, so choices stay visible
   const inCategory = category ? matched.filter((x) => inScope(x.p, category)) : matched
@@ -224,16 +237,33 @@ export function search(params: SearchParams) {
   }
 }
 
+// Completions come from department, category, brand and tag names, plus each category's last word ("phones"); never product
+// titles, which get their own rows.
+const VOCAB = [
+  ...new Set(
+    [...DEPARTMENTS.map((d) => d.name), ...Object.values(CATEGORY_NAMES).flatMap((n) => [n, n.split(' ').at(-1) ?? n]), ...products.flatMap((p) => [p.brand ?? '', ...p.tags])]
+      .map((s) => s.toLowerCase().trim())
+      .filter((s) => s.length > 1),
+  ),
+]
+
+// Query completions that contain a word starting with what was typed ("pho" → "cell phones"), or finish its last word after
+// the ones before it ("apple ph" → "apple phones"); only those that find something, most results first.
 export function suggest(q: string, limit = 8) {
   const qt = tokens(q)
   if (!qt.length) return { terms: [] as string[], products: [] as Product[] }
   const hits = products.map((p) => ({ p, s: score(p, qt) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s || popularity(b.p) - popularity(a.p))
-  const prefix = q.trim().toLowerCase()
-  const terms = [...new Set([
-    ...Object.entries(CATEGORY_NAMES).filter(([, n]) => n.toLowerCase().includes(prefix)).map(([, n]) => n.toLowerCase()),
-    ...hits.map((x) => x.p.brand?.toLowerCase()).filter((b): b is string => !!b && b.startsWith(prefix)),
-    ...hits.map((x) => x.p.title.toLowerCase()),
-  ])].slice(0, limit)
+  const typed = q.trim().toLowerCase().replace(/\s+/g, ' ')
+  const last = typed.split(' ').at(-1) ?? typed
+  const head = typed.slice(0, typed.length - last.length)
+  const startsWord = (v: string, s: string) => v.startsWith(s) || v.includes(` ${s}`)
+  const candidates = [...VOCAB.filter((v) => startsWord(v, typed)), ...(head ? VOCAB.filter((v) => v.startsWith(last)).map((v) => head + v) : [])]
+  const terms = [...new Set(candidates)]
+    .map((t) => ({ t, n: search({ q: t, perPage: 1 }).total }))
+    .filter((x) => x.n > 0)
+    .sort((a, b) => b.n - a.n || a.t.length - b.t.length)
+    .slice(0, limit)
+    .map((x) => x.t)
   return { terms, products: hits.slice(0, 4).map((x) => x.p) }
 }
 

@@ -42,11 +42,10 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
 
   const data = q.trim() && results.q === q ? results.data : EMPTY
   const prefix = q.trim().toLowerCase()
-  const titles = new Set(data.products.map((p) => p.title.toLowerCase()))
-  // where the typed text starts a word of the term, or -1
+  // where the typed text starts a word of the term (for the bold completion), or -1
   const at = (t: string) => (t.startsWith(prefix) ? 0 : t.indexOf(` ${prefix}`) + 1 || -1)
-  // query completions only: terms containing a word that starts with what was typed, never a copy of a product row below
-  const terms = data.terms.filter((t) => at(t) >= 0 && !titles.has(t))
+  // lib/catalog suggest() returns query completions only; a result that raced a newer keystroke may not fit, so drop those
+  const terms = data.terms.filter((t) => at(t) >= 0)
   const options = [...terms.map((term) => ({ kind: 'term' as const, term, at: at(term) })), ...data.products.map((p) => ({ kind: 'product' as const, p }))]
   const showList = open && options.length > 0
   const highlighted = options[active]
