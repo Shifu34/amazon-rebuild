@@ -1,9 +1,12 @@
 import { Footer } from '@/components/footer'
 import { Header } from '@/components/header'
+import { RegionProvider } from '@/components/region-provider'
+import { getRegion } from '@/lib/region-server'
 
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default async function ShopLayout({ children }: { children: React.ReactNode }) {
+  const { currency, rate, country } = await getRegion()
   return (
-    <>
+    <RegionProvider currency={currency} rate={rate} country={country}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:rounded-md focus:bg-white focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-ink focus:shadow-lg focus:ring-2 focus:ring-focus focus:outline-none"
@@ -13,6 +16,6 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       <Header />
       <main id="main" tabIndex={-1} className="flex-1 outline-none">{children}</main>
       <Footer />
-    </>
+    </RegionProvider>
   )
 }

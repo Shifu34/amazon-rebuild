@@ -177,3 +177,8 @@ create table if not exists sent_emails (
 );
 create index if not exists sent_emails_status_created on sent_emails (status, created_at desc);
 create index if not exists sent_emails_to_created on sent_emails (to_address, created_at desc);
+
+-- region: orders keep the display currency and its rate at placement (money stays in US cents)
+alter table orders
+  add column if not exists currency text not null default 'USD',
+  add column if not exists fx_rate double precision not null default 1;

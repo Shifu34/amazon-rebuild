@@ -1,8 +1,11 @@
 export const toCents = (dollars: number) => Math.round(dollars * 100)
 
+/** @deprecated US dollars only: use formatDollars(dollars, currency, rate) from lib/region (docs/region.md) */
 export const usd = (dollars: number) => dollars.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+/** @deprecated US dollars only: use formatMoney(cents, currency, rate) from lib/region (docs/region.md) */
 export const usdCents = (cents: number) => usd(cents / 100)
 
+/** @deprecated US dollars only: use moneyParts(cents, currency, rate) from lib/region */
 // Amazon renders prices as $ + whole + superscript cents
 export function priceParts(dollars: number) {
   const [whole, fraction] = dollars.toFixed(2).split('.')

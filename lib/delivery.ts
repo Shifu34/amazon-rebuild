@@ -1,9 +1,19 @@
 import type { Product } from './catalog'
-import { shortDate, usd } from './format'
+import { shortDate } from './format'
+import { formatDollars, type CountryCode, type CurrencyCode } from './region'
 
 export const FREE_SHIPPING_MIN = 35
 export const STANDARD_SHIPPING = 6.99
 export const EXPEDITED_SHIPPING = 9.99
+// international shipping to Pakistan: flat, never free
+export const PK_STANDARD_SHIPPING = 14.99
+export const PK_EXPEDITED_SHIPPING = 29.99
+
+// What each speed costs shipping to `country` (US dollars), and the items total from which standard is FREE (null: never)
+export const shippingRates = (country: CountryCode = 'US') =>
+  country === 'PK'
+    ? { standard: PK_STANDARD_SHIPPING, expedited: PK_EXPEDITED_SHIPPING, freeMin: null }
+    : { standard: STANDARD_SHIPPING, expedited: EXPEDITED_SHIPPING, freeMin: FREE_SHIPPING_MIN as number | null }
 
 const DAY = 86_400_000
 // ponytail: one national order cutoff (22:00 UTC, 6 PM Eastern); per-warehouse cutoffs if delivery ever becomes regional
@@ -30,19 +40,30 @@ const weekend = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6
 
 // The one delivery promise (§4.4, §4.5). Cards, carousels, the buy box, cart, checkout's quote and orders all take their
 // dates from here, so a product never shows two different dates. Before the cutoff counting starts today, after it tomorrow.
-export function deliveryPromise(p: Pick<Product, 'shipping' | 'price'>, now = new Date()) {
+// US: standard ship days + 1, expedited ceil(days / 2). Pakistan (international): standard ship days + 8, expedited
+// ceil(days / 2) + 4, all business days.
+export function deliveryPromise(p: Pick<Product, 'shipping' | 'price'>, now = new Date(), country: CountryCode = 'US') {
   const cutoff = new Date(now)
   cutoff.setUTCHours(CUTOFF_HOUR_UTC, 0, 0, 0)
   const missedToday = cutoff.getTime() <= now.getTime()
   if (missedToday) cutoff.setTime(cutoff.getTime() + DAY)
   const start = missedToday ? new Date(now.getTime() + DAY) : now
   const days = shipDays(p)
-  const standard = addBusinessDays(start, days + 1)
-  const expedited = addBusinessDays(start, Math.max(1, Math.ceil(days / 2)))
+  const intl = country === 'PK'
+  const standard = addBusinessDays(start, days + (intl ? 8 : 1))
+  const expedited = addBusinessDays(start, Math.max(1, Math.ceil(days / 2)) + (intl ? 4 : 0))
   const fastest = expedited.getTime() < standard.getTime() ? expedited : null
   const mins = Math.ceil((cutoff.getTime() - now.getTime()) / 60_000)
-  const free = p.price >= FREE_SHIPPING_MIN
+  const rates = shippingRates(country)
+  const free = rates.freeMin !== null && p.price >= rates.freeMin
+  const fees = {
+    free, // standard delivery of this one item is FREE
+    feeUsd: free ? 0 : rates.standard, // what standard delivery of this one item costs
+    expeditedFeeUsd: rates.expedited,
+    freeMinUsd: rates.freeMin, // FREE standard delivery from this items total; null when it never is
+  }
   return {
+    country,
     standard,
     expedited,
     fastest, // "Or fastest delivery" only when it beats standard
@@ -52,9 +73,18 @@ export function deliveryPromise(p: Pick<Product, 'shipping' | 'price'>, now = ne
       (fastest ?? standard).getTime() - now.getTime() > 3 * DAY || weekend(new Date(start.getTime() + DAY))
         ? null
         : mins >= 60 ? `${Math.floor(mins / 60)} hrs ${mins % 60} mins` : `${mins} mins`,
-    // what standard delivery of this one item costs, and the threshold note when it isn't free
-    label: free ? 'FREE delivery' : `${usd(STANDARD_SHIPPING)} delivery`,
-    note: free ? null : `FREE delivery on orders of $${FREE_SHIPPING_MIN} or more`,
+    ...fees,
+    // deprecated: label and note in US dollars; use deliveryText(promise, currency, rate)
+    ...deliveryText(fees, 'USD'),
+  }
+}
+export type DeliveryPromise = ReturnType<typeof deliveryPromise>
+
+// "FREE delivery" | "$6.99 delivery" | "PKR 4,153.28 delivery", and the free-threshold note when there is one
+export function deliveryText(p: { free: boolean; feeUsd: number; freeMinUsd: number | null }, currency: CurrencyCode = 'USD', rate?: number) {
+  return {
+    label: p.free ? 'FREE delivery' : `${formatDollars(p.feeUsd, currency, rate)} delivery`,
+    note: p.free || p.freeMinUsd === null ? null : `FREE delivery on orders of ${formatDollars(p.freeMinUsd, currency, rate).replace(/\.00$/, '')} or more`,
   }
 }
 

@@ -6,12 +6,15 @@ import type { Address } from './addresses'
 import { getCart, MAX_QTY } from './cart'
 import { getProduct, type Product } from './catalog'
 import { query } from './db'
-import { deliveryPromise, EXPEDITED_SHIPPING, FREE_SHIPPING_MIN, STANDARD_SHIPPING } from './delivery'
+import { deliveryPromise, shippingRates } from './delivery'
 import { fullDate, toCents } from './format'
 import type { Card } from './payments'
+import { countryCodeFromName, IMPORT_FEES_NOTE, isCurrencyCode, rateFor, type CountryCode, type CurrencyCode } from './region'
 
 // Estimated sales tax: one flat 8.25% on items + shipping for every US address (a stand-in for per-state rates).
 export const TAX_RATE = 0.0825
+// no US sales tax on international (Pakistan) orders; import duties are the carrier's (IMPORT_FEES_NOTE)
+export const taxRateFor = (country: CountryCode = 'US') => (country === 'PK' ? 0 : TAX_RATE)
 
 export type Speed = 'standard' | 'expedited'
 export type OrderLine = { product: Product; quantity: number; requested: number }
@@ -44,20 +47,31 @@ export type Quote = {
   taxCents: number
   totalCents: number
   deliverBy: Date
+  country: CountryCode
+  taxRate: number
+  taxLabel: string | null // "Estimated tax to be collected:" (US); null when there is no tax line
+  importNote: string | null // IMPORT_FEES_NOTE instead of a tax line (PK); null for US
 }
 
-// Standard is FREE from $35 of items (else $6.99) and arrives when the slowest item does; Expedited is $9.99 and faster.
-export function quote(lines: OrderLine[], speed: Speed, now = new Date()): Quote {
+// US: standard is FREE from $35 of items (else $6.99), Expedited $9.99, 8.25% tax. Pakistan: flat $14.99 / $29.99, no tax.
+// Delivery is when the slowest item arrives.
+export function quote(lines: OrderLine[], speed: Speed, now = new Date(), country: CountryCode = 'US'): Quote {
+  const rates = shippingRates(country)
   const itemCount = lines.reduce((n, l) => n + l.quantity, 0)
   const itemsCents = lines.reduce((sum, l) => sum + toCents(l.product.price) * l.quantity, 0)
-  const free = speed === 'standard' && itemsCents >= toCents(FREE_SHIPPING_MIN)
-  const shippingCents = toCents(speed === 'expedited' ? EXPEDITED_SHIPPING : STANDARD_SHIPPING)
+  const free = speed === 'standard' && rates.freeMin !== null && itemsCents >= toCents(rates.freeMin)
+  const shippingCents = toCents(rates[speed])
   const freeShippingCents = free ? shippingCents : 0
   const beforeTaxCents = itemsCents + shippingCents - freeShippingCents
-  const taxCents = Math.round(beforeTaxCents * TAX_RATE)
-  const deliverBy = new Date(Math.max(now.getTime(), ...lines.map((l) => deliveryPromise(l.product, now)[speed].getTime())))
+  const taxRate = taxRateFor(country)
+  const taxCents = Math.round(beforeTaxCents * taxRate)
+  const deliverBy = new Date(Math.max(now.getTime(), ...lines.map((l) => deliveryPromise(l.product, now, country)[speed].getTime())))
   deliverBy.setUTCHours(20, 0, 0, 0) // delivered by 8pm UTC on the arrival day
-  return { speed, itemCount, itemsCents, shippingCents, freeShippingCents, beforeTaxCents, taxCents, totalCents: beforeTaxCents + taxCents, deliverBy }
+  const intl = country === 'PK'
+  return {
+    speed, itemCount, itemsCents, shippingCents, freeShippingCents, beforeTaxCents, taxCents, totalCents: beforeTaxCents + taxCents, deliverBy,
+    country, taxRate, taxLabel: intl ? null : 'Estimated tax to be collected:', importNote: intl ? IMPORT_FEES_NOTE : null,
+  }
 }
 
 // "113-1234567-1234567"
@@ -73,6 +87,8 @@ const MIGRATIONS = [
      add column if not exists return_comment text, add column if not exists return_code text, add column if not exists return_method text,
      add column if not exists return_resolution text, add column if not exists refund_cents int, add column if not exists refunded_at timestamptz,
      add column if not exists replacement_order_id text`,
+  `alter table orders add column if not exists currency text not null default 'USD',
+     add column if not exists fx_rate double precision not null default 1`,
 ]
 let schemaReady: Promise<unknown> | undefined
 function ensureSchema() {
@@ -95,19 +111,24 @@ export type PaymentSnapshot = { brand: string; last4: string; nameOnCard: string
 // Inserts the order, its items and (for cart checkouts) deletes the purchased cart lines in ONE statement, so it is
 // atomic without transactions. Returns null when this idempotency key already placed an order.
 // `placedAt` (quoted as of then) and `deliverBy` back-date an order; only the demo shopper passes them.
+// Shipping and tax follow the address's country; `currency` and `fxRate` are the display currency and rate at placement
+// (default USD at 1), which every later view of the order uses.
 export async function createOrder(o: {
   userId: string; key: string; address: Address; card: Card; lines: OrderLine[]; speed: Speed; fromCart: boolean; placedAt?: Date; deliverBy?: Date
+  currency?: CurrencyCode; fxRate?: number
 }) {
   await ensureSchema()
-  const q = quote(o.lines, o.speed, o.placedAt)
+  const q = quote(o.lines, o.speed, o.placedAt, countryCodeFromName(o.address.country))
+  const currency = o.currency ?? 'USD'
+  const fxRate = currency === 'USD' ? 1 : (o.fxRate ?? rateFor(currency))
   const a = o.address
   const shipTo: ShipTo = { fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, zip: a.zip, country: a.country, instructions: a.instructions }
   const payment: PaymentSnapshot = { brand: o.card.brand, last4: o.card.last4, nameOnCard: o.card.nameOnCard }
   const items = o.lines.map((l) => ({ product_id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price_cents: toCents(l.product.price), quantity: l.quantity }))
   const [row] = await query<{ id: string }>(
     `with o as (
-       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at)
-       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()))
+       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at, currency, fx_rate)
+       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()), $16, $17)
        on conflict (idempotency_key) do nothing
        returning id
      ), items as (
@@ -121,7 +142,7 @@ export async function createOrder(o: {
      )
      select id from o`,
     [newOrderId(), o.userId, JSON.stringify(shipTo), JSON.stringify(payment), o.speed, q.itemsCents, q.shippingCents - q.freeShippingCents,
-      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null],
+      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null, currency, fxRate],
   )
   return row?.id ?? null
 }
@@ -144,7 +165,9 @@ export type OrderItem = {
 }
 export type Order = {
   id: string
-  shipTo: ShipTo
+  shipTo: ShipTo // includes country (name)
+  currency: CurrencyCode // display currency when placed; show every amount of this order in it
+  fxRate: number // with this rate (1 for USD)
   payment: PaymentSnapshot
   deliverySpeed: Speed
   itemsCents: number
@@ -162,11 +185,12 @@ type ItemRow = Omit<OrderItem, 'returnedAt' | 'cancelledAt' | 'refundedAt'> & { 
 type OrderRow = {
   id: string; ship_to: ShipTo; payment: PaymentSnapshot; delivery_speed: Speed; items_cents: number; shipping_cents: number; tax_cents: number
   total_cents: number; placed_at: Date; deliver_by: Date; cancelled_at: Date | null; replacement_for: string | null; items: ItemRow[]
+  currency: string; fx_rate: number | string
 }
 
 const ORDER_SELECT = `
   select o.id, o.ship_to, o.payment, o.delivery_speed, o.items_cents, o.shipping_cents, o.tax_cents, o.total_cents, o.placed_at, o.deliver_by,
-    o.cancelled_at, o.replacement_for,
+    o.cancelled_at, o.replacement_for, o.currency, o.fx_rate,
     coalesce(json_agg(json_build_object('productId', i.product_id, 'title', i.title, 'thumbnail', i.thumbnail, 'priceCents', i.price_cents,
       'quantity', i.quantity, 'returnReason', i.return_reason, 'returnedAt', i.returned_at, 'cancelledAt', i.cancelled_at,
       'returnCode', i.return_code, 'returnMethod', i.return_method, 'returnResolution', i.return_resolution, 'refundCents', i.refund_cents,
@@ -178,6 +202,8 @@ const toDate = (s: string | null) => (s ? new Date(s) : null)
 const fromRow = (r: OrderRow): Order => ({
   id: r.id,
   shipTo: r.ship_to,
+  currency: isCurrencyCode(r.currency) ? r.currency : 'USD',
+  fxRate: Number(r.fx_rate) || 1,
   payment: r.payment,
   deliverySpeed: r.delivery_speed,
   itemsCents: r.items_cents,
@@ -284,8 +310,10 @@ export function pathWithQuery(path: string, sp: Record<string, string | string[]
   return q ? `${path}?${q}` : path
 }
 
-// what a return or cancellation gives back for one line: its price plus its share of the tax
-export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>) => i.priceCents * i.quantity + Math.round(i.priceCents * i.quantity * TAX_RATE)
+// what a return or cancellation gives back for one line: its price plus its share of the tax (none for Pakistan orders:
+// pass countryCodeFromName(order.shipTo.country))
+export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>, country: CountryCode = 'US') =>
+  i.priceCents * i.quantity + Math.round(i.priceCents * i.quantity * taxRateFor(country))
 
 const monthDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
 
@@ -309,7 +337,8 @@ export function orderView(o: Order, now = new Date()) {
   const s = orderStatus(o, now)
   const items = o.items.map((i) => ({ ...i, state: itemState(i, s.status, s.deliveredAt, now) }))
   // not charged for cancelled items (the whole total when the order is cancelled); refunds count once issued
-  const cancelledCents = s.status === 'cancelled' ? o.totalCents : items.reduce((sum, i) => sum + (i.cancelledAt ? itemRefundCents(i) : 0), 0)
+  const country = countryCodeFromName(o.shipTo.country)
+  const cancelledCents = s.status === 'cancelled' ? o.totalCents : items.reduce((sum, i) => sum + (i.cancelledAt ? itemRefundCents(i, country) : 0), 0)
   const refundCents = items.reduce((sum, i) => sum + (i.refundedAt ? (i.refundCents ?? 0) : 0), 0)
   const hour = s.deliveredAt.toLocaleTimeString('en-US', { hour: 'numeric', timeZone: 'UTC' }).replace(':00', '')
   const headline =
@@ -400,11 +429,11 @@ export async function createReturn(r: {
        from orders o, jsonb_to_recordset($9::jsonb) as x(product_id int, refund_cents int)
        where o.id = i.order_id and o.id = $1 and o.user_id = $2 and o.cancelled_at is null and o.deliver_by <= now()
          and i.product_id = x.product_id and i.returned_at is null and i.cancelled_at is null
-       returning i.product_id, i.title, i.thumbnail, i.quantity, o.ship_to, o.payment
+       returning i.product_id, i.title, i.thumbnail, i.quantity, o.ship_to, o.payment, o.currency, o.fx_rate
      ), rep as (
-       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, replacement_for)
-       select $8::text, $2::uuid, u.ship_to, u.payment, 'standard', 0, 0, 0, 0, $10::timestamptz, $1::text
-       from (select ship_to, payment from upd limit 1) u
+       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, replacement_for, currency, fx_rate)
+       select $8::text, $2::uuid, u.ship_to, u.payment, 'standard', 0, 0, 0, 0, $10::timestamptz, $1::text, u.currency, u.fx_rate
+       from (select ship_to, payment, currency, fx_rate from upd limit 1) u
        where $8::text is not null
        returning id
      ), rep_items as (

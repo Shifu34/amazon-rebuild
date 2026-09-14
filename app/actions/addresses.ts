@@ -22,22 +22,22 @@ export async function saveAddress(_prev: AddressState, form: FormData): Promise<
     const { n } = (await one<{ n: number }>('select count(*)::int as n from addresses where user_id = $1', [user.id]))!
     if (n >= MAX_ADDRESSES) return { problem: `You can save up to ${MAX_ADDRESSES} addresses. Remove one to add another.` }
   }
-  const params = [user.id, input.fullName, input.phone, input.line1, input.line2, input.city, input.state, input.zip, input.instructions, input.makeDefault]
+  const params = [user.id, input.fullName, input.phone, input.line1, input.line2, input.city, input.state, input.zip, input.instructions, input.makeDefault, input.country]
   // one statement each, so there is never a moment with two defaults
   const row = id
     ? await one<{ id: string }>(
         `with cleared as (
            update addresses set is_default = false
-           where user_id = $1 and $10 and is_default and id::text <> $11 and exists (select 1 from addresses where user_id = $1 and id::text = $11)
+           where user_id = $1 and $10 and is_default and id::text <> $12 and exists (select 1 from addresses where user_id = $1 and id::text = $12)
          )
-         update addresses set full_name = $2, phone = $3, line1 = $4, line2 = $5, city = $6, state = $7, zip = $8, instructions = $9, is_default = is_default or $10
-         where user_id = $1 and id::text = $11 returning id`,
+         update addresses set full_name = $2, phone = $3, line1 = $4, line2 = $5, city = $6, state = $7, zip = $8, instructions = $9, is_default = is_default or $10, country = $11
+         where user_id = $1 and id::text = $12 returning id`,
         [...params, id],
       )
     : await one<{ id: string }>(
         `with cleared as (update addresses set is_default = false where user_id = $1 and $10 and is_default)
-         insert into addresses (user_id, full_name, phone, line1, line2, city, state, zip, instructions, is_default)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 or not exists (select 1 from addresses where user_id = $1))
+         insert into addresses (user_id, full_name, phone, line1, line2, city, state, zip, instructions, is_default, country)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 or not exists (select 1 from addresses where user_id = $1), $11)
          returning id`,
         params,
       )

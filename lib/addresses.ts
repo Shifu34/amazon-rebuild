@@ -1,6 +1,7 @@
-// US delivery addresses: reads, validation (Amazon's field messages) and one-line formatting.
-// Writes live in app/actions/addresses.ts. Shared by checkout and the address book.
+// Delivery addresses (United States and Pakistan): reads, validation (Amazon's field messages) and one-line formatting.
+// Writes live in app/actions/addresses.ts. Shared by checkout and the address book. Countries and regions: lib/region.ts
 import { query } from './db'
+import { COUNTRIES, countryCodeFromName } from './region'
 
 export type Address = {
   id: string
@@ -9,28 +10,17 @@ export type Address = {
   line1: string
   line2: string
   city: string
-  state: string
+  state: string // US state or Pakistan ISO 3166-2 region code
   zip: string
-  country: string
+  country: string // country name: 'United States' | 'Pakistan'
   instructions: string
   isDefault: boolean
 }
 
 export const MAX_ADDRESSES = 20
 
-export type AddressInput = Omit<Address, 'id' | 'isDefault' | 'country'> & { makeDefault: boolean }
+export type AddressInput = Omit<Address, 'id' | 'isDefault'> & { makeDefault: boolean }
 export type AddressErrors = Partial<Record<'fullName' | 'phone' | 'line1' | 'city' | 'state' | 'zip', string>>
-
-// Valid state codes (50 states + DC; the form's select lists the same codes) mapped to the first digit(s) a ZIP code
-// can start with there (USPS national areas), enough to catch a ZIP typed for the wrong state.
-// ponytail: first-digit check only, a 3-digit prefix table if false accepts matter
-const ZIP_AREA: Record<string, string> = {
-  CT: '0', MA: '0', ME: '0', NH: '0', NJ: '0', RI: '0', VT: '0', NY: '01', DE: '1', PA: '1',
-  DC: '2', MD: '2', NC: '2', SC: '2', VA: '2', WV: '2', AL: '3', FL: '3', GA: '3', MS: '3', TN: '3',
-  IN: '4', KY: '4', MI: '4', OH: '4', IA: '5', MN: '5', MT: '5', ND: '5', SD: '5', WI: '5',
-  IL: '6', KS: '6', MO: '6', NE: '6', AR: '7', LA: '7', OK: '7', TX: '78',
-  AZ: '8', CO: '8', ID: '8', NM: '8', NV: '8', UT: '8', WY: '8', AK: '9', CA: '9', HI: '9', OR: '9', WA: '9',
-}
 
 type Row = { id: string; full_name: string; phone: string; line1: string; line2: string; city: string; state: string; zip: string; country: string; instructions: string; is_default: boolean }
 
@@ -50,12 +40,21 @@ export async function getAddress(userId: string, id: string): Promise<Address | 
   return row ? fromRow(row) : null
 }
 
-// "123 Main St, Apt 4, Seattle, WA 98101"
-export const formatAddress = (a: Pick<Address, 'line1' | 'line2' | 'city' | 'state' | 'zip'>) =>
-  [a.line1, a.line2, a.city, `${a.state} ${a.zip}`].filter(Boolean).join(', ')
+// "123 Main St, Apt 4, Seattle, WA 98101" | "12 Mall Road, Lahore, Punjab 54000" (Pakistan spells the province out)
+export function formatAddress(a: Pick<Address, 'line1' | 'line2' | 'city' | 'state' | 'zip'> & { country?: string }) {
+  const code = countryCodeFromName(a.country)
+  const state = code === 'PK' ? (COUNTRIES.PK.regions.find((r) => r.code === a.state)?.name ?? a.state) : a.state
+  return [a.line1, a.line2, a.city, `${state} ${a.zip}`].filter(Boolean).join(', ')
+}
 
+// Pakistan: mobile 03XXXXXXXXX, 3XXXXXXXXX or +92 3XXXXXXXXX; landline 0 or +92, area code and number (042-XXXXXXX),
+// 9-10 digits after the 0 or +92. Spaces and dashes are removed first.
+const PK_PHONE = /^(?:(?:\+92|0)?3\d{9}|(?:\+92|0)[124-9]\d{8,9})$/
+
+// `country` is US | PK (the country name is accepted too; anything else is treated as US)
 export function validateAddress(form: FormData): { input: AddressInput; errors: AddressErrors } {
   const text = (name: string, max: number) => String(form.get(name) ?? '').trim().replace(/\s+/g, ' ').slice(0, max)
+  const country = COUNTRIES[countryCodeFromName(text('country', 40))]
   const input: AddressInput = {
     fullName: text('fullName', 80),
     phone: text('phone', 30),
@@ -64,19 +63,25 @@ export function validateAddress(form: FormData): { input: AddressInput; errors: 
     city: text('city', 60),
     state: text('state', 2).toUpperCase(),
     zip: text('zip', 10),
+    country: country.name,
     instructions: String(form.get('instructions') ?? '').trim().slice(0, 500),
     makeDefault: form.get('makeDefault') === 'on',
   }
+  const pk = country.code === 'PK'
   const errors: AddressErrors = {}
   if (!input.fullName) errors.fullName = 'Please enter a name.'
   const digits = input.phone.replace(/\D/g, '')
   if (!digits) errors.phone = 'Please enter a phone number so we can call if there are any issues with delivery.'
-  else if (digits.length < 10 || digits.length > 15 || /[^\d\s()+.-]/.test(input.phone)) errors.phone = 'Please enter a valid phone number.'
+  else if (pk ? !PK_PHONE.test(input.phone.replace(/[\s-]/g, '')) : digits.length < 10 || digits.length > 15 || /[^\d\s()+.-]/.test(input.phone))
+    errors.phone = 'Please enter a valid phone number.'
   if (!input.line1) errors.line1 = 'Please enter an address.'
   if (!input.city) errors.city = 'Please enter a city name.'
-  if (!ZIP_AREA[input.state]) errors.state = 'Please enter a state, region or province.'
+  const region = country.regions.find((r) => r.code === input.state)
+  if (!region) errors.state = 'Please enter a state, region or province.'
   if (!input.zip) errors.zip = 'Please enter a ZIP or postal code.'
-  else if (!/^\d{5}(-\d{4})?$/.test(input.zip)) errors.zip = 'Please enter a valid US zip code.'
-  else if (ZIP_AREA[input.state] && !ZIP_AREA[input.state].includes(input.zip[0])) errors.zip = "The ZIP code you entered doesn't match the state."
+  else if (pk) {
+    if (!/^\d{5}$/.test(input.zip)) errors.zip = 'Please enter a valid postal code.'
+  } else if (!/^\d{5}(-\d{4})?$/.test(input.zip)) errors.zip = 'Please enter a valid US zip code.'
+  else if (region?.zip && !region.zip.includes(input.zip[0])) errors.zip = "The ZIP code you entered doesn't match the state."
   return { input, errors }
 }
