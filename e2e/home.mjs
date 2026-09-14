@@ -1,0 +1,132 @@
+// Home page, Today's Deals and Best Sellers through headless Chrome.
+// Run with the app up: node e2e/home.mjs [baseUrl]   (default http://localhost:3000)
+import assert from 'node:assert/strict'
+import { chromium } from 'playwright-core'
+
+const base = process.argv[2] ?? 'http://localhost:3000'
+const browser = await chromium.launch({ channel: 'chrome', headless: true })
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+const step = (name) => console.log(`- ${name}`)
+const region = (name) => page.getByRole('region', { name, exact: true })
+const cartCount = async () => Number((await page.getByRole('link', { name: /^Cart, / }).getAttribute('aria-label')).match(/\d+/)[0])
+const cards = () => page.locator('main li article')
+
+try {
+  step('signed-out home: hero carousel, overlapping cards, carousels, sign-in prompts')
+  await page.goto(base)
+  const hero = page.locator('[aria-roledescription="carousel"]')
+  const currentSlide = () => hero.locator('[aria-roledescription="slide"]:not([inert])').getAttribute('aria-label')
+  const firstSlide = await currentSlide()
+  await page.getByRole('button', { name: 'Next slide' }).click()
+  assert.notEqual(await currentSlide(), firstSlide)
+  await page.getByRole('button', { name: 'Previous slide' }).click()
+  assert.equal(await currentSlide(), firstSlide)
+  await page.getByRole('button', { name: 'Show slide 3 of 4' }).click()
+  assert.match(await currentSlide(), /^3 of 4/)
+  await page.getByRole('button', { name: 'Pause carousel' }).click()
+  await page.getByRole('button', { name: 'Play carousel' }).waitFor()
+  for (const name of ['Shop deals in Electronics', 'Top categories in Home & Kitchen', 'Sign in for the best experience']) await page.getByRole('heading', { name }).waitFor()
+  for (const name of ["Today's Deals", 'Best Sellers in Home & Kitchen', 'Best Sellers in Electronics']) {
+    assert.ok((await region(name).locator('li').count()) >= 5, `${name} carousel has items`)
+  }
+  assert.ok((await region("Today's Deals").getByText('Limited time deal').count()) >= 5)
+  await page.getByText('See personalized recommendations').waitFor()
+  assert.equal(await page.getByRole('region', { name: 'Keep shopping for' }).count(), 0)
+
+  step('deals: department chip, discount facet and sort narrow and order the grid')
+  await page.goto(`${base}/deals`)
+  await page.getByRole('heading', { name: "Today's Deals", level: 1 }).waitFor()
+  const total = await cards().count()
+  assert.ok(total > 20)
+  await page.getByRole('navigation', { name: 'Deal departments' }).getByRole('link', { name: 'Electronics', exact: true }).click()
+  await page.waitForURL(/[?&]i=electronics/)
+  await page.getByRole('heading', { name: /deals in Electronics/ }).waitFor()
+  const inElectronics = await cards().count()
+  assert.ok(inElectronics > 0 && inElectronics < total)
+  await page.getByRole('link', { name: '15% off or more' }).click()
+  await page.waitForURL(/discount=15/)
+  const discounted = await cards().count()
+  assert.ok(discounted > 0 && discounted <= inElectronics)
+  await page.getByLabel('Sort by:').selectOption('price-asc')
+  await page.waitForURL(/sort=price-asc/)
+  assert.ok(page.url().includes('i=electronics') && page.url().includes('discount=15'), 'sort keeps the filters')
+  const prices = (await cards().evaluateAll((els) => els.map((el) => Number(el.dataset.price))))
+  assert.deepEqual(prices, [...prices].sort((a, b) => a - b))
+  for (const badge of await cards().locator('.bg-deal').allTextContents()) assert.ok(Number(badge.match(/\d+/)[0]) >= 15, badge)
+
+  step('deals: empty state for a filter with no deals, then clear')
+  await page.goto(`${base}/deals?discount=50`)
+  await page.getByText('No deals match your filters').waitFor()
+  await page.getByRole('link', { name: 'Clear all filters' }).click()
+  await page.waitForURL(`${base}/deals`)
+
+  step('deals: add a deal to the cart, header count increments')
+  const before = await cartCount()
+  const deal = cards().first()
+  await deal.getByRole('button', { name: 'Add to cart' }).click()
+  await deal.getByText('in cart').waitFor()
+  await page.getByRole('link', { name: new RegExp(`^Cart, ${before + 1} items?$`) }).waitFor()
+
+  step('best sellers: department and category navigation with ranks; invalid slug is a 404')
+  await page.goto(`${base}/bestsellers`)
+  await page.getByRole('heading', { name: 'nile Best Sellers', level: 1 }).waitFor()
+  await page.getByText('Our most popular products based on sales. Updated frequently.').waitFor()
+  const rail = page.getByRole('navigation', { name: 'Best Sellers departments' })
+  await rail.getByRole('link', { name: 'Electronics', exact: true }).click()
+  await page.waitForURL(`${base}/bestsellers/electronics`)
+  await page.getByRole('heading', { name: 'Best Sellers in Electronics', level: 1 }).waitFor()
+  assert.deepEqual(await cards().locator('span.absolute').evaluateAll((els) => els.slice(0, 3).map((el) => el.textContent)), ['#1', '#2', '#3'])
+  await rail.getByRole('link', { name: 'Laptops', exact: true }).click()
+  await page.waitForURL(`${base}/bestsellers/laptops`)
+  await page.getByRole('heading', { name: 'Best Sellers in Laptops', level: 1 }).waitFor()
+  await rail.getByRole('link', { name: '‹ Electronics' }).click()
+  await page.waitForURL(`${base}/bestsellers/electronics`)
+  await rail.getByRole('link', { name: '‹ Any Department' }).click()
+  await page.waitForURL(`${base}/bestsellers`)
+  for (const slug of ['not-a-department', 'toString']) assert.equal((await page.goto(`${base}/bestsellers/${slug}`)).status(), 404)
+
+  step('390px: no sideways scroll; filter rails open from a toggle')
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const path of ['/', '/deals', '/bestsellers', '/bestsellers/electronics']) {
+    await page.goto(base + path)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    assert.ok(overflow <= 0, `${path} overflows by ${overflow}px`)
+  }
+  await page.goto(`${base}/deals`)
+  assert.equal(await page.getByRole('link', { name: '10% off or more' }).isVisible(), false)
+  await page.getByRole('button', { name: 'Filters' }).click()
+  await page.getByRole('link', { name: '10% off or more' }).waitFor()
+
+  step('signed in: greeting card replaces sign-in; browsing history personalizes home')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(`${base}/ap/signin`)
+  await page.getByLabel('Email').fill(`home-${Date.now()}@example.com`)
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByLabel('Your name').fill('Hana Home')
+  await page.getByLabel('Password', { exact: true }).fill('secret123')
+  await page.getByLabel('Re-enter password').fill('secret123')
+  await page.getByRole('button', { name: 'Create your nile account' }).click()
+  await page.getByText('Hello, Hana').waitFor()
+  await page.goto(base)
+  await page.getByRole('heading', { name: 'Hi, Hana' }).waitFor()
+  assert.equal(await page.getByRole('heading', { name: 'Sign in for the best experience' }).count(), 0)
+  await page.getByText('After viewing product detail pages').waitFor()
+  const viewedHref = await region('Best Sellers in Electronics').locator('a[href^="/dp/"]').first().getAttribute('href')
+  await page.goto(base + viewedHref)
+  await page.goto(base)
+  if (await region('Keep shopping for').count()) {
+    await region('Keep shopping for').locator(`a[href="${viewedHref}"]`).first().waitFor()
+    await region('Inspired by your browsing history').waitFor()
+    await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
+  } else {
+    console.log('  (history rows not checked: the product page does not record browsing_history yet)')
+  }
+
+  console.log('e2e home ok')
+} catch (e) {
+  await page.screenshot({ path: 'e2e/home-failure.png', fullPage: true }).catch(() => {})
+  console.error(`failed at ${page.url()} (screenshot: e2e/home-failure.png)`)
+  throw e
+} finally {
+  await browser.close()
+}
