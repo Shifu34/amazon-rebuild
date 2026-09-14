@@ -53,7 +53,7 @@ try {
   await register(page, `orders-${Date.now()}@example.com`)
   await page.waitForURL(`${base}/orders?tab=cancelled`)
   await page.getByText('You have not placed any orders yet.').waitFor()
-  await page.getByRole('link', { name: 'Buy Again' }).click()
+  await page.getByRole('navigation', { name: 'Order views' }).getByRole('link', { name: 'Buy Again' }).click()
   await page.getByText('There are no items to buy again.').waitFor()
 
   step('place an order with a new address and card')
