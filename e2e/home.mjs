@@ -5,28 +5,42 @@ import { chromium } from 'playwright-core'
 
 const base = process.argv[2] ?? 'http://localhost:3000'
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+const page = await browser.newPage({ viewport: { width: 1536, height: 820 } })
 const step = (name) => console.log(`- ${name}`)
 const region = (name) => page.getByRole('region', { name, exact: true })
 const cartCount = async () => Number((await page.getByRole('link', { name: /^Cart, / }).getAttribute('aria-label')).match(/\d+/)[0])
 const cards = () => page.locator('main li article')
+const homeCards = () => page.locator('main h2.font-display')
+const decode = (html) => html.replaceAll('&amp;', '&').replaceAll('&#x27;', "'").replaceAll('&quot;', '"')
 
 try {
-  step('signed-out home: hero carousel, overlapping cards, carousels, sign-in prompts')
+  step('signed-out home: picture tiles scroll both ways and load eagerly, nothing overlaps the cards')
   await page.goto(base)
-  const hero = page.locator('[aria-roledescription="carousel"]')
-  const currentSlide = () => hero.locator('[aria-roledescription="slide"]:not([inert])').getAttribute('aria-label')
-  const firstSlide = await currentSlide()
-  await page.getByRole('button', { name: 'Next slide' }).click()
-  assert.notEqual(await currentSlide(), firstSlide)
-  await page.getByRole('button', { name: 'Previous slide' }).click()
-  assert.equal(await currentSlide(), firstSlide)
-  await page.getByRole('button', { name: 'Show slide 3 of 4' }).click()
-  assert.match(await currentSlide(), /^3 of 4/)
-  await page.getByRole('button', { name: 'Pause carousel' }).click()
-  await page.getByRole('button', { name: 'Play carousel' }).waitFor()
-  for (const name of ['Shop deals in Electronics', 'Top categories in Home & Kitchen', 'Sign in for the best experience']) await page.getByRole('heading', { name }).waitFor()
-  for (const name of ["Today's Deals", 'Best Sellers in Home & Kitchen', 'Best Sellers in Electronics']) {
+  const tiles = page.getByRole('list', { name: 'Shop by department' })
+  const scrollLeft = () => tiles.evaluate((el) => el.scrollLeft)
+  assert.ok((await tiles.getByRole('link').count()) >= 6, 'tiles')
+  assert.equal(await tiles.locator('img[loading="lazy"]').count(), 0, 'tile images are eager')
+  const left = page.getByRole('button', { name: 'Scroll departments left' })
+  const right = page.getByRole('button', { name: 'Scroll departments right' })
+  assert.equal(await left.isVisible(), false, 'no left arrow at the start')
+  await right.click()
+  await left.waitFor()
+  await page.waitForFunction(() => document.querySelector('[aria-label="Shop by department"]').scrollLeft > 200)
+  await left.click()
+  await left.waitFor({ state: 'hidden' })
+  assert.equal(await scrollLeft(), 0)
+  assert.equal(await page.locator('[aria-roledescription="carousel"]').count(), 0, 'no hero banner')
+  const tilesBox = await tiles.boundingBox()
+  const firstCard = await homeCards().first().locator('..').boundingBox()
+  assert.ok(firstCard.y >= tilesBox.y + tilesBox.height, 'cards start below the tiles')
+
+  step('bordered 2x2 cards in four columns, carousels between them, sign-in block at the bottom')
+  assert.equal(await homeCards().count(), 24)
+  for (const name of ['Plug in with our electronics', 'Popular finds under $25', 'Deals on top categories', 'Explore Best Sellers']) await page.getByRole('heading', { name }).waitFor()
+  const firstRow = await homeCards().evaluateAll((hs) => hs.slice(0, 5).map((h) => Math.round(h.parentElement.getBoundingClientRect().top)))
+  assert.equal(new Set(firstRow.slice(0, 4)).size, 1, 'four cards share the first row')
+  assert.ok(firstRow[4] > firstRow[0], 'the fifth card wraps')
+  for (const name of ["Today's Deals", 'Best Sellers in Home & Kitchen']) {
     assert.ok((await region(name).locator('li').count()) >= 5, `${name} carousel has items`)
   }
   // nothing expires, so the tag says "Deal" (product-map §4.2)
@@ -35,6 +49,32 @@ try {
   assert.equal(await page.locator('header a[href="/s?i=automotive"]').count(), 0, 'no Automotive department')
   await page.getByText('See personalized recommendations').waitFor()
   assert.equal(await page.getByRole('heading', { name: 'Pick up where you left off' }).count(), 0)
+
+  step('every tile and card link opens a page with results, and each card picture is on its destination')
+  const links = await page.evaluate(() => {
+    const tileLinks = [...document.querySelectorAll('[aria-label="Shop by department"] a')].map((a) => ({ href: a.getAttribute('href') }))
+    const cardLinks = [...document.querySelectorAll('main h2.font-display')].flatMap((h) => [
+      { href: h.querySelector('a').getAttribute('href') },
+      ...[...h.parentElement.querySelectorAll('ul a')].map((a) => ({ href: a.getAttribute('href'), image: a.querySelector('img').getAttribute('src'), label: a.textContent })),
+    ])
+    return [...tileLinks, ...cardLinks]
+  })
+  assert.ok(links.length >= 24 * 5, 'links collected')
+  const bodies = new Map()
+  const unique = [...new Set(links.map((l) => l.href))]
+  for (let i = 0; i < unique.length; i += 6) {
+    await Promise.all(
+      unique.slice(i, i + 6).map(async (href) => {
+        const res = await page.request.get(base + href)
+        assert.equal(res.status(), 200, href)
+        bodies.set(href, decode(await res.text()))
+      }),
+    )
+  }
+  for (const [href, body] of bodies) {
+    assert.ok(!body.includes('No results for') && !body.includes('No deals match'), `${href} is empty`)
+  }
+  for (const { href, image, label } of links.filter((l) => l.image)) assert.ok(bodies.get(href).includes(image), `"${label}" picture ${image} is not on ${href}`)
 
   step('keyboard: skip link comes first; the All drawer hands focus back when it closes')
   await page.goto(base)
@@ -110,20 +150,23 @@ try {
   await page.waitForURL(`${base}/bestsellers`)
   for (const slug of ['not-a-department', 'toString', 'automotive']) assert.equal((await page.goto(`${base}/bestsellers/${slug}`)).status(), 404)
 
-  step('390px: no sideways scroll; filter rails open from a toggle')
+  step('390px: no sideways scroll; home cards stack in one column; filter rails open from a toggle')
   await page.setViewportSize({ width: 390, height: 844 })
   for (const path of ['/', '/deals', '/bestsellers', '/bestsellers/electronics']) {
     await page.goto(base + path)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     assert.ok(overflow <= 0, `${path} overflows by ${overflow}px`)
   }
+  await page.goto(base)
+  const stacked = await homeCards().evaluateAll((hs) => hs.slice(0, 2).map((h) => h.parentElement.getBoundingClientRect()).map((r) => [r.left, r.top]))
+  assert.ok(stacked[0][0] === stacked[1][0] && stacked[1][1] > stacked[0][1], 'one column')
   await page.goto(`${base}/deals`)
   assert.equal(await page.getByRole('link', { name: '10% off or more' }).isVisible(), false)
   await page.getByRole('button', { name: 'Filters' }).click()
   await page.getByRole('link', { name: '10% off or more' }).waitFor()
 
-  step('signed in: greeting card replaces sign-in; browsing history personalizes home')
-  await page.setViewportSize({ width: 1440, height: 900 })
+  step('signed in: no sign-in block; browsing history adds "Pick up where you left off" as the first card')
+  await page.setViewportSize({ width: 1536, height: 820 })
   await page.goto(`${base}/ap/signin`)
   const email = `home-${Date.now()}@example.com`
   await page.getByLabel('Email').fill(email)
@@ -134,22 +177,23 @@ try {
   await page.getByRole('button', { name: 'Create your nile account' }).click()
   await page.getByText('Hello, Hana').waitFor()
   await page.goto(base)
-  await page.getByRole('heading', { name: 'Hi, Hana' }).waitFor()
-  assert.equal(await page.getByRole('heading', { name: 'Sign in for the best experience' }).count(), 0)
   await page.getByText('After viewing product detail pages').waitFor()
-  const viewedHref = await region('Best Sellers in Electronics').locator('a[href^="/dp/"]').first().getAttribute('href')
+  assert.equal(await page.getByText('See personalized recommendations').count(), 0)
+  const viewedHref = await region('Best Sellers in Home & Kitchen').locator('a[href^="/dp/"]').first().getAttribute('href')
   await page.goto(base + viewedHref)
   await page.goto(base)
   // the view is recorded after the product page's response, so allow one reload
   const pickUp = page.getByRole('heading', { name: 'Pick up where you left off' })
   if (!(await pickUp.count())) await page.reload()
   await pickUp.locator('..').locator(`a[href="${viewedHref}"]`).first().waitFor()
+  assert.equal(await homeCards().first().textContent(), 'Pick up where you left off')
+  assert.equal(await homeCards().count(), 24, 'the personal card replaces a generic one')
   await region('Inspired by your browsing history').waitFor()
   await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
 
   // the header outlives the Sign Out redirect, so the menu or drawer it came from has to close itself
   step('Sign Out closes the keyboard-opened Account & Lists menu')
-  await page.mouse.move(700, 880)
+  await page.mouse.move(700, 800)
   const caret = page.getByRole('button', { name: 'Account & Lists menu' })
   await caret.focus()
   await page.keyboard.press('Enter')

@@ -110,3 +110,8 @@
   .label { display: block; margin-bottom: 2px; font-size: 13px; font-weight: 700; }
   .field-error { margin-top: 4px; font-size: 12px; color: #cc0c39; }
 }
+
+/* Display face for home headlines; --font-inter-tight is set on <html> by next/font in app/layout.tsx */
+@theme inline {
+  --font-display: var(--font-inter-tight), "Arial Black", Arial, sans-serif;
+}

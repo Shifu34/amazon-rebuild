@@ -1,129 +1,157 @@
 import Link from 'next/link'
-import { GreetingCard, ImageCard, QuadCard, SignInCard, type Tile } from '@/components/home/cards'
+import { QuadCard, type Card, type Tile } from '@/components/home/cards'
 import { DealRail } from '@/components/home/deal'
-import { Hero, type Slide } from '@/components/home/hero'
-import { ranked } from '@/components/home/scope'
+import { inScope, ranked } from '@/components/home/scope'
+import { PictureTiles, type PictureTile } from '@/components/home/tiles'
 import { ProductCarousel } from '@/components/product-carousel'
+import { parseQuery, toHref, toSearch, type Query } from '@/components/search/params'
 import { getUser } from '@/lib/auth'
-import { bestSellers, deals, getProduct, related, type Product } from '@/lib/catalog'
+import { deals, getProduct, related, search, type Product } from '@/lib/catalog'
 import { query } from '@/lib/db'
 
-const top = (category: string) => bestSellers(category, 1)[0] as Product | undefined
+// The catalog is static, so every card and tile below is computed once per server start.
+const BLANK = parseQuery({})
+const find = (patch: Partial<Query>) => toHref({ ...BLANK, ...patch })
+// a search tile links to /s with these filters and is pictured with a product that search shows
+const s = (label: string, patch: Partial<Query>) => ({ label, href: find(patch), items: search(toSearch({ ...BLANK, ...patch })).items })
+const at = (label: string, href: string, items: Product[]) => ({ label, href, items })
 
-// one tile per category, pictured by its best seller (or by `pick` when given)
-function categoryTiles(labels: Record<string, string>, href: (slug: string) => string, pick = top): Tile[] {
-  return Object.entries(labels).flatMap(([slug, label]) => {
-    const p = pick(slug) ?? top(slug)
-    return p ? [{ label, href: href(slug), image: p.thumbnail }] : []
-  })
+// Each tile pictures the first product of its destination not already pictured in the card. A card with an empty destination is left out.
+function card(title: string, href: string, sources: ReturnType<typeof at>[]): Card[] {
+  const used = new Set<number>()
+  const tiles: Tile[] = []
+  for (const { label, href, items } of sources) {
+    const p = items.find((x) => !used.has(x.id))
+    if (!p) return []
+    used.add(p.id)
+    tiles.push({ label, href, image: p.thumbnail })
+  }
+  return [{ title, href, tiles }]
 }
 
-// Views are written by the product page. A failed read only hides the personalized rows, like Amazon's silent widgets.
+const ALL_DEALS = deals(Infinity)
+const dealsIn = (slug: string) => ALL_DEALS.filter((p) => inScope(p, slug))
+
+// the first picture is the big one, so it uses the full-size photo
+const tile = (title: string, href: string, bg: string, products: (Product | undefined)[], subtitle?: string): PictureTile[] => {
+  const [main, ...rest] = products.filter((p) => p !== undefined)
+  return main ? [{ title, subtitle, href, bg, images: [main.images[0] ?? main.thumbnail, ...rest.map((p) => p.thumbnail)] }] : []
+}
+const ids = (...list: number[]) => list.map(getProduct)
+
+const TILES: PictureTile[] = [
+  tile('Shop kitchen must-haves', find({ i: 'kitchen-accessories' }), '#d2dad9', ids(66, 51, 68)),
+  tile('Upgrade your everyday tech', find({ i: 'electronics' }), '#aaf3fc', ids(82, 161, 123), 'Phones, laptops & more'),
+  tile('Shop all things beauty', find({ i: 'beauty-personal-care' }), '#f7cdbf', ids(2, 4, 8)),
+  tile('Start looking sharp', find({ i: 'mens-fashion' }), '#d3cdc4', ids(85, 90, 93)),
+  tile('Get in the game', find({ i: 'sports' }), '#c5d5f2', ids(140, 152, 139)),
+  tile('Dress to impress', find({ i: 'womens-fashion' }), '#f3d3ec', ids(177, 172, 187)),
+  tile('Fresh picks for your pantry', find({ i: 'grocery' }), '#e1eec3', ids(40, 30, 29)),
+  tile("Today's Deals", '/deals', '#ffe3a3', ALL_DEALS.slice(0, 3), ALL_DEALS.length ? `Up to ${ALL_DEALS[0].discount}% off` : undefined),
+].flat()
+
+const CARDS: Card[] = [
+  card('Plug in with our electronics', find({ i: 'electronics' }), [s('Cell phones', { i: 'smartphones' }), s('Laptops', { i: 'laptops' }), s('Tablets', { i: 'tablets' }), s('Smart speakers', { k: 'smart speakers' })]),
+  card('Score the top Apple gear', find({ brand: ['Apple'] }), [s('iPhone', { k: 'iphone', brand: ['Apple'] }), s('MacBook', { k: 'macbook' }), s('iPad', { k: 'ipad' }), s('AirPods', { k: 'airpods' })]),
+  card('Gear up for game day', find({ i: 'sports' }), [s('Basketball', { k: 'basketball', i: 'sports' }), s('Cricket', { k: 'cricket' }), s('Tennis', { k: 'tennis' }), s('Baseball', { k: 'baseball', i: 'sports' })]),
+  card('Popular finds under $25', find({ max: 25 }), [s('Kitchen', { i: 'kitchen-accessories', max: 25 }), s('Beauty', { i: 'beauty-personal-care', max: 25 }), s("Women's fashion", { i: 'womens-fashion', max: 25 }), s('Sports', { i: 'sports', max: 25 })]),
+
+  card('Fantastic finds for home', find({ i: 'home-kitchen' }), [s('Kitchen', { i: 'kitchen-accessories' }), s('Home décor', { i: 'home-decoration' }), s('Furniture', { i: 'furniture' }), s('Lighting', { k: 'lamp', i: 'home-kitchen' })]),
+  card('Shine brighter with your fashion faves', find({ i: 'womens-fashion' }), [s('Jewelry', { i: 'womens-jewellery' }), s('Handbags', { i: 'womens-bags' }), s('Footwear', { i: 'womens-shoes' }), s('Dresses', { i: 'womens-dresses' })]),
+  card('Unveil your radiance', find({ i: 'beauty-personal-care' }), [s('Make-up', { i: 'beauty' }), s('Fragrances', { i: 'fragrances' }), s('Skin care', { i: 'skin-care' }), s('Body care', { k: 'body' })]),
+  card('Find your next phone', find({ i: 'smartphones' }), [s('iPhone', { k: 'iphone', i: 'smartphones' }), s('Samsung Galaxy', { k: 'samsung galaxy', i: 'smartphones' }), s('Realme', { k: 'realme' }), s('Vivo', { k: 'vivo' })]),
+
+  card('Fashion trends in shoes', find({ k: 'shoes' }), [s("Women's", { i: 'womens-shoes' }), s("Men's", { i: 'mens-shoes' }), s('Sneakers', { k: 'sneakers' }), s('Heels', { k: 'heel' })]),
+  card('Cook like a pro', find({ i: 'kitchen-accessories' }), [s('Cookware', { k: 'cookware' }), s('Appliances', { k: 'kitchen appliances' }), s('Utensils', { k: 'utensils' }), s('Drinkware', { k: 'drinkware' })]),
+  card('Shoes under $100', find({ k: 'shoes', max: 100 }), [s("Women's", { i: 'womens-shoes', max: 100 }), s("Men's", { i: 'mens-shoes', max: 100 }), s('Casual shoes', { k: 'casual shoes', max: 100 }), s('Heels', { k: 'heel', max: 100 })]),
+  card('Deals on top categories', '/deals', [at('Electronics', '/deals?i=electronics', dealsIn('electronics')), at('Fashion', '/deals?i=womens-fashion', dealsIn('womens-fashion')), at('Beauty', '/deals?i=beauty-personal-care', dealsIn('beauty-personal-care')), at('Home', '/deals?i=home-kitchen', dealsIn('home-kitchen'))]),
+
+  card('New home arrivals under $50', find({ i: 'home-kitchen', max: 50, sort: 'newest' }), [s('Kitchen & dining', { i: 'kitchen-accessories', max: 50, sort: 'newest' }), s('Décor', { i: 'home-decoration', max: 50, sort: 'newest' }), s('Cookware', { k: 'cookware', max: 50, sort: 'newest' }), s('Appliances', { k: 'kitchen appliances', max: 50, sort: 'newest' })]),
+  card('Discover the latest arrivals', find({ sort: 'newest' }), [s('Electronics', { i: 'electronics', sort: 'newest' }), s('Home', { i: 'home-kitchen', sort: 'newest' }), s('Beauty', { i: 'beauty-personal-care', sort: 'newest' }), s('Fashion', { i: 'womens-fashion', sort: 'newest' })]),
+  card('Dapper picks for men', find({ i: 'mens-fashion' }), [s('Shirts', { i: 'mens-shirts' }), s('Shoes', { i: 'mens-shoes' }), s('Watches', { i: 'mens-watches' }), s('Sunglasses', { i: 'sunglasses' })]),
+  card('Level up your beauty routine', find({ i: 'beauty' }), [s('Mascara', { k: 'mascara' }), s('Lipstick', { k: 'lipstick' }), s('Eyeshadow', { k: 'eyeshadow' }), s('Nail polish', { k: 'nail polish' })]),
+
+  card('Handpicked smart gadgets', find({ i: 'mobile-accessories' }), [s('Smart speakers', { k: 'smart speakers' }), s('Earphones', { k: 'earphones' }), s('Chargers', { k: 'charger' }), s('Smartwatches', { k: 'smartwatch' })]),
+  card('Stock up on groceries', find({ i: 'grocery' }), [s('Fruits', { k: 'fruits' }), s('Vegetables', { k: 'vegetables' }), s('Beverages', { k: 'beverages' }), s('Dairy & eggs', { k: 'dairy' })]),
+  card('Timeless watches', find({ k: 'watches' }), [s("Men's", { i: 'mens-watches' }), s("Women's", { i: 'womens-watches' }), s('Rolex', { k: 'rolex' }), s('Under $150', { k: 'watches', max: 150 })]),
+  card("Fragrances they'll love", find({ i: 'fragrances' }), ['Chanel', 'Dior', 'Gucci', 'Calvin Klein'].map((b) => s(b, { i: 'fragrances', brand: [b] }))),
+
+  card('Explore Best Sellers', '/bestsellers', [at('Electronics', '/bestsellers/electronics', ranked('electronics')), at('Home & Kitchen', '/bestsellers/home-kitchen', ranked('home-kitchen')), at('Beauty', '/bestsellers/beauty-personal-care', ranked('beauty-personal-care')), at('Fashion', '/bestsellers/womens-fashion', ranked('womens-fashion'))]),
+  card('Highly rated by customers', find({ rating: 4 }), [s('Electronics', { i: 'electronics', rating: 4 }), s('Home', { i: 'home-kitchen', rating: 4 }), s('Beauty', { i: 'beauty-personal-care', rating: 4 }), s('Sports', { i: 'sports', rating: 4 })]),
+  card('Everyday essentials under $10', find({ max: 10 }), [s('Kitchen tools', { i: 'kitchen-accessories', max: 10 }), s('Grocery', { i: 'grocery', max: 10 }), s('Beauty', { i: 'beauty-personal-care', max: 10 }), s('Sports', { i: 'sports', max: 10 })]),
+  card("Women's fashion under $50", find({ i: 'womens-fashion', max: 50 }), [s('Tops', { i: 'tops', max: 50 }), s('Shoes', { i: 'womens-shoes', max: 50 }), s('Handbags', { i: 'womens-bags', max: 50 }), s('Jewelry', { i: 'womens-jewellery', max: 50 })]),
+
+  card('Refresh your space', find({ i: 'home-decoration' }), [s('Plants', { k: 'plant' }), s('Photo frames', { k: 'photo frame' }), s('Lighting', { k: 'lamp', i: 'home-decoration' }), s('Swings', { k: 'swing' })]),
+].flat()
+
+// soft picture backgrounds, one per card in turn
+const TINTS = ['#eef3f8', '#fdf1e7', '#eef6ee', '#f6eff8', '#fff6d9', '#eaf5f7', '#f9eeee', '#f2f2f2']
+const PAGE = 24 // divisible by 4, 3, 2 and 1 columns, so every grid row is full
+
+// Views are written by the product page. A failed read only hides the personalized card, like Amazon's silent widgets.
 async function recentlyViewed(userId: string): Promise<Product[]> {
+  const rows = await query<{ product_id: number }>('select product_id from browsing_history where user_id = $1 order by viewed_at desc limit 20', [userId]).catch(() => [])
+  return rows.flatMap((r) => getProduct(r.product_id) ?? [])
+}
+
+async function boughtBefore(userId: string): Promise<Product[]> {
   const rows = await query<{ product_id: number }>(
-    'select product_id from browsing_history where user_id = $1 order by viewed_at desc limit 20',
+    `select oi.product_id from order_items oi join orders o on o.id = oi.order_id
+     where o.user_id = $1 and o.cancelled_at is null group by oi.product_id order by max(o.placed_at) desc limit 4`,
     [userId],
   ).catch(() => [])
   return rows.flatMap((r) => getProduct(r.product_id) ?? [])
 }
 
+const productTiles = (list: Product[]) => list.slice(0, 4).map((p) => ({ label: p.title, href: `/dp/${p.id}`, image: p.thumbnail }))
+const railBox = 'overflow-hidden rounded-lg border border-line'
+
+function CardGrid({ cards, offset }: { cards: Card[]; offset: number }) {
+  return (
+    <div className="grid gap-x-2 gap-y-3 sm:grid-cols-2 sm:gap-y-[25px] lg:grid-cols-3 xl:grid-cols-4">
+      {cards.map((c, i) => (
+        <QuadCard key={c.title} {...c} tint={TINTS[(offset + i) % TINTS.length]} eager={offset + i < 4} />
+      ))}
+    </div>
+  )
+}
+
 export default async function Home() {
   const user = await getUser()
-  const viewed = user ? await recentlyViewed(user.id) : []
-  const seen = new Set(viewed.map((p) => p.id))
-  const allDeals = deals(Infinity)
-  const dealIn = (category: string) => allDeals.find((p) => p.category === category)
-  const inspired = [...new Set(viewed.slice(0, 6).flatMap((p) => related(p, 8)))].filter((p) => !seen.has(p.id)).slice(0, 20)
-  const viewedCategories = new Set(viewed.map((p) => p.category))
-  // deals in categories they browse first, then the biggest discounts
-  const forYou = [...new Set([...allDeals.filter((p) => viewedCategories.has(p.category) && !seen.has(p.id)), ...allDeals])].slice(0, 5)
-  const homeImages = (categories: string[]) => categories.flatMap((c) => top(c)?.thumbnail ?? [])
-
-  const slides: Slide[] = [
-    ...(allDeals.length
-      ? [{ kicker: "Today's Deals", title: `Up to ${allDeals[0].discount}% off top picks`, blurb: `${allDeals.length} deals across every department`, cta: 'Shop deals', href: '/deals', images: allDeals.slice(0, 3).map((p) => p.thumbnail), tone: 'teal' as const }]
-      : []),
-    { kicker: 'Electronics', title: 'Upgrade your tech', blurb: 'Phones, laptops and tablets, ranked by what shoppers buy', cta: 'See Best Sellers', href: '/bestsellers/electronics', images: homeImages(['laptops', 'smartphones', 'tablets']), tone: 'violet' },
-    { kicker: 'Home & Kitchen', title: 'Make home your favorite place', blurb: 'Cookware, furniture and décor shoppers love', cta: 'Shop Home & Kitchen', href: '/s?i=home-kitchen', images: homeImages(['kitchen-accessories', 'furniture', 'home-decoration']), tone: 'peach' },
-    { kicker: "Women's Fashion", title: 'Fresh looks for the new season', blurb: 'Dresses, bags and shoes to mix and match', cta: 'Shop the looks', href: '/s?i=womens-fashion', images: homeImages(['womens-dresses', 'womens-bags', 'womens-shoes']), tone: 'rose' },
+  const [viewed, bought] = user ? await Promise.all([recentlyViewed(user.id), boughtBefore(user.id)]) : [[], []]
+  const personal: Card[] = [
+    ...(viewed.length ? [{ title: 'Pick up where you left off', href: '/history', tiles: productTiles(viewed) }] : []),
+    ...(bought.length ? [{ title: 'Buy again', href: '/orders?tab=buy-again', tiles: productTiles(bought) }] : []),
   ]
-  const sports = top('sports-accessories')
-  // picture groceries with fresh fruit, not whatever sells most (a tissue box)
-  const grocery = bestSellers('groceries', 50).find((p) => p.tags.includes('fruits')) ?? top('groceries')
-  const homeTiles = categoryTiles({ 'kitchen-accessories': 'Kitchen & Dining', furniture: 'Furniture', 'home-decoration': 'Home Décor' }, (c) => `/s?i=${c}`)
-  // picture the Best Sellers tile with a product the category tiles don't already show
-  const homeBest = ranked('home-kitchen', 10).find((p) => !homeTiles.some((t) => t.image === p.thumbnail))
-  const grid = 'grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4'
+  const cards = [...personal, ...CARDS].slice(0, PAGE)
+  const seen = new Set(viewed.map((p) => p.id))
+  const inspired = [...new Set(viewed.slice(0, 6).flatMap((p) => related(p, 8)))].filter((p) => !seen.has(p.id)).slice(0, 20)
 
   return (
-    <div className="bg-page">
+    <div className="bg-white">
       <h1 className="sr-only">nile home</h1>
-      <Hero slides={slides} />
-
-      {/* overflow-x-clip: sr-only prices inside the shared carousels are positioned outside its scroll box and would widen the page */}
-      <div className="relative z-10 mx-auto max-w-[1500px] space-y-3 overflow-x-clip px-3 pt-3 sm:space-y-5 sm:px-5 sm:pt-4 lg:-mt-[330px] lg:pt-0">
-        <div className={grid}>
-          <QuadCard
-            title="Shop deals in Electronics"
-            tiles={categoryTiles({ smartphones: 'Cell Phones', laptops: 'Laptops', tablets: 'Tablets', 'mobile-accessories': 'Accessories' }, (c) => (dealIn(c) ? `/deals?i=${c}` : `/bestsellers/${c}`), dealIn)}
-            link={{ label: 'See all deals', href: '/deals?i=electronics' }}
-          />
-          {/* recently viewed sits in the grid like Amazon's "Pick up where you left off", so a short history leaves no empty band */}
-          {viewed.length > 0 ? (
-            <QuadCard
-              title="Pick up where you left off"
-              tiles={viewed.slice(0, 4).map((p) => ({ label: p.title, href: `/dp/${p.id}`, image: p.thumbnail }))}
-              link={{ label: 'View your browsing history', href: '/history' }}
-            />
-          ) : (
-            <QuadCard
-              title="Top categories in Home & Kitchen"
-              tiles={[...homeTiles, ...(homeBest ? [{ label: 'Best Sellers', href: '/bestsellers/home-kitchen', image: homeBest.thumbnail }] : [])]}
-              link={{ label: 'Explore all products in Home & Kitchen', href: '/s?i=home-kitchen' }}
-            />
+      {/* overflow-x-clip: sr-only prices inside the shared carousels are positioned outside their scroll box and would widen the page */}
+      <div className="mx-auto max-w-[1536px] overflow-x-clip pt-2">
+        <PictureTiles tiles={TILES} />
+        <div className="space-y-3 px-4 pt-5 sm:space-y-[25px]">
+          <CardGrid cards={cards.slice(0, PAGE / 2)} offset={0} />
+          <div className={railBox}>
+            <DealRail products={ALL_DEALS.slice(0, 20)} />
+          </div>
+          <CardGrid cards={cards.slice(PAGE / 2)} offset={PAGE / 2} />
+          {inspired.length > 0 && (
+            <div className={railBox}>
+              <ProductCarousel title="Inspired by your browsing history" products={inspired} />
+            </div>
           )}
-          <QuadCard
-            className="lg:max-xl:hidden"
-            title="Refresh your wardrobe"
-            tiles={categoryTiles({ tops: 'Tops', 'womens-dresses': 'Dresses', 'womens-shoes': 'Shoes', 'womens-bags': 'Handbags' }, (c) => `/s?i=${c}`)}
-            link={{ label: "Shop Women's Fashion", href: '/s?i=womens-fashion' }}
-          />
-          {user ? (
-            <GreetingCard className="max-sm:order-first" name={user.name.split(' ')[0]} deal={forYou[0]} />
-          ) : (
-            <SignInCard className="max-sm:order-first" deal={allDeals[3] ?? allDeals[0]} />
-          )}
+          <div className={railBox}>
+            <ProductCarousel title="Best Sellers in Home & Kitchen" products={ranked('home-kitchen', 20)} href="/bestsellers/home-kitchen" />
+          </div>
         </div>
-
-        <DealRail products={allDeals.slice(0, 20)} />
-        <ProductCarousel title="Best Sellers in Home & Kitchen" products={ranked('home-kitchen', 20)} href="/bestsellers/home-kitchen" />
-
-        <div className={grid}>
-          {user && forYou.length > 1 ? (
-            <QuadCard title="Deals for you" tiles={forYou.slice(1, 5).map((p) => ({ label: p.title, href: `/dp/${p.id}`, image: p.thumbnail }))} link={{ label: 'See all deals', href: '/deals' }} />
-          ) : (
-            <QuadCard
-              title="Beauty & personal care"
-              tiles={categoryTiles({ 'skin-care': 'Skin Care', fragrances: 'Fragrances', 'womens-jewellery': 'Jewelry', 'womens-watches': 'Watches' }, (c) => `/s?i=${c}`)}
-              link={{ label: 'See more in Beauty', href: '/s?i=beauty-personal-care' }}
-            />
-          )}
-          <QuadCard
-            title="Men's fashion essentials"
-            tiles={categoryTiles({ 'mens-shirts': 'Shirts', 'mens-shoes': 'Shoes', 'mens-watches': 'Watches', sunglasses: 'Sunglasses' }, (c) => `/s?i=${c}`)}
-            link={{ label: "Shop Men's Fashion", href: '/s?i=mens-fashion' }}
-          />
-          {sports && <ImageCard title="Get game ready" image={sports.images[0] ?? sports.thumbnail} href="/s?i=sports" link="Shop Sports & Outdoors" />}
-          {grocery && <ImageCard className="lg:max-xl:hidden" title="Stock up on groceries" image={grocery.images[0] ?? grocery.thumbnail} href="/s?i=grocery" link="Shop Grocery" />}
-        </div>
-
-        {inspired.length > 0 && <ProductCarousel title="Inspired by your browsing history" products={inspired} />}
-        <ProductCarousel title="Best Sellers in Electronics" products={ranked('electronics', 20)} href="/bestsellers/electronics" />
-        <ProductCarousel title="Best Sellers in Beauty & Personal Care" products={ranked('beauty-personal-care', 20)} href="/bestsellers/beauty-personal-care" />
       </div>
 
       {/* -mb-10 cancels the footer's top margin so "Back to top" sits right under this band, as on Amazon */}
-      <section aria-labelledby="home-bottom" className="mt-6 -mb-10 border-y border-line bg-white px-4 py-6 text-center">
+      <section aria-labelledby="home-bottom" className="mt-8 -mb-10 border-t border-line px-4 py-6 text-center">
         {user ? (
           <>
             <h2 id="home-bottom" className="text-base">Your browsing history</h2>
