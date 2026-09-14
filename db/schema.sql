@@ -1,0 +1,116 @@
+-- Idempotent schema. Money is integer cents; product ids refer to data/products.json.
+
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null unique,
+  password_hash text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists sessions (
+  token_hash text primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  expires_at timestamptz not null
+);
+
+create table if not exists addresses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  full_name text not null,
+  phone text not null,
+  line1 text not null,
+  line2 text not null default '',
+  city text not null,
+  state text not null,
+  zip text not null,
+  country text not null default 'United States',
+  instructions text not null default '',
+  is_default boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists payment_methods (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  brand text not null,
+  last4 text not null,
+  exp_month int not null,
+  exp_year int not null,
+  name_on_card text not null,
+  is_default boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- owner is 'u:<user id>' for signed-in shoppers or 'g:<guest cookie id>'; guest rows move to the user on sign-in
+create table if not exists cart_items (
+  owner text not null,
+  product_id int not null,
+  quantity int not null check (quantity between 1 and 30),
+  saved_for_later boolean not null default false,
+  added_at timestamptz not null default now(),
+  primary key (owner, product_id)
+);
+
+create table if not exists orders (
+  id text primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  ship_to jsonb not null,
+  payment jsonb not null,
+  delivery_speed text not null,
+  items_cents int not null,
+  shipping_cents int not null,
+  tax_cents int not null,
+  total_cents int not null,
+  placed_at timestamptz not null default now(),
+  deliver_by timestamptz not null,
+  cancelled_at timestamptz
+);
+create index if not exists orders_user on orders (user_id, placed_at desc);
+
+create table if not exists order_items (
+  order_id text not null references orders(id) on delete cascade,
+  product_id int not null,
+  title text not null,
+  thumbnail text not null,
+  price_cents int not null,
+  quantity int not null,
+  return_reason text,
+  returned_at timestamptz,
+  primary key (order_id, product_id)
+);
+
+create table if not exists lists (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  is_default boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists list_items (
+  list_id uuid not null references lists(id) on delete cascade,
+  product_id int not null,
+  added_at timestamptz not null default now(),
+  primary key (list_id, product_id)
+);
+
+create table if not exists reviews (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  product_id int not null,
+  rating int not null check (rating between 1 and 5),
+  headline text not null,
+  body text not null,
+  verified boolean not null default false,
+  helpful int not null default 0,
+  created_at timestamptz not null default now(),
+  unique (user_id, product_id)
+);
+
+create table if not exists browsing_history (
+  user_id uuid not null references users(id) on delete cascade,
+  product_id int not null,
+  viewed_at timestamptz not null default now(),
+  primary key (user_id, product_id)
+);
