@@ -1,5 +1,6 @@
 // Saved cards for the demo store. Only brand, last 4, expiry and name are ever stored; the full number and CVV
 // are validated and dropped. Writes live in app/actions/payments.ts. Shared by checkout and the wallet.
+import { cardBrand, cardDigits, cardNumberError } from '@/components/checkout/cards'
 import { query } from './db'
 
 export type Card = {
@@ -18,26 +19,6 @@ export type CardErrors = Partial<Record<'number' | 'nameOnCard' | 'exp' | 'cvv',
 
 // Mock authorization rule, stated on the card form: cards ending in 0002 (Stripe's 4000 0000 0000 0002) decline.
 export const DECLINED_LAST4 = '0002'
-
-// the client card form mirrors these prefixes for live brand display (components/card-form.tsx)
-const BRANDS: [string, RegExp][] = [
-  ['American Express', /^3[47]/],
-  ['Visa', /^4/],
-  ['Mastercard', /^(5[1-5]|2[2-7])/],
-  ['Discover', /^(6011|65|64[4-9])/],
-]
-
-export const cardBrand = (digits: string) => BRANDS.find(([, re]) => re.test(digits))?.[0] ?? null
-
-export function luhn(digits: string) {
-  let sum = 0
-  for (let i = 0; i < digits.length; i++) {
-    let d = Number(digits[digits.length - 1 - i])
-    if (i % 2) d = d * 2 > 9 ? d * 2 - 9 : d * 2
-    sum += d
-  }
-  return sum % 10 === 0
-}
 
 // a card is good through the last day of its expiry month
 export const isExpired = (c: Pick<Card, 'expMonth' | 'expYear'>, now = new Date()) =>
@@ -64,8 +45,9 @@ export async function getCard(userId: string, id: string): Promise<Card | null> 
 }
 
 export function validateCard(form: FormData, now = new Date()): { input: CardInput; errors: CardErrors } {
-  const digits = String(form.get('number') ?? '').replace(/[\s-]/g, '')
-  const brand = /^\d{12,19}$/.test(digits) && luhn(digits) ? cardBrand(digits) : null
+  const digits = cardDigits(form.get('number'))
+  const numberError = cardNumberError(digits)
+  const brand = numberError === null ? cardBrand(digits) : null
   const expMonth = Number(form.get('expMonth'))
   const expYear = Number(form.get('expYear'))
   const cvv = String(form.get('cvv') ?? '').trim()
@@ -78,8 +60,7 @@ export function validateCard(form: FormData, now = new Date()): { input: CardInp
     makeDefault: form.get('makeDefault') === 'on',
   }
   const errors: CardErrors = {}
-  if (!digits) errors.number = 'Please enter your card number.'
-  else if (!brand) errors.number = 'Please enter a valid card number.'
+  if (numberError) errors.number = numberError
   if (!input.nameOnCard) errors.nameOnCard = 'Please enter the name on your card.'
   const validExp = Number.isInteger(expMonth) && expMonth >= 1 && expMonth <= 12 && Number.isInteger(expYear) && expYear <= now.getUTCFullYear() + 20
   if (!validExp || isExpired(input, now)) errors.exp = "Your card's expiration date is invalid."

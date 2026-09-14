@@ -5,14 +5,16 @@ import { redirect } from 'next/navigation'
 import { Checkout } from '@/components/checkout/checkout'
 import { formatAddress, getAddresses } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
-import { getCart } from '@/lib/cart'
+import { getCart, MAX_QTY } from '@/lib/cart'
 import { getProduct } from '@/lib/catalog'
+import { fastestDelivery, standardDelivery } from '@/lib/delivery'
 import { buyNowLine, cartLines, linesKey, quote, TAX_RATE, type OrderLine } from '@/lib/orders'
 import { cardExpiry, cardLabel, getCards } from '@/lib/payments'
 
 export const metadata: Metadata = { title: 'Secure checkout' }
 
 // Two modes: the cart's in-stock lines (default) or ?buy=<productId>&qty=<n> for just that item (cart untouched).
+// The shopper's picks (?address, ?card, ?speed) are kept in the URL by the client so they survive Back.
 export default async function CheckoutPage({ searchParams }: PageProps<'/checkout'>) {
   const sp = await searchParams
   const buy = typeof sp.buy === 'string' ? sp.buy : null
@@ -42,7 +44,11 @@ export default async function CheckoutPage({ searchParams }: PageProps<'/checkou
     <Checkout
       token={randomUUID()}
       buy={buy ? { id: buy, qty: lines[0].quantity } : null}
-      lines={lines.map((l) => ({ id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price: l.product.price, quantity: l.quantity, stock: l.product.stock }))}
+      lines={lines.map(({ product: p, quantity }) => ({
+        id: p.id, title: p.title, thumbnail: p.thumbnail, price: p.price, quantity, stock: p.stock, max: Math.min(p.stock, MAX_QTY),
+        // each line's own date, from the same functions as quote() (whose deliverBy is the latest of these)
+        arrives: { standard: standardDelivery(p, now), expedited: fastestDelivery(p, now) },
+      }))}
       linesKey={linesKey(lines)}
       quotes={{ standard: quote(lines, 'standard', now), expedited: quote(lines, 'expedited', now) }}
       taxRate={TAX_RATE}

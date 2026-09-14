@@ -26,16 +26,25 @@ export function Field({ label, error, hint, className, children }: { label: stri
     <div className={className}>
       <label htmlFor={id} className="label">{label}</label>
       {children({ id, 'aria-invalid': !!error, 'aria-describedby': note })}
-      {error ? (
-        <p id={note} className="field-error flex items-start gap-1.5">
-          <span aria-hidden className="mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-full bg-[#cc0c39] text-[10px] font-bold text-white">!</span>
-          {error}
-        </p>
-      ) : (
-        hint && <p id={note} className="mt-1 text-xs text-muted">{hint}</p>
-      )}
+      {error ? <FieldError id={note}>{error}</FieldError> : hint && <p id={note} className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   )
+}
+
+export function FieldError({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <p id={id} className="field-error flex items-start gap-1.5">
+      <span aria-hidden className="mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-full bg-[#cc0c39] text-[10px] font-bold text-white">!</span>
+      {children}
+    </p>
+  )
+}
+
+// "There was a problem": the server's message, or how many fields need fixing
+export function FormProblem({ problem, errors }: { problem?: string; errors: object }) {
+  const n = Object.keys(errors).length
+  if (!problem && !n) return null
+  return <Problem>{problem ?? `Please correct the ${n === 1 ? 'highlighted field' : `${n} highlighted fields`} below.`}</Problem>
 }
 
 export function Problem({ children }: { children: React.ReactNode }) {
@@ -77,11 +86,10 @@ export function AddressForm({ address, returnTo, onSaved, onCancel, submitLabel 
     return next
   }, null)
   const e = state?.errors ?? {}
-  const count = Object.keys(e).length
 
   return (
     <form ref={ref} onSubmit={onSubmit} noValidate className="space-y-3.5">
-      {(state?.problem || count > 0) && <Problem>{state?.problem ?? `Please correct the ${count === 1 ? 'highlighted field' : `${count} highlighted fields`} below.`}</Problem>}
+      <FormProblem problem={state?.problem} errors={e} />
       {address && <input type="hidden" name="id" value={address.id} />}
       {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
 

@@ -83,11 +83,19 @@ try {
   await page.getByRole('button', { name: 'Use this address' }).click()
   await page.getByRole('heading', { name: 'Delivering to Eve Tester' }).waitFor()
 
-  step('card: bad number first, then saved')
+  step('card: bad number, then a real-looking (non-test) number, then the test card button')
+  assert.equal(await page.getByLabel('Name on card').inputValue(), 'Eve Tester')
   await addCard('4242 4242 4242 4241')
   await page.getByText('Please enter a valid card number.').waitFor()
-  await addCard('4242 4242 4242 4242')
+  await addCard('4111 1111 1111 1111')
+  await page.getByText('This is a demo store: use a test card such as 4242 4242 4242 4242.').waitFor()
+  await page.getByRole('button', { name: 'Use test card' }).click()
+  await page.getByRole('button', { name: 'Add your card' }).click()
   await page.getByRole('heading', { name: 'Paying with Visa ending in 4242' }).waitFor()
+
+  step('review: change a quantity in place')
+  await page.locator('select[aria-label^="Quantity of"]:has(option[value="2"]:checked)').selectOption('1')
+  await summary().getByText('Items (2):').waitFor()
 
   step('expedited delivery changes shipping and total')
   const standardTotal = await amount('Order total:')
@@ -106,6 +114,11 @@ try {
   assert.equal(await cartLabel(), 'Cart, 0 items')
   await page.reload()
   await page.getByText(orderId, { exact: true }).waitFor()
+
+  step('Back to the placed checkout cannot place it again')
+  await page.goBack()
+  await Promise.race([page.getByRole('heading', { name: 'You already placed this order' }).waitFor(), page.waitForURL(`${base}/cart`)])
+  await page.goto(`${base}/thankyou/${orderId}`)
 
   step('cart is empty and checkout sends you back to it')
   await page.goto(`${base}/cart`)

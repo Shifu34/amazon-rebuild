@@ -68,7 +68,10 @@ function useCartAction() {
   return { pending, run, notify }
 }
 
-const bar = <span aria-hidden className="h-3.5 w-px bg-line" />
+const bar = <span aria-hidden className="h-3.5 w-px bg-line max-sm:hidden" />
+// text links on desktop; 44px pill buttons on phones, like Amazon's mobile cart
+const action =
+  'link cursor-pointer max-sm:flex max-sm:h-11 max-sm:items-center max-sm:rounded-full max-sm:border max-sm:border-line max-sm:bg-white max-sm:px-4 max-sm:text-ink max-sm:shadow-[0_2px_5px_rgba(15,17,17,0.15)] max-sm:hover:bg-[#f7fafa] max-sm:hover:text-ink max-sm:hover:no-underline'
 
 // Stepper (trash at 1) + Delete | Save for later | Share. `max` 0 means the item can't be bought right now.
 export function LineControls({ productId, title, quantity, max, maxNote }: { productId: number; title: string; quantity: number; max: number; maxNote: string }) {
@@ -95,12 +98,12 @@ export function LineControls({ productId, title, quantity, max, maxNote }: { pro
   return (
     <div data-pending={pending || undefined} className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]">
       {max > 0 && (
-        <div className="inline-flex h-9 items-center rounded-full border-[3px] border-cart bg-white">
+        <div className="inline-flex h-9 items-center rounded-full border-[3px] border-cart bg-white max-sm:h-11">
           <button
             type="button"
             onClick={() => (qty <= 1 ? remove() : change(qty - 1))}
             aria-label={qty <= 1 ? `Delete ${title}` : `Decrease quantity of ${title}`}
-            className="flex h-full w-9 cursor-pointer items-center justify-center rounded-l-full hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus"
+            className="flex h-full w-9 cursor-pointer max-sm:w-11 items-center justify-center rounded-l-full hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus"
           >
             {qty <= 1 ? <TrashIcon className="size-4" /> : <span aria-hidden className="text-lg leading-none">−</span>}
           </button>
@@ -112,24 +115,26 @@ export function LineControls({ productId, title, quantity, max, maxNote }: { pro
             onClick={() => change(qty + 1)}
             disabled={qty >= max}
             aria-label={`Increase quantity of ${title}`}
-            className="flex h-full w-9 cursor-pointer items-center justify-center rounded-r-full text-lg leading-none hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-full w-9 cursor-pointer items-center justify-center rounded-r-full max-sm:w-11 text-lg leading-none hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
           >
             +
           </button>
         </div>
       )}
       {max > 0 && qty >= max && <span className="text-xs text-muted">{maxNote}</span>}
-      <button type="button" onClick={remove} className="link cursor-pointer">Delete</button>
-      {bar}
-      <button
-        type="button"
-        onClick={() => run(() => setSavedForLater(form({ productId, saved: 'true' })), { text: `${title} has been moved to Saved For Later.`, undo: () => setSavedForLater(form({ productId, saved: 'false' })) })}
-        className="link cursor-pointer"
-      >
-        Save for later
-      </button>
-      {bar}
-      <button type="button" onClick={share} className="link cursor-pointer">Share</button>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 max-sm:basis-full max-sm:gap-2">
+        <button type="button" onClick={remove} className={action}>Delete</button>
+        {bar}
+        <button
+          type="button"
+          onClick={() => run(() => setSavedForLater(form({ productId, saved: 'true' })), { text: `${title} has been moved to Saved For Later.`, undo: () => setSavedForLater(form({ productId, saved: 'false' })) })}
+          className={action}
+        >
+          Save for later
+        </button>
+        {bar}
+        <button type="button" onClick={share} className={action}>Share</button>
+      </div>
     </div>
   )
 }
@@ -161,7 +166,7 @@ export function SavedControls({ productId, title, quantity, available }: { produ
           })
         }
         aria-label={`Delete ${title} from Saved for later`}
-        className="link cursor-pointer"
+        className={action}
       >
         Delete
       </button>

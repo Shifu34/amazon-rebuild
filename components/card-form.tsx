@@ -2,24 +2,20 @@
 
 import { useState } from 'react'
 import { addCard, type CardState } from '@/app/actions/payments'
-import { Field, Problem, useFormAction } from './address-form'
-
-// display-only brand detection while typing; the server re-detects and validates in lib/payments.ts
-const BRANDS: [string, RegExp][] = [
-  ['Visa', /^4/],
-  ['Mastercard', /^(5[1-5]|2[2-7])/],
-  ['American Express', /^3[47]/],
-  ['Discover', /^(6011|65|64[4-9])/],
-]
+import { Field, FieldError, FormProblem, useFormAction } from './address-form'
+import { BRANDS, cardBrand, cardDigits, cardNumberError, TEST_CARD_ERROR } from './checkout/cards'
 
 type Props = {
   returnTo?: string // redirect here after saving
   onSaved?: (id: string) => void // or hand the new card id back
   onCancel?: () => void
+  defaultName?: string // e.g. the delivery address name at checkout
 }
 
-export function CardForm({ returnTo, onSaved, onCancel }: Props) {
+export function CardForm({ returnTo, onSaved, onCancel, defaultName }: Props) {
   const { state, pending, ref, onSubmit } = useFormAction<CardState>(async (prev, form) => {
+    // a real (Luhn-valid, not a test) card number is refused here, so it never leaves the browser; the server checks again
+    if (cardNumberError(cardDigits(form.get('number'))) === TEST_CARD_ERROR) return { errors: { number: TEST_CARD_ERROR } }
     const next = await addCard(prev, form)
     if (next?.id) onSaved?.(next.id)
     return next
@@ -28,15 +24,40 @@ export function CardForm({ returnTo, onSaved, onCancel }: Props) {
   const e = state?.errors ?? {}
   const year = new Date().getFullYear()
 
+  const fillTestCard = () => {
+    const field = (name: string) => ref.current?.elements.namedItem(name) as HTMLInputElement
+    field('number').value = '4242 4242 4242 4242'
+    if (!field('nameOnCard').value) field('nameOnCard').value = defaultName || 'Test Shopper'
+    field('expMonth').value = '12'
+    field('expYear').value = String(year + 3)
+    field('cvv').value = '123'
+    setBrand('Visa')
+  }
+
   return (
     <form ref={ref} onSubmit={onSubmit} noValidate className="space-y-3.5">
-      {state?.problem && <Problem>{state.problem}</Problem>}
+      <FormProblem problem={state?.problem} errors={e} />
       {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
 
-      <p className="rounded-lg border border-[#246fb6] bg-[#f3f8fc] px-3 py-2 text-[13px]">
-        <b>Demo store: nothing is charged.</b> Use <span className="font-mono whitespace-nowrap">4242 4242 4242 4242</span> with any future date and any 3-digit
-        security code. Cards ending in <span className="font-mono">0002</span> are declined at checkout.
-      </p>
+      <div className="rounded-lg border border-[#246fb6] bg-[#f3f8fc] px-3 py-2 text-[13px]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p>
+            <b>Demo store: nothing is charged.</b> Only test cards work, such as <span className="font-mono whitespace-nowrap">4242 4242 4242 4242</span> with any
+            future date and any 3-digit security code.
+          </p>
+          <button type="button" onClick={fillTestCard} className="btn btn-plain shrink-0">Use test card</button>
+        </div>
+        <details className="mt-1">
+          <summary className="link cursor-pointer">More test cards</summary>
+          <ul className="mt-1 space-y-0.5">
+            <li>Visa debit <span className="font-mono">4000 0566 5566 5556</span></li>
+            <li>Mastercard <span className="font-mono">5555 5555 5555 4444</span></li>
+            <li>American Express <span className="font-mono">3782 822463 10005</span> (4-digit security code)</li>
+            <li>Discover <span className="font-mono">6011 1111 1111 1117</span></li>
+            <li>Declined at checkout <span className="font-mono">4000 0000 0000 0002</span></li>
+          </ul>
+        </details>
+      </div>
 
       <div>
         <p className="mb-1 text-xs text-muted">nile accepts all major credit and debit cards:</p>
@@ -58,12 +79,12 @@ export function CardForm({ returnTo, onSaved, onCancel }: Props) {
             autoComplete="cc-number"
             inputMode="numeric"
             maxLength={23}
-            onChange={(ev) => setBrand(BRANDS.find(([, re]) => re.test(ev.target.value.replace(/\D/g, '')))?.[0] ?? null)}
+            onChange={(ev) => setBrand(cardBrand(cardDigits(ev.target.value)))}
           />
         )}
       </Field>
       <Field label="Name on card" error={e.nameOnCard}>
-        {(a) => <input {...a} name="nameOnCard" className="input" autoComplete="cc-name" maxLength={80} />}
+        {(a) => <input {...a} name="nameOnCard" className="input" autoComplete="cc-name" maxLength={80} defaultValue={defaultName} />}
       </Field>
       <div className="flex flex-wrap gap-x-6 gap-y-3.5">
         <fieldset aria-describedby={e.exp ? 'card-exp-error' : undefined}>
@@ -82,7 +103,7 @@ export function CardForm({ returnTo, onSaved, onCancel }: Props) {
               ))}
             </select>
           </div>
-          {e.exp && <p id="card-exp-error" className="field-error">{e.exp}</p>}
+          {e.exp && <FieldError id="card-exp-error">{e.exp}</FieldError>}
         </fieldset>
         <Field label="Security code (CVV)" error={e.cvv} className="w-40">
           {(a) => <input {...a} name="cvv" className="input" autoComplete="cc-csc" inputMode="numeric" maxLength={4} />}

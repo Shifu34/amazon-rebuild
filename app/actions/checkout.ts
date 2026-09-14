@@ -3,11 +3,19 @@
 import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getAddress } from '@/lib/addresses'
-import { requireUser } from '@/lib/auth'
+import { getUser, requireUser } from '@/lib/auth'
 import { buyNowLine, cartLines, createOrder, linesKey, orderIdForKey } from '@/lib/orders'
 import { DECLINED_LAST4, getCard } from '@/lib/payments'
 
-export type PlaceOrderState = { error: string } | null
+export type PlaceOrderState = { error: string; orderId?: string } | null
+
+const TOKEN = /^[0-9a-f-]{36}$/
+
+// A checkout the browser restores with Back asks whether its token already placed an order, so it can't be placed twice.
+export async function placedOrderId(token: string) {
+  const user = await getUser()
+  return user && TOKEN.test(token) ? orderIdForKey(user.id, token) : null
+}
 
 // Everything is re-checked here: ownership of the address and card, product ids, stock, quantity limits, and prices.
 // Totals come from lib/orders + lib/catalog, never from the form. The per-render `token` makes double submits idempotent.
@@ -17,12 +25,12 @@ export async function placeOrder(_prev: PlaceOrderState, form: FormData): Promis
   const user = await requireUser(buy ? `/checkout?buy=${encodeURIComponent(buy)}&qty=${encodeURIComponent(qty)}` : '/checkout')
 
   const key = String(form.get('token') ?? '')
-  if (!/^[0-9a-f-]{36}$/.test(key)) {
+  if (!TOKEN.test(key)) {
     refresh()
     return { error: 'Your checkout session has expired. Please review your order and try again.' }
   }
   const placed = await orderIdForKey(user.id, key)
-  if (placed) redirect(`/thankyou/${placed}`)
+  if (placed) return { error: 'You already placed this order.', orderId: placed }
 
   const line = buy ? buyNowLine(buy, qty) : null
   const lines = buy ? (line ? [line] : []) : await cartLines()

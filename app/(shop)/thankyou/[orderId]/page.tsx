@@ -1,21 +1,29 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import { CheckCircleIcon } from '@/components/checkout/icons'
+import { shipments } from '@/components/checkout/shipments'
 import { ProductCarousel } from '@/components/product-carousel'
 import { formatAddress } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 import { bestSellers, getProduct, related } from '@/lib/catalog'
-import { longDate, plural, usdCents } from '@/lib/format'
+import { fastestDelivery, STANDARD_SHIPPING, standardDelivery } from '@/lib/delivery'
+import { longDate, toCents, usdCents } from '@/lib/format'
 import { getOrder } from '@/lib/orders'
 
-export const metadata: Metadata = { title: 'Thank you' }
-
 // Only the order's owner sees it; anyone else (or a bad id) gets the not-found page.
-export default async function ThankYouPage({ params }: PageProps<'/thankyou/[orderId]'>) {
-  const { orderId } = await params
+const findOrder = cache(async (orderId: string) => {
   const user = await requireUser(`/thankyou/${encodeURIComponent(orderId)}`)
-  const order = await getOrder(user.id, orderId)
+  return getOrder(user.id, orderId)
+})
+
+export async function generateMetadata({ params }: PageProps<'/thankyou/[orderId]'>): Promise<Metadata> {
+  return { title: (await findOrder((await params).orderId)) ? 'Thank you' : 'Order not found' }
+}
+
+export default async function ThankYouPage({ params }: PageProps<'/thankyou/[orderId]'>) {
+  const order = await findOrder((await params).orderId)
   if (!order) notFound()
 
   const { shipTo } = order
@@ -23,13 +31,22 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
   const first = getProduct(order.items[0]?.productId)
   const ordered = new Set(order.items.map((i) => i.productId))
   const recs = (first ? related(first, 20) : bestSellers(undefined, 20)).filter((p) => !ordered.has(p.id)).slice(0, 12)
-  const speed = order.deliverySpeed === 'expedited' ? 'Expedited Delivery' : order.shippingCents ? 'Standard Delivery' : 'FREE Standard Delivery'
-  const rows: [string, number][] = [
-    [`Items (${itemCount}):`, order.itemsCents],
-    ['Shipping & handling:', order.shippingCents],
-    ['Total before tax:', order.itemsCents + order.shippingCents],
-    ['Estimated tax to be collected:', order.taxCents],
+  // shipping is stored net of the free-shipping discount; show the same rows checkout showed
+  const freeCents = order.deliverySpeed === 'standard' && !order.shippingCents && order.itemsCents > 0 ? toCents(STANDARD_SHIPPING) : 0
+  const speed = order.deliverySpeed === 'expedited' ? 'Expedited Delivery' : freeCents ? 'FREE Standard Delivery' : 'Standard Delivery'
+  const rows: [string, string][] = [
+    [`Items (${itemCount}):`, usdCents(order.itemsCents)],
+    ['Shipping & handling:', usdCents(order.shippingCents + freeCents)],
+    ...(freeCents ? [['Free Shipping:', `-${usdCents(freeCents)}`] as [string, string]] : []),
+    ['Total before tax:', usdCents(order.itemsCents + order.shippingCents)],
+    ['Estimated tax to be collected:', usdCents(order.taxCents)],
   ]
+  // the per-item dates checkout showed, never later than the order's own delivery date
+  const arrive = order.deliverySpeed === 'expedited' ? fastestDelivery : standardDelivery
+  const groups = shipments(order.items, (i) => {
+    const p = getProduct(i.productId)
+    return p ? new Date(Math.min(arrive(p, order.placedAt).getTime(), order.deliverBy.getTime())) : order.deliverBy
+  })
 
   return (
     <div className="bg-page">
@@ -49,25 +66,29 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
             </div>
           </div>
 
-          <div className="mt-4 border-t border-line pt-4">
-            <p className="text-base font-bold">Arriving {longDate(order.deliverBy)}</p>
-            <p className="text-sm text-muted">{speed}</p>
-            <ul className="mt-3 flex flex-wrap gap-3" aria-label="Items in this order">
-              {order.items.map((i) => (
-                <li key={i.productId} className="w-24">
-                  <Link href={`/dp/${i.productId}`} className="group block text-xs">
-                    <span className="relative flex size-24 items-center justify-center rounded-sm bg-[#f7f7f7] p-1.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={i.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
-                      {i.quantity > 1 && (
-                        <span className="absolute right-1 bottom-1 rounded-full bg-white px-1.5 text-xs font-bold shadow">×{i.quantity}</span>
-                      )}
-                    </span>
-                    <span className="mt-1 line-clamp-2 group-hover:text-link-hover group-hover:underline">{i.title}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-4 space-y-4 border-t border-line pt-4">
+            {groups.map((g, n) => (
+              <div key={g.date.getTime()}>
+                <p className="text-base font-bold">Arriving {longDate(g.date)}</p>
+                {n === 0 && <p className="text-sm text-muted">{speed}</p>}
+                <ul className="mt-3 flex flex-wrap gap-3" aria-label={groups.length > 1 ? `Arriving ${longDate(g.date)}` : 'Items in this order'}>
+                  {g.items.map((i) => (
+                    <li key={i.productId} className="w-24">
+                      <Link href={`/dp/${i.productId}`} className="group block text-xs">
+                        <span className="relative flex size-24 items-center justify-center rounded-sm bg-[#f7f7f7] p-1.5">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={i.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                          {i.quantity > 1 && (
+                            <span className="absolute right-1 bottom-1 rounded-full bg-white px-1.5 text-xs font-bold shadow">×{i.quantity}</span>
+                          )}
+                        </span>
+                        <span className="mt-1 line-clamp-2 group-hover:text-link-hover group-hover:underline">{i.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
           <Link href="/orders" className="link mt-5 inline-block text-sm">Review or edit your recent orders ›</Link>
@@ -77,10 +98,10 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
           <p className="text-muted">Order number</p>
           <p className="font-mono text-base font-bold">{order.id}</p>
           <dl className="mt-3 space-y-1 border-t border-line pt-3 text-[13px]">
-            {rows.map(([label, cents]) => (
+            {rows.map(([label, value]) => (
               <div key={label} className="flex justify-between gap-2">
                 <dt>{label}</dt>
-                <dd>{usdCents(cents)}</dd>
+                <dd>{value}</dd>
               </div>
             ))}
             <div className="flex justify-between gap-2 border-t border-line pt-2 text-base font-bold text-danger">
@@ -89,7 +110,7 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
             </div>
           </dl>
           <p className="mt-3 text-[13px] text-muted">
-            Paid with {order.payment.brand} ending in {order.payment.last4} · {plural(order.items.length, 'product')}
+            Paid with {order.payment.brand} ending in {order.payment.last4}
           </p>
           <Link href="/" className="btn btn-plain btn-lg mt-4 w-full">Continue shopping</Link>
         </aside>
