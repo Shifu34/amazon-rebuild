@@ -130,5 +130,18 @@ create table if not exists review_votes (
 create index if not exists reviews_product on reviews (product_id);
 create index if not exists browsing_history_recent on browsing_history (user_id, viewed_at desc);
 
+-- orders slice: per-item cancellation, returns (refund or replacement) and demo-issued refunds
+alter table orders add column if not exists replacement_for text;
+alter table order_items
+  add column if not exists cancelled_at timestamptz,
+  add column if not exists cancel_reason text,
+  add column if not exists return_comment text,
+  add column if not exists return_code text,
+  add column if not exists return_method text,
+  add column if not exists return_resolution text,
+  add column if not exists refund_cents int,
+  add column if not exists refunded_at timestamptz,
+  add column if not exists replacement_order_id text;
+
 -- account slice: shoppers can turn browsing history off (views are not recorded while paused)
 alter table users add column if not exists history_paused boolean not null default false;
