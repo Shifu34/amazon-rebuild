@@ -45,7 +45,7 @@ try {
   assert.ok(await allButton.evaluate((el) => el === document.activeElement), 'focus returns to the All button')
 
   step('guest sets a delivery ZIP in place')
-  await page.getByRole('button', { name: /^Deliver to United States/ }).click()
+  await page.getByRole('button', { name: /^Deliver(?:ing)? to / }).click()
   const location = page.getByRole('dialog', { name: 'Choose your location' })
   await location.getByLabel('US zip code').fill('98l09')
   await location.getByRole('button', { name: 'Apply' }).click()
