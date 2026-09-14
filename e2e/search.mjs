@@ -92,6 +92,25 @@ try {
   assert.equal(res.status(), 200)
   await page.getByRole('heading', { level: 1, name: /^1-24 of \d+ results$/ }).waitFor()
 
+  step('no vehicles or motorcycles: Automotive is gone from the header, search and old links')
+  assert.equal(await page.locator('header a[href="/s?i=automotive"]').count(), 0)
+  for (const k of ['motorcycle', 'durango']) {
+    await page.goto(`${base}/s?k=${k}`)
+    await h1().waitFor()
+    assert.equal(await page.locator('main article').count(), 0, `"${k}" finds nothing`)
+  }
+  await page.goto(`${base}/s?i=automotive`)
+  assert.doesNotMatch(await h1().innerText(), /Automotive/)
+
+  step('a Deal needs stock: an unavailable item has no deal tag and stays out of the deals filter')
+  await page.goto(`${base}/s?k=volleyball&oos=1`)
+  const unavailable = page.locator('main article', { hasText: 'Currently unavailable.' })
+  await unavailable.first().waitFor()
+  assert.equal(await unavailable.getByText('Deal', { exact: true }).count(), 0)
+  await page.goto(`${base}/s?k=volleyball&oos=1&deals=1`)
+  await h1().waitFor()
+  assert.equal(await unavailable.count(), 0)
+
   step('mobile (390px): filter drawer opens, filters live, closes')
   await page.close()
   page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true })

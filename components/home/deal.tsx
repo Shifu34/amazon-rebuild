@@ -13,7 +13,7 @@ export function DealBadge({ discount }: { discount: number }) {
         <span aria-hidden>-{discount}%</span>
         <span className="sr-only">{discount}% off</span>
       </span>
-      <span className="text-xs leading-4 font-bold text-deal">Limited time deal</span>
+      <span className="text-xs leading-4 font-bold text-deal">Deal</span>
     </span>
   )
 }

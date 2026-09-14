@@ -1,4 +1,4 @@
-// Read-only catalog: 194 DummyJSON products held in memory, plus the Amazon-style signals derived from them.
+// Read-only catalog: 184 DummyJSON products held in memory, plus the Amazon-style signals derived from them.
 // Search, facets and sorting run in memory; at this size that is faster than any database round trip.
 import raw from '@/data/products.json'
 
@@ -45,14 +45,12 @@ export const CATEGORY_NAMES: Record<string, string> = {
   'mens-shoes': "Men's Shoes",
   'mens-watches': "Men's Watches",
   'mobile-accessories': 'Cell Phone Accessories',
-  motorcycle: 'Motorcycles',
   'skin-care': 'Skin Care',
   smartphones: 'Cell Phones',
   'sports-accessories': 'Sports & Outdoors',
   sunglasses: 'Sunglasses',
   tablets: 'Tablets',
   tops: "Women's Tops",
-  vehicle: 'Vehicles',
   'womens-bags': "Women's Handbags",
   'womens-dresses': "Women's Dresses",
   'womens-jewellery': "Women's Jewelry",
@@ -68,7 +66,6 @@ export const DEPARTMENTS: { slug: string; name: string; categories: string[] }[]
   { slug: 'mens-fashion', name: "Men's Fashion", categories: ['mens-shirts', 'mens-shoes', 'mens-watches', 'sunglasses'] },
   { slug: 'grocery', name: 'Grocery', categories: ['groceries'] },
   { slug: 'sports', name: 'Sports & Outdoors', categories: ['sports-accessories'] },
-  { slug: 'automotive', name: 'Automotive', categories: ['vehicle', 'motorcycle'] },
 ]
 
 // hasOwn: URL input like `toString` must not resolve to Object.prototype members
@@ -116,7 +113,11 @@ function derive(p: RawProduct): Product {
   }
 }
 
-export const products: Product[] = raw.products.map(derive)
+// only categories we sell: DummyJSON's vehicles and motorcycles don't ship as parcels (product-map §0.1)
+export const products: Product[] = raw.products.filter((p) => Object.hasOwn(CATEGORY_NAMES, p.category)).map(derive)
+
+// a Deal is at least 10% off and in stock (product-map §4.2); the tag, the deals filter and Today's Deals all use this
+export const isDeal = (p: Product) => p.discount >= 10 && p.stock > 0
 
 // one Best Seller (most bought among those rated 4 or higher) and one Amazon's Choice (best rated of the rest) per category
 for (const slug of Object.keys(CATEGORY_NAMES)) {
@@ -202,7 +203,7 @@ export function search(params: SearchParams) {
     (min === undefined || p.price >= min) &&
     (max === undefined || p.price <= max) &&
     (!rating || p.rating >= rating) &&
-    (!deals || p.discount >= 10) &&
+    (!deals || isDeal(p)) &&
     (!inStock || p.stock > 0)
   const passesRest = (p: Product) => (!brands.length || (p.brand !== null && brands.includes(p.brand))) && passesOthers(p)
 
@@ -273,7 +274,7 @@ export const bestSellers = (slug?: string, limit = 10) =>
   (slug ? inCategory(slug) : products).slice().sort((a, b) => b.boughtPastMonth - a.boughtPastMonth || popularity(b) - popularity(a)).slice(0, limit)
 
 export const deals = (limit = 48) =>
-  products.filter((p) => p.discount >= 10 && p.stock > 0).sort((a, b) => b.discount - a.discount).slice(0, limit)
+  products.filter(isDeal).sort((a, b) => b.discount - a.discount).slice(0, limit)
 
 export const related = (p: Product, limit = 12) =>
   inCategory(p.category).filter((x) => x.id !== p.id).sort((a, b) => popularity(b) - popularity(a)).slice(0, limit)

@@ -29,7 +29,10 @@ try {
   for (const name of ["Today's Deals", 'Best Sellers in Home & Kitchen', 'Best Sellers in Electronics']) {
     assert.ok((await region(name).locator('li').count()) >= 5, `${name} carousel has items`)
   }
-  assert.ok((await region("Today's Deals").getByText('Limited time deal').count()) >= 5)
+  // nothing expires, so the tag says "Deal" (product-map §4.2)
+  assert.ok((await region("Today's Deals").getByText('Deal', { exact: true }).count()) >= 5)
+  assert.equal(await page.getByText(/limited time deal/i).count(), 0)
+  assert.equal(await page.locator('header a[href="/s?i=automotive"]').count(), 0, 'no Automotive department')
   await page.getByText('See personalized recommendations').waitFor()
   assert.equal(await page.getByRole('heading', { name: 'Pick up where you left off' }).count(), 0)
 
@@ -105,7 +108,7 @@ try {
   await page.waitForURL(`${base}/bestsellers/electronics`)
   await rail.getByRole('link', { name: '‹ Any Department' }).click()
   await page.waitForURL(`${base}/bestsellers`)
-  for (const slug of ['not-a-department', 'toString']) assert.equal((await page.goto(`${base}/bestsellers/${slug}`)).status(), 404)
+  for (const slug of ['not-a-department', 'toString', 'automotive']) assert.equal((await page.goto(`${base}/bestsellers/${slug}`)).status(), 404)
 
   step('390px: no sideways scroll; filter rails open from a toggle')
   await page.setViewportSize({ width: 390, height: 844 })
@@ -122,7 +125,8 @@ try {
   step('signed in: greeting card replaces sign-in; browsing history personalizes home')
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`${base}/ap/signin`)
-  await page.getByLabel('Email').fill(`home-${Date.now()}@example.com`)
+  const email = `home-${Date.now()}@example.com`
+  await page.getByLabel('Email').fill(email)
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByLabel('Your name').fill('Hana Home')
   await page.getByLabel('Password', { exact: true }).fill('secret123')
@@ -142,6 +146,34 @@ try {
   await pickUp.locator('..').locator(`a[href="${viewedHref}"]`).first().waitFor()
   await region('Inspired by your browsing history').waitFor()
   await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
+
+  // the header outlives the Sign Out redirect, so the menu or drawer it came from has to close itself
+  step('Sign Out closes the keyboard-opened Account & Lists menu')
+  await page.mouse.move(700, 880)
+  const caret = page.getByRole('button', { name: 'Account & Lists menu' })
+  await caret.focus()
+  await page.keyboard.press('Enter')
+  const accountPanel = page.locator(`[id="${await caret.getAttribute('aria-controls')}"]`)
+  await accountPanel.getByRole('button', { name: 'Sign Out' }).focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('link', { name: /^Hello, sign in/ }).first().waitFor()
+  assert.equal(await caret.getAttribute('aria-expanded'), 'false')
+  assert.ok(await accountPanel.evaluate((el) => el.hidden), 'account menu closed')
+
+  step('Sign Out from the All drawer closes the drawer')
+  await page.goto(`${base}/ap/signin`)
+  await page.getByLabel('Email').fill(email)
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByLabel('Password', { exact: true }).fill('secret123')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByText('Hello, Hana').first().waitFor()
+  await page.goto(`${base}/deals`)
+  await allButton.click()
+  await page.getByRole('dialog', { name: 'All departments' }).getByRole('button', { name: 'Sign Out' }).click()
+  await page.waitForURL(`${base}/`)
+  await page.getByRole('link', { name: /^Hello, sign in/ }).first().waitFor()
+  await page.waitForTimeout(500)
+  assert.equal(await page.getByRole('dialog', { name: 'All departments' }).count(), 0, 'drawer closed')
 
   console.log('e2e home ok')
 } catch (e) {

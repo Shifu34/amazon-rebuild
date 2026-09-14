@@ -97,7 +97,8 @@ export function NavDrawer({ departments, userName, variant }: { departments: Dep
             <Link href="/orders" className={item}>Your Orders</Link>
             <Link href="/lists" className={item}>Your Lists</Link>
             {userName ? (
-              <form action={signOut}>
+              // the header outlives the redirect, so close here like a link does (closing on click would remove the form before it submits)
+              <form action={signOut} onSubmit={close}>
                 <button type="submit" className={`${item} w-full cursor-pointer text-left`}>Sign Out</button>
               </form>
             ) : (
@@ -111,7 +112,8 @@ export function NavDrawer({ departments, userName, variant }: { departments: Dep
 }
 
 // Account & Lists: a mouse opens it on hover (after a short intent delay) and the page dims behind it. The caret is a real
-// toggle for keyboard and touch, so the panel's links only join the tab order when it's open. Escape or clicking away closes it.
+// toggle for keyboard and touch, so the panel's links only join the tab order when it's open. Escape, clicking away, or
+// choosing a link or Sign Out closes it (the header outlives navigation, so nothing else would).
 export function AccountMenu({ href, greeting, children }: { href: string; greeting: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -172,7 +174,13 @@ export function AccountMenu({ href, greeting, children }: { href: string; greeti
       </div>
       {/* the header row is a stacking context, so -z-10 dims the page but not the header's own content */}
       {open && <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-black/50" />}
-      <div id={id} hidden={!open} className="absolute top-full right-0 w-[440px] pt-2">
+      <div
+        id={id}
+        hidden={!open}
+        onClick={(e) => (e.target as HTMLElement).closest('a') && setOpen(false)}
+        onSubmit={() => setOpen(false)}
+        className="absolute top-full right-0 w-[440px] pt-2"
+      >
         <span aria-hidden className="absolute top-0.5 right-3 size-3 rotate-45 bg-white" />
         {children}
       </div>

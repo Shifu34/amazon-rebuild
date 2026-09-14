@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { Product } from '@/lib/catalog'
+import { isDeal, type Product } from '@/lib/catalog'
 import { deliveryPromise, relativeDay } from '@/lib/delivery'
 import { compactCount, usd } from '@/lib/format'
 import { Price } from './price'
@@ -53,8 +53,8 @@ export function ProductCard({ product: p, priority = false, children }: { produc
           <Link href={`${href}#reviews`} className="link">({p.ratingCount.toLocaleString('en-US')})</Link>
         </div>
         {p.boughtPastMonth > 0 && <p className="text-sm text-muted">{compactCount(p.boughtPastMonth)} bought in past month</p>}
-        {p.discount >= 10 && (
-          <p><span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Limited time deal</span></p>
+        {isDeal(p) && (
+          <p><span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span></p>
         )}
         <div className="flex flex-wrap items-baseline gap-x-1.5">
           <Link href={href} className="text-[28px] leading-8"><Price value={p.price} /></Link>

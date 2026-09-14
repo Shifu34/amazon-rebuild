@@ -41,7 +41,7 @@ export default async function Home() {
 
   const slides: Slide[] = [
     ...(allDeals.length
-      ? [{ kicker: "Today's Deals", title: `Up to ${allDeals[0].discount}% off top picks`, blurb: `${allDeals.length} limited time deals across every department`, cta: 'Shop deals', href: '/deals', images: allDeals.slice(0, 3).map((p) => p.thumbnail), tone: 'teal' as const }]
+      ? [{ kicker: "Today's Deals", title: `Up to ${allDeals[0].discount}% off top picks`, blurb: `${allDeals.length} deals across every department`, cta: 'Shop deals', href: '/deals', images: allDeals.slice(0, 3).map((p) => p.thumbnail), tone: 'teal' as const }]
       : []),
     { kicker: 'Electronics', title: 'Upgrade your tech', blurb: 'Phones, laptops and tablets, ranked by what shoppers buy', cta: 'See Best Sellers', href: '/bestsellers/electronics', images: homeImages(['laptops', 'smartphones', 'tablets']), tone: 'violet' },
     { kicker: 'Home & Kitchen', title: 'Make home your favorite place', blurb: 'Cookware, furniture and décor shoppers love', cta: 'Shop Home & Kitchen', href: '/s?i=home-kitchen', images: homeImages(['kitchen-accessories', 'furniture', 'home-decoration']), tone: 'peach' },
