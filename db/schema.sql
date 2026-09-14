@@ -162,3 +162,18 @@ create table if not exists demo_signups (
   created_at timestamptz not null default now()
 );
 create index if not exists demo_signups_ip_created on demo_signups (ip_hash, created_at desc);
+
+-- transactional emails: one row per attempt (sent, skipped or failed); also the source of the daily sending caps
+create table if not exists sent_emails (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  to_address text not null,
+  kind text not null,
+  subject text not null,
+  order_id text,
+  status text not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+create index if not exists sent_emails_status_created on sent_emails (status, created_at desc);
+create index if not exists sent_emails_to_created on sent_emails (to_address, created_at desc);

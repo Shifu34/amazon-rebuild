@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { CANCEL_REASONS, COMMENT_MAX, PROBLEM_REASONS, RETURN_REASONS, returnFeeCents } from '@/components/orders/rules'
 import { requireUser } from '@/lib/auth'
 import { getProduct } from '@/lib/catalog'
+import { queueOrderEmail } from '@/lib/order-emails'
 import {
   cancelOrderItems, createReturn, getOrder, itemRefundCents, markDelivered, newReturnCode, orderView, quote, receiveReturns, returnBlocker,
 } from '@/lib/orders'
@@ -37,6 +38,7 @@ export async function cancelItems(_prev: OrderFormState, form: FormData): Promis
     refresh()
     return { error: SHIPPED }
   }
+  await queueOrderEmail('cancelled', user.id, order.id, ids)
   redirect(`/orders/${order.id}?cancelled=${n}`)
 }
 
@@ -83,6 +85,7 @@ export async function startReturn(_prev: OrderFormState, form: FormData): Promis
     refresh()
     return { error: "We couldn't start this return because the order changed. Please review your items and try again." }
   }
+  await queueOrderEmail('return', user.id, order.id, items.map((i) => i.productId))
   redirect(`/orders/${order.id}/return?code=${code}`)
 }
 
@@ -90,7 +93,7 @@ export async function startReturn(_prev: OrderFormState, form: FormData): Promis
 export async function demoMarkDelivered(form: FormData) {
   const id = orderIdFrom(form)
   const user = await requireUser(`/orders/${encodeURIComponent(id)}`)
-  await markDelivered(user.id, id)
+  if (await markDelivered(user.id, id)) await queueOrderEmail('delivered', user.id, id)
   refresh()
 }
 

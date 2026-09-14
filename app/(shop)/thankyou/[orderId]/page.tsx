@@ -8,6 +8,7 @@ import { ProductCarousel } from '@/components/product-carousel'
 import { formatAddress } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 import { bestSellers, getProduct, related } from '@/lib/catalog'
+import { canReceiveEmail, emailConfigured } from '@/lib/email'
 import { deliveryPromise, STANDARD_SHIPPING } from '@/lib/delivery'
 import { longDate, toCents, usdCents } from '@/lib/format'
 import { getOrder } from '@/lib/orders'
@@ -27,6 +28,7 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
   if (!order) notFound()
 
   const { shipTo } = order
+  const user = await requireUser(`/thankyou/${encodeURIComponent(order.id)}`) // cached; the owner check already ran
   const itemCount = order.items.reduce((n, i) => n + i.quantity, 0)
   const first = getProduct(order.items[0]?.productId)
   const ordered = new Set(order.items.map((i) => i.productId))
@@ -57,7 +59,13 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
               <h1 className="text-lg leading-7 text-success">Order placed, thanks!</h1>
               {order.cancelledAt && <p className="text-sm font-bold text-danger">This order was cancelled.</p>}
               <p className="text-sm">
-                Confirmation will be sent to your email. <span className="text-muted">(Simulated: this demo store doesn&apos;t send email.)</span>
+                {!canReceiveEmail(user.email) ? (
+                  <>Demo accounts don&apos;t get email. <span className="text-muted">Create an account with your own address to receive order confirmations.</span></>
+                ) : emailConfigured() ? (
+                  <>Confirmation will be sent to <b className="break-all">{user.email}</b>.</>
+                ) : (
+                  <>Confirmation will be sent to your email. <span className="text-muted">(Email isn&apos;t configured on this copy of nile.)</span></>
+                )}
               </p>
               <p className="text-sm">
                 <b>Shipping to {shipTo.fullName},</b> {formatAddress(shipTo)}, {shipTo.country}

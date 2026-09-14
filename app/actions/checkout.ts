@@ -4,6 +4,7 @@ import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getAddress } from '@/lib/addresses'
 import { getUser, requireUser } from '@/lib/auth'
+import { queueOrderEmail } from '@/lib/order-emails'
 import { buyNowLine, cartLines, createOrder, linesKey, orderIdForKey } from '@/lib/orders'
 import { DECLINED_LAST4, getCard } from '@/lib/payments'
 
@@ -51,7 +52,9 @@ export async function placeOrder(_prev: PlaceOrderState, form: FormData): Promis
   if (card.last4 === DECLINED_LAST4) return { error: 'There was a problem with your payment. Your card was declined. Please select another payment method or add a new card.' }
 
   const speed = form.get('speed') === 'expedited' ? 'expedited' : 'standard'
-  const id = (await createOrder({ userId: user.id, key, address, card, lines, speed, fromCart: !buy })) ?? (await orderIdForKey(user.id, key))
+  const created = await createOrder({ userId: user.id, key, address, card, lines, speed, fromCart: !buy })
+  const id = created ?? (await orderIdForKey(user.id, key))
   if (!id) return { error: "We couldn't place your order. Please try again." }
+  if (created) await queueOrderEmail('confirmation', user.id, created) // once per order, never for a repeated submit
   redirect(`/thankyou/${id}`)
 }

@@ -423,11 +423,13 @@ export async function createReturn(r: {
 // believable day instead of all landing on the same minute.
 export async function markDelivered(userId: string, orderId: string) {
   await ensureSchema()
-  await query(
+  const rows = await query(
     `update orders set deliver_by = now(), placed_at = least(placed_at, now() - interval '30 hours 23 minutes')
-     where id = $1 and user_id = $2 and cancelled_at is null and deliver_by > now()`,
+     where id = $1 and user_id = $2 and cancelled_at is null and deliver_by > now()
+     returning id`,
     [orderId, userId],
   )
+  return rows.length > 0 // false when it was already delivered, cancelled or not this user's
 }
 
 // Demo control: the carrier scans the returned items, so their refunds are issued.
