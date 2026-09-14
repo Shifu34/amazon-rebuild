@@ -54,3 +54,6 @@ e2e/*.png
 
 # signed-in Amazon screenshots contain personal account details; kept local only
 docs/recon/screenshots-private/
+
+# QA screenshots and scratch scripts
+.qa/
