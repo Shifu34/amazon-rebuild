@@ -5,6 +5,7 @@ import { compactCount } from '@/lib/format'
 import { formatDollars } from '@/lib/region'
 import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
+import { QuickLook } from './quick-look'
 import { Stars } from './stars'
 
 export function Badge({ badge }: { badge: Product['badge'] }) {
@@ -43,11 +44,14 @@ export async function ProductCard({ product: p, priority = false, children }: { 
   const href = `/dp/${p.id}`
   const { currency, rate } = await getRegion()
   return (
-    <article className="flex h-full flex-col">
-      <Link href={href} className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
-      </Link>
+    <article className="group/card flex h-full flex-col">
+      <div className="relative">
+        <Link href={href} className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        </Link>
+        <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1 pt-2">
         {p.badge && <div><Badge badge={p.badge} /></div>}
         <h2 className="text-base leading-6 font-normal">

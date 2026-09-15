@@ -54,6 +54,21 @@ try {
   await page.locator('dialog[open]').waitFor({ state: 'detached' })
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), `Quick look: ${title}`)
 
+  step("search results, Today's Deals and Best Sellers cards open Quick look too")
+  for (const [path, cards] of [['/s?i=electronics', 'main li article'], ['/', 'section[aria-label="Today\'s Deals"] li'], ['/bestsellers/electronics', 'main li article']]) {
+    await page.goto(base + path)
+    const c = page.locator(cards).first()
+    await c.scrollIntoViewIfNeeded()
+    await c.hover()
+    const b = c.getByRole('button', { name: /^Quick look: / })
+    await page.waitForFunction((el) => getComputedStyle(el).opacity === '1', await b.elementHandle())
+    const name = (await b.getAttribute('aria-label')).replace('Quick look: ', '')
+    await b.click()
+    await page.getByRole('dialog', { name }).getByRole('link', { name: 'See product details' }).waitFor()
+    await page.keyboard.press('Escape')
+    await page.locator('dialog[open]').waitFor({ state: 'detached' })
+  }
+
   step('touch screens (390px) have no Quick look pill')
   const touch = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
   const phone = await touch.newPage()

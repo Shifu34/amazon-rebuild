@@ -45,25 +45,17 @@ const ZOOM = 1.06
 
 type Playback = 'idle' | 'playing' | 'paused' | 'ended'
 
-// Amazon's tiles are short videos that play once when they come into view and end on a replay button. The catalog has photos,
-// not footage, so the reel plays one photo at a time: each product's angles crossfade while the product slowly zooms in.
-// Only the previous (fading out), current and next (preloading) photos are mounted.
+// Amazon's tiles are short videos that end on a replay button. The catalog has photos, not footage, so the reel plays one
+// photo at a time: each product's angles crossfade while the product slowly zooms in. It plays only while the mouse is over
+// the tile and pauses when it leaves; keyboard and touch use the Play button. Only the previous (fading out), current and
+// next (preloading) photos are mounted.
 function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: PictureTile; first: boolean }) {
   const frames = shots.flatMap((s, g) => s.map((src, k) => ({ src, k, len: s.length, g })))
   const [state, setState] = useState<Playback>('idle')
   const [cur, setCur] = useState(0)
   const [prev, setPrev] = useState<number | null>(null)
-  const li = useRef<HTMLLIElement>(null)
   const area = useRef<HTMLSpanElement>(null)
   const next = (cur + 1) % frames.length
-
-  // autoplay once, when most of the tile is on screen (also when scrolled into view inside the row); never with reduced motion
-  useEffect(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches || frames.length < 2) return
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setState((s) => (s === 'idle' ? 'playing' : s)), { threshold: 0.6 })
-    if (li.current) io.observe(li.current)
-    return () => io.disconnect()
-  }, [frames.length])
 
   useEffect(() => {
     if (state !== 'playing') return
@@ -77,14 +69,19 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: Pic
 
   // pausing freezes the zoom (a CSS transition) where it is; crossfades already under way finish
   const zooms = () => area.current?.getAnimations({ subtree: true }).filter((a) => a instanceof CSSTransition && a.transitionProperty === 'transform') ?? []
-  const control = () => {
-    if (state === 'playing') {
-      zooms().forEach((a) => a.pause())
-      setState('paused')
-    } else {
-      zooms().forEach((a) => a.play())
-      setState('playing')
-    }
+  const pause = () => {
+    zooms().forEach((a) => a.pause())
+    setState('paused')
+  }
+  const play = () => {
+    zooms().forEach((a) => a.play())
+    setState('playing') // from 'ended' this replays from the first photo
+  }
+  // a mouse over the tile plays it, never with reduced motion; touch "hover" is a tap, which follows the link instead
+  const hover = (e: React.PointerEvent, on: boolean) => {
+    if (e.pointerType === 'touch' || frames.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (on && state !== 'playing') play()
+    else if (!on && state === 'playing') pause()
   }
   const verb = state === 'playing' ? 'Pause' : state === 'ended' ? 'Replay' : 'Play'
 
@@ -104,7 +101,7 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: Pic
   const mounted = [...new Set([prev, cur, next])].filter((i): i is number => i !== null && i < frames.length).sort((a, b) => a - b)
 
   return (
-    <li ref={li} className="relative w-[min(285px,64vw)] shrink-0 snap-start">
+    <li onPointerEnter={(e) => hover(e, true)} onPointerLeave={(e) => hover(e, false)} className="relative w-[min(285px,64vw)] shrink-0 snap-start">
       <Link
         href={href}
         style={{ backgroundColor: bg }}
@@ -130,7 +127,7 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: Pic
       {frames.length > 1 && (
         <button
           type="button"
-          onClick={control}
+          onClick={() => (state === 'playing' ? pause() : play())}
           aria-label={`${verb} ${title}`}
           className="absolute bottom-3 left-3 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black text-white hover:bg-[#333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { FilterToggle } from '@/components/home/filter-toggle'
 import { Price } from '@/components/price'
+import { QuickLook } from '@/components/quick-look'
 import { Stars } from '@/components/stars'
 import { CATEGORY_NAMES, DEPARTMENTS, type Product } from '@/lib/catalog'
 import { getRegion } from '@/lib/region-server'
@@ -59,12 +60,15 @@ export async function RankTile({ product: p, rank, action = false, inCart, prior
   const href = `/dp/${p.id}`
   const { currency, rate } = await getRegion()
   return (
-    <article className="relative flex h-full flex-col">
+    <article className="group/card relative flex h-full flex-col">
       <span className="absolute top-0 left-0 z-10 rounded-tl-lg rounded-br-lg bg-[#c45500] px-2 py-0.5 text-sm font-bold text-white">#{rank}</span>
-      <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
-      </Link>
+      <div className="relative">
+        <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        </Link>
+        <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
+      </div>
       <h3 className="mt-2 text-sm font-normal">
         <Link href={href} className="line-clamp-3 hover:text-link-hover hover:underline">{p.title}</Link>
       </h3>

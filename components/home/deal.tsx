@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { Price } from '@/components/price'
+import { QuickLook } from '@/components/quick-look'
 import { Scroller } from '@/components/scroller'
 import { Stars } from '@/components/stars'
 import type { Product } from '@/lib/catalog'
@@ -25,11 +26,14 @@ export async function DealCard({ product: p, compact = false, inCart, priority =
   const href = `/dp/${p.id}`
   const { currency, rate } = await getRegion()
   return (
-    <article data-price={p.price} className="relative flex h-full flex-col">
-      <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
-      </Link>
+    <article data-price={p.price} className="group/card relative flex h-full flex-col">
+      <div className="relative">
+        <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        </Link>
+        <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
+      </div>
       <div className="mt-2 flex flex-1 flex-col gap-1">
         <DealBadge discount={p.discount} />
         <div className="flex flex-wrap items-baseline gap-x-1.5">

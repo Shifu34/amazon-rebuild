@@ -97,6 +97,7 @@ try {
   step('department page: featured category orbs open on hover to top brands, and a brand link filters that category')
   await page.goto(`${base}/s?i=electronics`)
   const featured = page.getByRole('region', { name: 'Featured categories' })
+  await featured.waitFor() // on a slower network the region's name can resolve a moment after load
   assert.equal(await featured.locator(':scope > ul > li').count(), 4)
   const phones = featured.getByRole('link', { name: 'Cell Phones', exact: true })
   const phoneBrands = featured.getByRole('list', { name: 'Top brands in Cell Phones' })
