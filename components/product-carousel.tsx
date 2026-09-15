@@ -3,6 +3,7 @@ import type { Product } from '@/lib/catalog'
 import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
 import { DeliveryLine } from './product-card'
+import { QuickLook } from './quick-look'
 import { Scroller } from './scroller'
 import { Stars } from './stars'
 
@@ -19,18 +20,21 @@ export async function ProductCarousel({ title, products, href, details = true, l
       </div>
       <Scroller label={title}>
         {products.map((p) => (
-          <li key={p.id} className={`${details ? 'w-[170px]' : 'w-[150px]'} shrink-0 snap-start`}>
-            {/* with details the title link below is the one tab stop per product */}
-            <Link
-              href={`/dp/${p.id}`}
-              className="flex h-[170px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2"
-              aria-label={details ? undefined : p.title}
-              aria-hidden={details || undefined}
-              tabIndex={details ? -1 : undefined}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.thumbnail} alt={details ? '' : p.title} loading={loading} className="max-h-full max-w-full object-contain mix-blend-multiply" />
-            </Link>
+          <li key={p.id} className={`${details ? 'w-[170px]' : 'w-[150px]'} group/card shrink-0 snap-start`}>
+            <div className="relative">
+              {/* with details the title link below is the one link tab stop per product (plus Quick look) */}
+              <Link
+                href={`/dp/${p.id}`}
+                className="flex h-[170px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2"
+                aria-label={details ? undefined : p.title}
+                aria-hidden={details || undefined}
+                tabIndex={details ? -1 : undefined}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.thumbnail} alt={details ? '' : p.title} loading={loading} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+              </Link>
+              {details && <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />}
+            </div>
             {details && (
               <div className="mt-1.5 space-y-0.5">
                 <Link href={`/dp/${p.id}`} className="line-clamp-2 text-sm hover:text-link-hover">{p.title}</Link>

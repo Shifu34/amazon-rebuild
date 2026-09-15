@@ -36,6 +36,18 @@ try {
   const firstCard = await homeCards().first().locator('..').boundingBox()
   assert.ok(firstCard.y >= tilesBox.y + tilesBox.height, 'cards start below the tiles')
 
+  step("tiles play like Amazon's video tiles: one photo at a time, ending on a replay button; reduced motion waits for Play")
+  await page.getByRole('button', { name: 'Pause Shop kitchen must-haves' }).waitFor()
+  const mounted = await tiles.evaluate((ul) => [...ul.children].map((li) => li.querySelectorAll('img').length))
+  assert.ok(Math.max(...mounted) <= 3, `at most three photos mounted per tile: ${mounted}`)
+  await page.getByRole('button', { name: 'Replay Shop kitchen must-haves' }).waitFor({ timeout: 20000 })
+  const still = await browser.newPage({ reducedMotion: 'reduce' })
+  await still.goto(base)
+  await still.getByRole('button', { name: 'Play Shop kitchen must-haves' }).waitFor()
+  await still.waitForTimeout(1500)
+  assert.equal(await still.getByRole('button', { name: 'Pause Shop kitchen must-haves' }).count(), 0, 'no autoplay with reduced motion')
+  await still.close()
+
   step('bordered 2x2 cards in four columns, carousels between them, sign-in block at the bottom')
   assert.equal(await homeCards().count(), 24)
   for (const name of ['Plug in with our electronics', 'Popular finds under $25', 'Deals on top categories', 'Explore Best Sellers']) await page.getByRole('heading', { name }).waitFor()

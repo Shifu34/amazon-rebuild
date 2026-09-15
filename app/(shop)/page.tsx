@@ -34,21 +34,29 @@ function card(title: string, href: string, sources: ReturnType<typeof at>[]): Ca
 const ALL_DEALS = deals(Infinity)
 const dealsIn = (slug: string) => ALL_DEALS.filter((p) => inScope(p, slug))
 
-// the first picture is the big one, so it uses the full-size photo
+// each product's reel shots are its angle photos (up to 3), about 10 photos per tile
 const tile = (title: string, href: string, bg: string, products: (Product | undefined)[], subtitle?: string): PictureTile[] => {
-  const [main, ...rest] = products.filter((p) => p !== undefined)
-  return main ? [{ title, subtitle, href, bg, images: [main.images[0] ?? main.thumbnail, ...rest.map((p) => p.thumbnail)] }] : []
+  const shots: string[][] = []
+  let n = 0
+  for (const p of products) {
+    if (!p || n >= 10) continue
+    const s = (p.images.length ? p.images : [p.thumbnail]).slice(0, Math.min(3, 10 - n))
+    shots.push(s)
+    n += s.length
+  }
+  return shots.length ? [{ title, subtitle, href, bg, shots }] : []
 }
 const ids = (...list: number[]) => list.map(getProduct)
 
+// products with several angle photos first, so the reels show them turning
 const TILES: PictureTile[] = [
-  tile('Shop kitchen must-haves', find({ i: 'kitchen-accessories' }), '#d2dad9', ids(66, 51, 68)),
-  tile('Upgrade your everyday tech', find({ i: 'electronics' }), '#aaf3fc', ids(82, 161, 123), 'Phones, laptops & more'),
-  tile('Shop all things beauty', find({ i: 'beauty-personal-care' }), '#f7cdbf', ids(2, 4, 8)),
-  tile('Start looking sharp', find({ i: 'mens-fashion' }), '#d3cdc4', ids(85, 90, 93)),
-  tile('Get in the game', find({ i: 'sports' }), '#c5d5f2', ids(140, 152, 139)),
+  tile('Shop kitchen must-haves', find({ i: 'kitchen-accessories' }), '#d2dad9', ids(66, 51, 56)),
+  tile('Upgrade your everyday tech', find({ i: 'electronics' }), '#aaf3fc', ids(82, 127, 161, 123), 'Phones, laptops & more'),
+  tile('Shop all things beauty', find({ i: 'beauty-personal-care' }), '#f7cdbf', ids(2, 8, 4, 7)),
+  tile('Start looking sharp', find({ i: 'mens-fashion' }), '#d3cdc4', ids(85, 93, 90)),
+  tile('Get in the game', find({ i: 'sports' }), '#c5d5f2', ids(144, 139, 140)),
   tile('Dress to impress', find({ i: 'womens-fashion' }), '#f3d3ec', ids(177, 172, 187)),
-  tile('Fresh picks for your pantry', find({ i: 'grocery' }), '#e1eec3', ids(40, 30, 29)),
+  tile('Fresh picks for your pantry', find({ i: 'grocery' }), '#e1eec3', ids(28, 19, 41)),
   tile("Today's Deals", '/deals', '#ffe3a3', ALL_DEALS.slice(0, 3), ALL_DEALS.length ? `Up to ${ALL_DEALS[0].discount}% off` : undefined),
 ].flat()
 

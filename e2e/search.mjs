@@ -94,6 +94,37 @@ try {
   assert.equal(res.status(), 200)
   await page.getByRole('heading', { level: 1, name: /^1-24 of \d+ results$/ }).waitFor()
 
+  step('department page: featured category orbs open on hover to top brands, and a brand link filters that category')
+  await page.goto(`${base}/s?i=electronics`)
+  const featured = page.getByRole('region', { name: 'Featured categories' })
+  assert.equal(await featured.locator(':scope > ul > li').count(), 4)
+  const phones = featured.getByRole('link', { name: 'Cell Phones', exact: true })
+  const phoneBrands = featured.getByRole('list', { name: 'Top brands in Cell Phones' })
+  const opacity = () => phoneBrands.evaluate((el) => getComputedStyle(el).opacity)
+  assert.equal(await opacity(), '0', 'brands stay hidden until the orb opens')
+  await phones.hover()
+  await until(async () => (await opacity()) === '1', 'hover did not open the orb')
+  const brand = phoneBrands.getByRole('link').first()
+  const brandName = await brand.innerText()
+  await brand.click()
+  await page.waitForURL((u) => u.pathname === '/s' && u.searchParams.get('i') === 'smartphones' && u.searchParams.get('brand') === brandName)
+  await page.getByRole('link', { name: `Remove filter: ${brandName}` }).waitFor()
+  assert.match(await h1().innerText(), /results for Electronics : Cell Phones$/)
+  assert.equal(await featured.count(), 0, 'a category page has no orbs')
+
+  step('orbs open for the keyboard too; searches, one-category departments and later pages have none')
+  await page.goto(`${base}/s?i=electronics`)
+  await page.keyboard.press('Tab') // a keyboard interaction first, so the scripted focus below counts as :focus-visible
+  await phones.focus()
+  await page.keyboard.press('Tab')
+  assert.equal(await page.evaluate(() => document.activeElement.closest('ul')?.getAttribute('aria-label')), 'Top brands in Cell Phones')
+  await until(async () => (await opacity()) === '1', 'a focused brand link did not keep the orb open')
+  for (const path of ['/s?k=phone', '/s?i=grocery', '/s?i=electronics&page=2', '/s?i=electronics&k=apple']) {
+    await page.goto(base + path)
+    await h1().waitFor()
+    assert.equal(await featured.count(), 0, `${path} shows orbs`)
+  }
+
   step('no vehicles or motorcycles: Automotive is gone from the header, search and old links')
   assert.equal(await page.locator('header a[href="/s?i=automotive"]').count(), 0)
   for (const k of ['motorcycle', 'durango']) {

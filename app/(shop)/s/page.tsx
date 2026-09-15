@@ -6,6 +6,7 @@ import { CloseIcon, SearchIcon } from '@/components/icons'
 import { ProductCard } from '@/components/product-card'
 import { ProductCarousel } from '@/components/product-carousel'
 import { LinkPending, ShowResults } from '@/components/search/controls'
+import { FeaturedCategories } from '@/components/search/featured-categories'
 import { Filters } from '@/components/search/filters'
 import { PER_PAGE, appliedFilters, clearFilters, departmentOf, parseQuery, toHref, toSearch, withoutFilters, type Chip, type Query } from '@/components/search/params'
 import { SortSelect } from '@/components/search/sort-select'
@@ -124,6 +125,8 @@ export default async function SearchPage({ searchParams }: Props) {
 
           {r.total > 0 ? (
             <>
+              {/* a department's own page (not a search inside it) opens on its categories, like Amazon's browse pages */}
+              {dept?.slug === q.i && !q.k && !chips.length && r.page === 1 && <FeaturedCategories categories={dept.categories} />}
               <h2 className="mb-3 text-xl max-lg:sr-only">Results</h2>
               {/* phones get Amazon's one-column list card (image left); the card's own markup stays a grid tile elsewhere */}
               <ul className="grid gap-x-4 gap-y-6 max-sm:[&>li>article]:flex-row max-sm:[&>li>article]:gap-3 max-sm:[&>li>article>a]:w-[40%] max-sm:[&>li>article>a]:shrink-0 max-sm:[&>li>article>a]:self-start max-sm:[&>li>article>div]:pt-0 sm:grid-cols-2 sm:gap-y-8 md:grid-cols-3 xl:grid-cols-4">

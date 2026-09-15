@@ -18,8 +18,10 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 | Flow | What's in it |
 |---|---|
-| **Home & browse** | Hero carousel, department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
-| **Search** | Header search with instant suggestions and a department scope. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
+| **Home & browse** | Department tiles that play like Amazon's video tiles: one product at a time, turning through its angle photos, with pause and replay. Department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. Product rows have **Quick look**: a dialog with the price, "See product details" and a "Customers also bought" strip you can click through. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
+| **Search** | Header search with instant suggestions and a department scope. A department page opens with "Featured categories" circles; hovering one reveals its top brands. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
+| **Pakistan & rupees** | Prices in US dollars or Pakistani rupees (switch in the EN menu; a Pakistani visitor gets rupees and "Deliver to Pakistan" by default). Pakistan addresses with provinces, 5-digit postal codes and Pakistani phone numbers. International shipping to Pakistan with an import-fees note, and orders keep the currency they were placed in. Rules in [`docs/region.md`](docs/region.md). |
+| **Emails** | Amazon-style order confirmation, cancellation, return and delivery emails, sent over Gmail SMTP and capped per recipient and per day. Test addresses (`@example.com`) are never emailed. |
 | **Product page** | Image gallery with zoom and full-screen view. The buy box shows the delivery date with an order-by countdown, stock messages and quantity, plus Add to Cart (with an "Added to cart" sheet), Buy Now and Add to List. Below: frequently bought together, related products, reviews with a rating histogram and filters, a full reviews page, and writing a review with "Verified Purchase". |
 | **Cart** | Guest cart that merges on sign-in, quantity stepper, save for later, free-shipping progress, and an empty state for guests and for signed-in shoppers. |
 | **Checkout** | Sign-in gate that returns you to checkout, address book with validation, saved cards (test cards only), a delivery-speed choice for the order, and an order summary with tax. "Place your order" is safe to double-click. Ends on a thank-you page. |
@@ -39,7 +41,8 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 - **Prime, Video, Music, Kindle, Alexa, Amazon Business, the seller marketplace:** each is a separate product from shopping.
 - **Ads and sponsored placements:** noise for the shopper. Leaving them out is a better-than-Amazon choice.
-- **Real payments, email and SMS, OTP, 2FA, passkeys:** these need outside services. Payments are simulated and accept test cards only, so nobody types a real card into a demo.
+- **Real payments, SMS, OTP, 2FA, passkeys:** these need outside services. Payments are simulated and accept test cards only, so nobody types a real card into a demo.
+- **Product videos:** the catalog has photos, not footage, so the home tiles play reels made from each product's angle photos.
 - **Product variants, coupons, lightning-deal countdowns:** the catalog has no such data, and fake urgency is worse than none.
 - **Also out:** customer service chat, registries, gift cards, Subscribe & Save, the AI shopping assistant and review summaries, per-state tax and ZIP-based delivery.
 
@@ -61,7 +64,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 - **Catalog:** 184 products from [DummyJSON](https://dummyjson.com), held in memory. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
 - **Data:** Postgres. Production uses Neon through the Vercel Marketplace. Locally the app uses an embedded PGlite database, so `npm run dev` needs no setup. Money is stored in integer cents. Writes that must be atomic, like placing an order or merging a guest cart, are single SQL statements with CTEs, because Neon's HTTP driver has no interactive transactions.
 - **Auth:** scrypt password hashes, random session tokens stored hashed, httpOnly cookies, and same-site-only `return_to` redirects.
-- **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, pdp, checkout, orders, account, links, demo), plus assert-based checks for the catalog, delivery dates and payments.
+- **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, links, carousel, suggest, pdp, quick-look, checkout, orders, account, demo, region), plus assert-based checks for the catalog, delivery dates, payments, region pricing and email templates.
 
 ## How it was built
 
