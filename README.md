@@ -18,7 +18,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 | Flow | What's in it |
 |---|---|
-| **Home & browse** | Department tiles that play like Amazon's video tiles: one product at a time, turning through its angle photos, with pause and replay. Department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. Product rows have **Quick look**: a dialog with the price, "See product details" and a "Customers also bought" strip you can click through. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
+| **Home & browse** | Department **video tiles** like Amazon's: hover a tile and its video plays, turning each product through its angles; moving off pauses it, and it ends on a replay button (Play, Pause and Replay buttons for keyboard and touch). Department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. Every product card (rows, search and department results, Today's Deals, Best Sellers) has **Quick look**: a dialog with the price, "See product details" and a "Customers also bought" strip you can click through. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
 | **Search** | Header search with instant suggestions and a department scope. A department page opens with "Featured categories" circles; hovering one reveals its top brands. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
 | **Pakistan & rupees** | Prices in US dollars or Pakistani rupees (switch in the EN menu; a Pakistani visitor gets rupees and "Deliver to Pakistan" by default). Pakistan addresses with provinces, 5-digit postal codes and Pakistani phone numbers. International shipping to Pakistan with an import-fees note, and orders keep the currency they were placed in. Rules in [`docs/region.md`](docs/region.md). |
 | **Emails** | Amazon-style order confirmation, cancellation, return and delivery emails, sent over Gmail SMTP and capped per recipient and per day. Test addresses (`@example.com`) are never emailed. |
@@ -41,9 +41,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 - **Prime, Video, Music, Kindle, Alexa, Amazon Business, the seller marketplace:** each is a separate product from shopping.
 - **Ads and sponsored placements:** noise for the shopper. Leaving them out is a better-than-Amazon choice.
-- **Real payments, SMS, OTP, 2FA, passkeys:** these need outside services. Payments are simulated and accept test cards only, so nobody types a real card into a demo.
-- **Product videos:** the catalog has photos, not footage, so the home tiles play reels made from each product's angle photos.
-- **Product variants, coupons, lightning-deal countdowns:** the catalog has no such data, and fake urgency is worse than none.
+- **Real payments, SMS, OTP, 2FA, passkeys:** these need outside services. Payments are simulated and accept test cards only, so nobody types a real card into a demo.- **Product variants, coupons, lightning-deal countdowns:** the catalog has no such data, and fake urgency is worse than none.
 - **Also out:** customer service chat, registries, gift cards, Subscribe & Save, the AI shopping assistant and review summaries, per-state tax and ZIP-based delivery.
 
 ### Better than Amazon
@@ -53,7 +51,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 - One delivery promise used by product cards, the product page, cart and checkout, so an item never shows two different dates.
 - Double-click-safe orders.
 - Undo on deletes.
-- A hero that respects reduced motion.
+- Video tiles that play only while you hover, never on their own and never with reduced motion.
 - Keyboard-operable menus and a skip link.
 - Test-card-only payments.
 - Demo controls that fast-forward an order.
