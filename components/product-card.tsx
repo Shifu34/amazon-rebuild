@@ -6,6 +6,7 @@ import { isDeal, type Product } from '@/lib/catalog'
 import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
 import { compactCount } from '@/lib/format'
 import { formatDollars } from '@/lib/region'
+import { myPrice } from '@/lib/price-lock'
 import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
 import { QuickLook } from './quick-look'
@@ -46,9 +47,9 @@ export async function DeliveryLine({ product: p, compact = false }: { product: P
 
 // Search-result style card, priced in the shopper's display currency. `children` is the action slot (e.g. an Add to cart form).
 // Pass `priority` for the first row of a grid so those above-the-fold images load first.
-export async function ProductCard({ product: p, priority = false, children }: { product: Product; priority?: boolean; children?: React.ReactNode }) {
+export async function ProductCard({ product, priority = false, children }: { product: Product; priority?: boolean; children?: React.ReactNode }) {
+  const [p, { currency, rate }, saver] = await Promise.all([myPrice(product), getRegion(), dataSaver()])
   const href = `/dp/${p.id}`
-  const [{ currency, rate }, saver] = await Promise.all([getRegion(), dataSaver()])
   return (
     <article className="group/card flex h-full flex-col">
       <div className="relative">

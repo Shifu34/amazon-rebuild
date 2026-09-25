@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { dataSaver } from '@/app/actions/data-saver'
 import type { Product } from '@/lib/catalog'
+import { myPrices } from '@/lib/price-lock'
 import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
 import { DeliveryLine, shot } from './product-card'
@@ -13,7 +14,7 @@ import { Stars } from './stars'
 // `loading="eager"` when the row is visible as the page opens. Prices are in the shopper's display currency.
 export async function ProductCarousel({ title, products, href, details = true, loading = 'lazy' }: { title: string; products: Product[]; href?: string; details?: boolean; loading?: 'lazy' | 'eager' }) {
   if (!products.length) return null
-  const [{ currency, rate }, saver] = await Promise.all([getRegion(), dataSaver()])
+  const [items, { currency, rate }, saver] = await Promise.all([myPrices(products), getRegion(), dataSaver()])
   return (
     <section aria-label={title} className="bg-white px-4 pt-4 pb-1">
       <div className="mb-3 flex items-baseline gap-3">
@@ -21,7 +22,7 @@ export async function ProductCarousel({ title, products, href, details = true, l
         {href && <Link href={href} className="link text-sm">See more</Link>}
       </div>
       <Scroller label={title}>
-        {products.map((p) => (
+        {items.map((p) => (
           <li key={p.id} className={`${details ? 'w-[170px]' : 'w-[150px]'} group/card shrink-0 snap-start`}>
             <div className="relative">
               {/* with details the title link below is the one link tab stop per product (plus Quick look) */}

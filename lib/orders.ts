@@ -374,13 +374,16 @@ export function pathWithQuery(path: string, sp: Record<string, string | string[]
 
 // what a return or cancellation gives back for one line: its price plus its share of the tax (none for Pakistan orders:
 // pass countryCodeFromName(order.shipTo.country))
-// What a line gives back: the goods, their tax share (US) and this line's share of the import duty the order was charged
-// (PK), prorated by value. Without the order there is no duty share, so an order placed before landed-cost pricing
-// refunds exactly what it charged.
+// What was charged on top of this many cents of goods: sales tax (US) and the order's import duty share (PK), prorated by
+// value. Anything that hands goods back — a cancel, a return, a price-protection refund — hands these back with them.
+// Without the order there is no duty share, so an order placed before landed-cost pricing refunds exactly what it charged.
+export const sharesOn = (goodsCents: number, country: CountryCode = 'US', order?: Pick<Order, 'dutyCents' | 'itemsCents'>) =>
+  Math.round(goodsCents * taxRateFor(country)) + (order?.dutyCents && order.itemsCents ? Math.round((order.dutyCents * goodsCents) / order.itemsCents) : 0)
+
+// What a line gives back: the goods plus what was charged on them.
 export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>, country: CountryCode = 'US', order?: Pick<Order, 'dutyCents' | 'itemsCents'>) => {
   const goods = i.priceCents * i.quantity
-  const duty = order?.dutyCents && order.itemsCents ? Math.round((order.dutyCents * goods) / order.itemsCents) : 0
-  return goods + Math.round(goods * taxRateFor(country)) + duty
+  return goods + sharesOn(goods, country, order)
 }
 const monthDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
 
@@ -540,11 +543,13 @@ async function payPriceProtection(userId: string, orderId: string) {
   const order = await getOrder(userId, orderId)
   if (!order) return
   const prices = await getShopperPrices(userId)
+  const country = countryCodeFromName(order.shipTo.country)
   const owed = order.items.flatMap((i) => {
     if (i.cancelledAt || i.returnedAt || i.refundedAt) return []
     const nowCents = prices.get(i.productId)?.cents ?? toCents(getProduct(i.productId)?.price ?? 0)
-    const cents = protectionCents(i.priceCents, i.quantity, nowCents)
-    return cents > 0 ? [{ product_id: i.productId, refund_cents: cents }] : []
+    const goods = protectionCents(i.priceCents, i.quantity, nowCents)
+    // the fall comes back with the tax and duty that were charged on it, the same as a cancel or a return
+    return goods > 0 ? [{ product_id: i.productId, refund_cents: goods + sharesOn(goods, country, order) }] : []
   })
   if (!owed.length) return
   await query(

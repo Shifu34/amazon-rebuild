@@ -10,6 +10,7 @@ import { Stars } from '@/components/stars'
 import { cartQuantities } from '@/lib/cart'
 import { categoryName, getProduct, type Product } from '@/lib/catalog'
 import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
+import { myPrices } from '@/lib/price-lock'
 import { getRegion } from '@/lib/region-server'
 
 export const metadata: Metadata = { title: 'Compare products' }
@@ -19,7 +20,7 @@ type Row = { label: string; text: (p: Product) => string; cell: (p: Product) => 
 
 export default async function ComparePage() {
   const ids = parseCompare((await cookies()).get(COMPARE_COOKIE)?.value)
-  const products = ids.map(getProduct).filter((p): p is Product => !!p)
+  const products = await myPrices(ids.map(getProduct).filter((p): p is Product => !!p))
   if (!products.length) return <Empty />
 
   const { currency, rate, country } = await getRegion()
@@ -57,13 +58,8 @@ export default async function ComparePage() {
     { label: 'Warranty', text: (p) => p.warranty, cell: (p) => p.warranty },
     { label: 'Returns', text: (p) => p.returnPolicy, cell: (p) => p.returnPolicy },
     { label: 'Ships', text: (p) => p.shipping, cell: (p) => p.shipping },
-    // the catalog's weight and dimensions are unitless demo numbers, so they are shown for ranking only, without units
-    { label: 'Weight', text: (p) => String(p.weight), cell: (p) => p.weight },
-    {
-      label: 'Dimensions (W × H × D)',
-      text: (p) => `${p.dimensions.width} ${p.dimensions.height} ${p.dimensions.depth}`,
-      cell: (p) => `${p.dimensions.width} × ${p.dimensions.height} × ${p.dimensions.depth}`,
-    },
+    // the catalog's weight and dimensions are unitless demo numbers ("4" for a mascara), so they stay off the table:
+    // a row nobody can act on is worse than a missing one, and the product page leaves them out for the same reason
   ]
 
   // the first column stays put while the products scroll sideways, so it needs its row's own background behind it

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { FilterToggle } from '@/components/home/filter-toggle'
@@ -5,6 +6,8 @@ import { Price } from '@/components/price'
 import { QuickLook } from '@/components/quick-look'
 import { Stars } from '@/components/stars'
 import { CATEGORY_NAMES, DEPARTMENTS, type Product } from '@/lib/catalog'
+import { dataSaver } from '@/app/actions/data-saver'
+import { myPrice } from '@/lib/price-lock'
 import { getRegion } from '@/lib/region-server'
 
 const item = 'block rounded-sm py-1.5 hover:text-link-hover hover:underline lg:py-1'
@@ -56,16 +59,20 @@ export function BestSellersLayout({ slug, children }: { slug?: string; children:
 }
 
 // `inCart` is the server cart quantity (for the action button); `priority` loads the image first (first grid row).
-export async function RankTile({ product: p, rank, action = false, inCart, priority = false }: { product: Product; rank: number; action?: boolean; inCart?: number; priority?: boolean }) {
+export async function RankTile({ product, rank, action = false, inCart, priority = false }: { product: Product; rank: number; action?: boolean; inCart?: number; priority?: boolean }) {
+  const [p, { currency, rate }, saver] = await Promise.all([myPrice(product), getRegion(), dataSaver()])
   const href = `/dp/${p.id}`
-  const { currency, rate } = await getRegion()
   return (
     <article className="group/card relative flex h-full flex-col">
       <span className="absolute top-0 left-0 z-10 rounded-tl-lg rounded-br-lg bg-[#c45500] px-2 py-0.5 text-sm font-bold text-white">#{rank}</span>
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+          {saver ? (
+            <Image src={p.thumbnail} alt="" width={180} height={180} quality={40} priority={priority} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+          )}
         </Link>
         <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
       </div>

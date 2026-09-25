@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+
 import Link from 'next/link'
 import { useEffect, useId, useRef } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
@@ -26,7 +28,7 @@ export function CheckCircle({ className = 'size-5' }: { className?: string }) {
 
 // "Added to cart" side sheet. A native modal <dialog> brings focus trapping, Esc and the backdrop.
 // `cart` comes from the server render, which the add action refreshes in the same response.
-export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { open: boolean; onClose: () => void; items: Item[]; cart: CartTotals; note?: string; picks?: Pick[] }) {
+export function AddedSheet({ open, onClose, items, cart, note, picks = [], saver = false }: { saver?: boolean; open: boolean; onClose: () => void; items: Item[]; cart: CartTotals; note?: string; picks?: Pick[] }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   useEffect(() => {
@@ -59,8 +61,12 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
           {items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 text-sm">
               <span className="flex size-15 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                {saver ? (
+                  <Image src={item.thumbnail} alt="" width={60} height={60} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                )}
               </span>
               <span className="min-w-0">
                 <span className="line-clamp-2">{item.title}</span>
@@ -103,8 +109,12 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [] }: { o
               {picks.map((p) => (
                 <li key={p.id} className="flex flex-col text-sm">
                   <Link href={`/dp/${p.id}`} tabIndex={-1} aria-hidden className="flex h-28 items-center justify-center rounded-sm bg-[#f7f7f7] p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                    {saver ? (
+                      <Image src={p.thumbnail} alt="" width={112} height={112} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                    )}
                   </Link>
                   <Link href={`/dp/${p.id}`} className="mt-1.5 line-clamp-2 hover:text-link-hover hover:underline">{p.title}</Link>
                   <span className="text-lg leading-6"><Price value={p.price} currency={currency} rate={rate} /></span>

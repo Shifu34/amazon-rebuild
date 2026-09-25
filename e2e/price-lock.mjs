@@ -88,7 +88,10 @@ try {
   const orderSummary = page.getByRole('region', { name: 'Order summary' })
   const refundRow = orderSummary.locator('dl > div').filter({ hasText: 'Price protection refund:' }).locator('dd')
   await refundRow.waitFor()
-  assert.equal(dollars(await refundRow.textContent()), Math.round((dropped - after) * 100) / 100, 'the refund is exactly the fall in price')
+  // the fall comes back with the 8.25% US tax that was charged on it, the same as a cancel or a return
+  const fallCents = Math.round((dropped - after) * 100)
+  const owed = (fallCents + Math.round(fallCents * 0.0825)) / 100
+  assert.equal(dollars(await refundRow.textContent()), owed, 'the refund is the fall plus the tax charged on it')
 
   console.log('price lock e2e passed')
 } catch (e) {

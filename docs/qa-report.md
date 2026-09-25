@@ -400,3 +400,23 @@ DATABASE_URL=postgres://dummy npx next build
 Every e2e script also takes a production URL: `node e2e/<name>.mjs https://amazon-rebuild-teal.vercel.app`. `demo.mjs` waits a minute if another demo account was created from your network in the last minute.
 
 The testers' and skeptics' scripts, logs and screenshots are in `.qa/final/<area>/`, with the per-finding repro scripts in `.qa/final/<area>/verify/`. That folder is gitignored, so it exists only on the machine that ran QA. Each repro takes a base URL and exits 0 once its defect is gone: `node .qa/final/cross-cutting/verify/cc1-open-redirect.mjs https://amazon-rebuild-teal.vercel.app`.
+
+---
+
+## Live QA, 25 September 2026 — after the ten new features
+
+Scope: the deployed site (https://amazon-rebuild-teal.vercel.app), not a local build. Four passes ran against it: the 20 end-to-end scripts, two exploratory testers (browse-and-decide, money-and-orders), and a hand pass in a real Chrome with the Claude in Chrome extension. Production data was checked directly: of 170 orders, **none** had a stored total that disagreed with items + shipping + tax + duty − credit, and the server logs had no 5xx.
+
+| ID | Severity | Found | Fix |
+|---|---|---|---|
+| L-1 | **major** | Price protection refunded the fall in price only, keeping the tax (US) or import duty (PK) that had been charged on it — while cancels and returns hand those back. On a PKR order, ≈PKR 97 of duty stayed with us. | `sharesOn()` in `lib/orders.ts` is now the one rule for what rides on top of goods; cancels, returns and price protection all use it. Asserts in `lib/region.check.ts`, and `e2e/price-lock.mjs` checks the refund equals the fall plus its tax. |
+| L-2 | **major** | The cash-on-delivery advance was only ever a percentage before you committed ("we ask for 30% up front"); the amount appeared after the order was placed. | Checkout states the money: "$7.14 (30%) now … $16.67 in cash on delivery", in the cash option, the payment summary and the blocker. `e2e/cod.mjs` asserts advance + cash equals the order total. |
+| L-3 | **major** | A price lock, a demo drop or a filled group buy only changed the price on the product page, cart and checkout. Search results, home rows, Today's Deals, Best Sellers, Compare, Quick look and the recently-viewed rail all showed the shelf price. | `myPrice`/`myPrices` (`lib/price-lock.ts`, request-cached) applied in `ProductCard`, `ProductCarousel`, `DealCard`, `RankTile`, the compare table and the Quick look action, so one price follows the shopper everywhere. |
+| L-4 | minor | "See more reviews" dropped the digest's aspect and verified filters, so a capped aspect ("9 reviews", 8 shown) landed on the unfiltered list — breaking the digest's promise that every number clicks through to its reviews. | The link carries `mentions` and `reviewerType` through to the full reviews page. |
+| L-5 | minor | After a client-side search the browser tab kept the previous page's title ("nile.com : Electronics"), because a prefetched `/s` entry's metadata stayed in place. The page body was always correct. | `components/search/title.tsx` sets `document.title` from the resolved query. |
+| L-6 | polish | Data saver missed nine pictures: two product-page thumbnails, Frequently bought together, the added-to-cart sheet and every Best Sellers tile. | All now go through the image optimiser when the cookie is set. |
+| L-7 | polish | Compare listed the catalog's unitless demo weight and dimensions ("4" for a mascara), implying they meant something. | Both rows removed; the product page leaves them out for the same reason. |
+
+**Still open:** one "Add to Cart" click was lost immediately after a demo price drop (the cart stayed empty) in a single live run. Fifteen targeted attempts and five scripted loops could not reproduce it, so the cause is unknown and it is being watched rather than explained away. Everything else in that run was correct.
+
+**Checked and correct** (a selection): landed cost agrees across product page, cart, checkout, invoice and email; an unfilled group buy still charges the shelf price while a filled one charges the team price; the nile-day credit comes off before tax and the column still balances; cash on delivery is placeable with no card and the invoice never claims a card was charged; double-clicking "Place your order" creates one order; the review digest's bars matched their filtered lists on 62 bars across 8 products; no sideways scroll at 390px on home, search, product, compare or department pages.

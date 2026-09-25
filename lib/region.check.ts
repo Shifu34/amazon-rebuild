@@ -5,7 +5,7 @@ import { appliedFilters, displayNumber, parseQuery, toSearch } from '@/component
 import { formatAddress, validateAddress } from './addresses'
 import { deliveryPromise, deliveryText, nextNileDay } from './delivery'
 import { getProduct, products, search } from './catalog'
-import { itemRefundCents, quote, taxRateFor, trackingEvents, type Order, type OrderLine } from './orders'
+import { itemRefundCents, quote, sharesOn, taxRateFor, trackingEvents, type Order, type OrderLine } from './orders'
 import { toCents } from './format'
 import { ADVANCE_RATE, advanceCents } from './cod'
 import { protectionCents } from './price-lock'
@@ -164,6 +164,12 @@ assert.deepEqual(
   [2165, 2000],
   'a US refund returns the tax share; with no order there is no duty share',
 )
+// what was charged on top of the goods comes back with them, whichever path hands them back (cancel, return, price protection)
+assert.equal(sharesOn(1000, 'US'), 83, '8.25% tax on $10')
+assert.equal(sharesOn(1000, 'PK'), 0, 'no tax in Pakistan, and no duty share without the order')
+assert.equal(sharesOn(1000, 'PK', { dutyCents: 700, itemsCents: 2000 }), 350, "this line's share of the duty the order paid")
+assert.equal(sharesOn(1000, 'PK', { dutyCents: 0, itemsCents: 2000 }), 0, 'an order placed before landed-cost pricing')
+
 // a Pakistan refund returns this line's share of the duty the order was charged, and nothing for an older order
 assert.equal(itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK', { dutyCents: 700, itemsCents: 2000 }), 2700)
 assert.equal(itemRefundCents({ priceCents: 500, quantity: 1 }, 'PK', { dutyCents: 700, itemsCents: 2000 }), 675)

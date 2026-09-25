@@ -14,6 +14,8 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 await page.context().addCookies([{ name: 'currency', value: 'USD', url: base }, { name: 'ship_country', value: 'US', url: base }])
 const step = (name) => console.log(`- ${name}`)
 const shot = (name) => page.screenshot({ path: `${process.env.SHOTS ?? 'e2e'}/${name}.png` })
+const summaryRow = (label) =>
+  page.getByRole('complementary', { name: 'Order summary' }).locator('dl > div').filter({ hasText: label }).locator('dd').textContent()
 
 // cart → checkout, choosing cash; the address is only asked for the first time
 async function cashCheckout({ address = false } = {}) {
@@ -106,8 +108,13 @@ try {
   await page.goto(`${base}/checkout`)
   // no card on the account, so the card form is what they see: it now says why one is needed
   await page.getByText('A parcel was refused, so we ask for 30% up front on cash orders.').waitFor()
+  // the money, not just a percentage: the shopper should never have to work out 30% of their own order
+  const split = await page.getByText(/On this order that is \$\d+\.\d{2}, with \$\d+\.\d{2} in cash on delivery\./).first().textContent()
+  const [advance, cash] = [...split.matchAll(/\$(\d+\.\d{2})/g)].map((m) => Number(m[1]))
+  const total = Number((await summaryRow('Order total:')).replace(/[^\d.]/g, ''))
+  assert.ok(Math.abs(advance + cash - total) < 0.02, `advance ${advance} + cash ${cash} should make the ${total} total`)
   await page.getByRole('button', { name: 'Pay with Cash on Delivery instead' }).click()
-  await page.getByText('Add a card for the 30% we take up front on cash orders.').first().waitFor()
+  await page.getByText(/Add a card for the \$\d+\.\d{2} \(30%\) we take up front on cash orders\./).first().waitFor()
   assert.equal(await page.getByRole('button', { name: 'Place your order' }).first().isDisabled(), true, 'no card, no cash order')
 
   console.log('cod e2e passed')

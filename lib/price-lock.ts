@@ -3,6 +3,7 @@
 // that can actually move). Both are server-computed from the catalog — a price is never taken from the client.
 // Every shopper-facing price goes through `priced()`, so the cart, checkout and the order all charge the same number.
 import { cache } from 'react'
+import { getUser } from './auth'
 import { getProduct, type Product } from './catalog'
 import { query } from './db'
 import { toCents } from './format'
@@ -52,6 +53,14 @@ export const getShopperPrices = cache(async (userId?: string): Promise<ShopperPr
   }
   return prices
 })
+
+// The signed-in shopper's own price, for any surface that shows one. getUser and getShopperPrices are both request-cached,
+// so every card on a page costs one query between them.
+export const myPrice = async <T extends Product>(p: T): Promise<T> => priced(p, await getShopperPrices((await getUser())?.id))
+export const myPrices = async <T extends Product>(list: T[]): Promise<T[]> => {
+  const prices = await getShopperPrices((await getUser())?.id)
+  return list.map((p) => priced(p, prices))
+}
 
 // A product as this shopper sees it. Prices stay in dollars on Product (the catalog's shape); money is cents everywhere else.
 export const priced = <T extends Product>(p: T, prices: ShopperPrices): T => {

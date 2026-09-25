@@ -8,6 +8,7 @@ import { QuickLook } from '@/components/quick-look'
 import { Scroller } from '@/components/scroller'
 import { Stars } from '@/components/stars'
 import type { Product } from '@/lib/catalog'
+import { myPrice } from '@/lib/price-lock'
 import { formatDollars } from '@/lib/region'
 import { getRegion } from '@/lib/region-server'
 
@@ -25,9 +26,9 @@ export function DealBadge({ discount }: { discount: number }) {
 
 // Today's Deals tile. `compact` (home rail) drops the rating row and the cart button.
 // `inCart` is the server cart quantity; `priority` loads the image first (first grid row). `data-price` stays US dollars.
-export async function DealCard({ product: p, compact = false, inCart, priority = false }: { product: Product; compact?: boolean; inCart?: number; priority?: boolean }) {
+export async function DealCard({ product, compact = false, inCart, priority = false }: { product: Product; compact?: boolean; inCart?: number; priority?: boolean }) {
+  const [p, { currency, rate }, saver] = await Promise.all([myPrice(product), getRegion(), dataSaver()])
   const href = `/dp/${p.id}`
-  const [{ currency, rate }, saver] = await Promise.all([getRegion(), dataSaver()])
   return (
     <article data-price={p.price} className="group/card relative flex h-full flex-col">
       <div className="relative">

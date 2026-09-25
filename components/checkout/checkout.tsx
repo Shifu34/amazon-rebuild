@@ -101,11 +101,15 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
   const summary = summaryRows({ ...q, items: lines.map((l) => ({ priceCents: toCents(l.price), quantity: l.quantity })), taxCents: q.taxLabel ? q.taxCents : null }, currency, rate)
   // pooled: everything waits for the one day, so the review section shows a single arrival
   const groups = pooling ? shipments(lines, () => pooledQuote.deliverBy) : shipments(lines, (l) => l.arrives[country][speed])
+  // say the advance in money, not just a percentage: nobody should have to work out 30% of their own order
+  const advance = cod.advanceRate > 0 ? Math.round(q.totalCents * cod.advanceRate) : 0
+  const advanceText = formatMoney(advance, currency, rate)
+  const cashDueText = formatMoney(q.totalCents - advance, currency, rate)
   const blocker = !address
     ? 'Add a delivery address to continue.'
     : payCash
       ? cod.advanceRate > 0 && !card
-        ? `Add a card for the ${advancePct}% we take up front on cash orders.`
+        ? `Add a card for the ${advanceText} (${advancePct}%) we take up front on cash orders.`
         : null
       : !card
         ? 'Add a payment method to continue.'
@@ -263,7 +267,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
             {payCash ? (
               <p className="text-sm text-muted">
                 Pay the courier when it arrives.
-                {cod.advanceRate > 0 && card && ` We take ${advancePct}% now on ${card.label}, the rest in cash.`}
+                {cod.advanceRate > 0 && card && ` We take ${advanceText} (${advancePct}%) now on ${card.label}, and ${cashDueText} in cash on delivery.`}
               </p>
             ) : (
               <p className="text-sm text-muted">
@@ -304,7 +308,12 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                     <>
                       <b>Cash on Delivery</b>
                       <span className="block text-muted">Pay the courier when it arrives.</span>
-                      {cod.advanceRate > 0 && <span className="block text-danger">{cod.detail}</span>}
+                      {cod.advanceRate > 0 && (
+                        <>
+                          <span className="block text-danger">{cod.detail}</span>
+                          <span className="block text-muted">{advanceText} now, {cashDueText} in cash on delivery.</span>
+                        </>
+                      )}
                     </>
                   ),
                 },
@@ -354,7 +363,11 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
             />
             {/* a first-time shopper lands straight on this form, so cash has to be reachable from here too, and a shopper
                 who now owes an advance is told why a card is being asked for at all */}
-            {!cards.length && cod.advanceRate > 0 && <p className="mt-4 text-sm text-danger">{cod.detail}</p>}
+            {!cards.length && cod.advanceRate > 0 && (
+              <p className="mt-4 text-sm text-danger">
+                {cod.detail} On this order that is {advanceText}, with {cashDueText} in cash on delivery.
+              </p>
+            )}
             {!cards.length && (
               <button
                 type="button"

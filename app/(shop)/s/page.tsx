@@ -10,6 +10,7 @@ import { FeaturedCategories } from '@/components/search/featured-categories'
 import { Filters } from '@/components/search/filters'
 import { PER_PAGE, appliedFilters, clearFilters, departmentOf, parseQuery, toHref, toSearch, withoutFilters, type Chip, type Query } from '@/components/search/params'
 import { SortSelect } from '@/components/search/sort-select'
+import { SearchTitle } from '@/components/search/title'
 import { correctSpelling } from '@/components/search/spelling'
 import { cartQuantities } from '@/lib/cart'
 import { DEPARTMENTS, SORTS, bestSellers, scopeName, search } from '@/lib/catalog'
@@ -51,8 +52,11 @@ export default async function SearchPage({ searchParams }: Props) {
     ...(q.brand.length ? [] : r.facets.brands.slice(0, 3).map((b) => ({ label: b.name, href: toHref(q, { brand: [b.name] }), n: b.count }))),
   ].filter((c) => c.n > 0 && c.n < r.total)
 
+  const tabTitle = `nile.com : ${k || (q.i && scopeName(q.i)) || 'All Departments'}`
+
   return (
     <div className="group/search pb-10">
+      <SearchTitle title={tabTitle} />
       {r.total > 0 && (
         <div className="border-b border-line shadow-[0_2px_4px_-2px_rgba(15,17,17,0.15)]">
           <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3 px-4 py-2">

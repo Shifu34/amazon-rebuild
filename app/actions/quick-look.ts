@@ -1,6 +1,7 @@
 'use server'
 
 import { getProduct, related } from '@/lib/catalog'
+import { myPrice } from '@/lib/price-lock'
 
 export type QuickLookItem = {
   id: number
@@ -16,8 +17,10 @@ export type QuickLookItem = {
 // Read-only: what the Quick look dialog on product carousels needs. The id comes from the client, so anything that isn't
 // a catalog product's integer id gets null.
 export async function quickLook(id: number): Promise<QuickLookItem | null> {
-  const p = Number.isSafeInteger(id) ? getProduct(id) : undefined
-  if (!p) return null
+  const catalog = Number.isSafeInteger(id) ? getProduct(id) : undefined
+  if (!catalog) return null
+  // the shopper's own price (a lock, a demo drop or a filled group buy), so the dialog agrees with the page behind it
+  const p = await myPrice(catalog)
   return {
     id: p.id,
     title: p.title,

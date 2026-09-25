@@ -12,7 +12,7 @@ type State = { ok: true; added: number; requested: number } | { ok: false; error
 
 // Quantity, Add to Cart (opens the side sheet) and Buy Now for an in-stock product.
 // Once the cart holds the most that can be bought, Add to Cart gives way to Go to Cart instead of a silent no-op.
-export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, picks }: Props) {
+export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, picks, saver = false }: Props & { saver?: boolean }) {
   const [qty, setQty] = useState(1)
   const addButton = useRef<HTMLButtonElement>(null)
   const cartLink = useRef<HTMLAnchorElement>(null)
@@ -75,6 +75,7 @@ export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, 
         )}
       </form>
       <AddedSheet
+        saver={saver}
         open={!!state?.ok && dismissed !== state}
         onClose={close}
         items={[{ ...product, quantity: state?.ok ? state.added : 1 }]}

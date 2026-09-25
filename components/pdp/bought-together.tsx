@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+
 import Link from 'next/link'
 import { Fragment, useActionState, useRef, useState } from 'react'
 import { addBundle, type BundleState } from '@/app/actions/bundle'
@@ -12,7 +14,7 @@ import { AddedSheet, type CartTotals } from './added-sheet'
 type Item = { id: number; title: string; thumbnail: string; price: number }
 
 // "Frequently bought together": the first item is the product being viewed.
-export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotals }) {
+export function BoughtTogether({ items, cart, saver = false }: { items: Item[]; cart: CartTotals; saver?: boolean }) {
   const [checked, setChecked] = useState(() => items.map(() => true))
   const [state, action, pending] = useActionState<BundleState, FormData>(addBundle, null)
   const [dismissed, setDismissed] = useState<BundleState>(null)
@@ -33,8 +35,12 @@ export function BoughtTogether({ items, cart }: { items: Item[]; cart: CartTotal
             <Fragment key={p.id}>
               {i > 0 && <span className="text-2xl text-muted">+</span>}
               <span className={`flex size-24 items-center justify-center rounded-sm bg-[#f7f7f7] p-2 transition-opacity sm:size-32 ${checked[i] ? '' : 'opacity-35'}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                {saver ? (
+                  <Image src={p.thumbnail} alt="" width={128} height={128} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                )}
               </span>
             </Fragment>
           ))}

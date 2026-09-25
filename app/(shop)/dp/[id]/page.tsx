@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -107,13 +108,14 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const p = priced(catalogProduct, shopperPrices)
   const lock = activeLock(p.id, shopperPrices)
   const group = await getGroupBuy(catalogProduct.id, user?.id)
-  const [cart, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName, address }, jar] = await Promise.all([
+  const [cart, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName, address }, jar, saver] = await Promise.all([
     cartSummary(),
     user ? getLists(user.id) : [],
     productReviews(p, user?.id),
     user ? getHistory(user.id, 21) : [],
     getRegion(),
     cookies(),
+    dataSaver(),
   ])
   if (user) after(() => recordView(user.id, p.id))
 
@@ -195,7 +197,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
       {/* DOM order is gallery, title, price, buy box, specs so focus follows the columns; on phones the title moves above the gallery. */}
       <div className="mt-3 grid gap-x-8 gap-y-4 pb-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto_1fr] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(240px,270px)] lg:grid-rows-[auto_auto_1fr]">
         <div className="md:sticky md:top-3 md:col-start-1 md:row-span-4 md:row-start-1 md:self-start lg:row-span-3">
-          <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} saver={await dataSaver()} />
+          <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} saver={saver} />
         </div>
 
         <div className="max-md:order-first md:col-start-2 md:row-start-1">
@@ -283,7 +285,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
                 {p.stock < 10 ? `Only ${p.stock} left in stock - order soon.` : 'In Stock'}
               </p>
               <div className="mt-3">
-                <PurchaseControls product={slim(p)} max={Math.min(p.stock, MAX_QTY)} stock={p.stock} signedIn={!!user} inCart={inCart} cart={cartTotals} picks={pairs.map(slim)} />
+                <PurchaseControls saver={saver} product={slim(p)} max={Math.min(p.stock, MAX_QTY)} stock={p.stock} signedIn={!!user} inCart={inCart} cart={cartTotals} picks={pairs.map(slim)} />
                 <PriceLock
                   productId={p.id}
                   priceText={formatMoney(toCents(p.price), currency, rate)}
@@ -369,13 +371,17 @@ export default async function ProductPage({ params, searchParams }: Props) {
           <li><a href="#reviews" className={jump}>Reviews</a></li>
         </ul>
         <div className="hidden max-w-72 min-w-0 items-center gap-2 md:flex">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.thumbnail} alt="" loading="lazy" className="size-8 shrink-0 object-contain mix-blend-multiply" />
+          {saver ? (
+            <Image src={p.thumbnail} alt="" width={32} height={32} quality={40} className="size-8 shrink-0 object-contain mix-blend-multiply" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.thumbnail} alt="" loading="lazy" className="size-8 shrink-0 object-contain mix-blend-multiply" />
+          )}
           <span className="line-clamp-2 text-xs">{p.title}</span>
         </div>
       </nav>
 
-      {pairs.length > 0 && <BoughtTogether items={[p, ...pairs].map(slim)} cart={cartTotals} />}
+      {pairs.length > 0 && <BoughtTogether items={[p, ...pairs].map(slim)} cart={cartTotals} saver={saver} />}
 
       {relatedItems.length > 0 && (
         <div id="similar" className="-mx-4 scroll-mt-10 overflow-hidden border-t border-line">
@@ -439,7 +445,12 @@ export default async function ProductPage({ params, searchParams }: Props) {
           ) : (
             <p className="mt-3 text-sm">No customer reviews match this filter.</p>
           )}
-          {shown.length > topReviews.length && <Link href={`/product-reviews/${p.id}`} className="link mt-2 inline-block font-bold">See more reviews ›</Link>}
+          {/* carries the digest's filter through, so a capped aspect still lands on exactly its reviews (reviewerType is the reviews page's name for it) */}
+          {shown.length > topReviews.length && (
+            <Link href={`/product-reviews/${p.id}?${new URLSearchParams({ ...(mentions ? { mentions } : {}), reviewerType: verifiedOnly ? 'avp_only_reviews' : 'all_reviews' })}`} className="link mt-2 inline-block font-bold">
+              See more reviews ›
+            </Link>
+          )}
         </div>
         <div className="border-t border-line pt-6 lg:col-start-1 lg:row-start-2 lg:self-start">
           <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
@@ -461,8 +472,12 @@ export default async function ProductPage({ params, searchParams }: Props) {
               {recent.map(({ product }) => (
                 <li key={product.id} className="w-[120px] shrink-0 snap-start">
                   <Link href={`/dp/${product.id}`} aria-label={product.title} className="flex h-[120px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={product.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                    {saver ? (
+                      <Image src={product.thumbnail} alt="" width={120} height={120} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={product.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                    )}
                   </Link>
                 </li>
               ))}
