@@ -6,12 +6,13 @@ import { cache } from 'react'
 import { getProduct, type Product } from './catalog'
 import { query } from './db'
 import { toCents } from './format'
+import { groupPrices } from './group-buy'
 
 export const LOCK_HOURS = 48
 const DROP_PCT = 0.1 // the demo control's cut
 const DROP_DAYS = 30 // long enough that a walkthrough never watches one expire
 
-export type ShopperPrice = { cents: number; locked: boolean; lockExpires: Date | null; dropCents: number | null }
+export type ShopperPrice = { cents: number; locked: boolean; lockExpires: Date | null; dropCents: number | null; groupCents: number | null }
 export type ShopperPrices = Map<number, ShopperPrice>
 
 type Row = { product_id: number; lock_cents: number | null; lock_expires: Date | null; drop_cents: number | null }
@@ -19,6 +20,8 @@ type Row = { product_id: number; lock_cents: number | null; lock_expires: Date |
 // The shopper's locks and drops in one read, cached per request. Signed out, nobody has either.
 export const getShopperPrices = cache(async (userId?: string): Promise<ShopperPrices> => {
   if (!userId) return new Map()
+  // a filled group buy is one more price this shopper is entitled to (lib/group-buy)
+  const groups = new Map((await groupPrices(userId)).map((g) => [g.product_id, g.price_cents]))
   const rows = await query<Row>(
     `select coalesce(l.product_id, d.product_id) as product_id,
             case when l.expires_at > now() and l.used_at is null then l.price_cents end as lock_cents,
@@ -29,18 +32,22 @@ export const getShopperPrices = cache(async (userId?: string): Promise<ShopperPr
      where coalesce(l.user_id, d.user_id) = $1`,
     [userId],
   )
+  const byProduct = new Map(rows.map((r) => [r.product_id, r]))
   const prices: ShopperPrices = new Map()
-  for (const r of rows) {
-    const catalog = getProduct(r.product_id)
+  for (const productId of new Set([...byProduct.keys(), ...groups.keys()])) {
+    const catalog = getProduct(productId)
     if (!catalog) continue
-    // the lowest of what they can pay: the shelf price, the demo drop, or the price they locked
-    const candidates = [toCents(catalog.price), r.drop_cents, r.lock_cents].filter((c): c is number => typeof c === 'number' && c > 0)
+    const r = byProduct.get(productId)
+    const groupCents = groups.get(productId) ?? null
+    // the lowest of what they can pay: the shelf price, the demo drop, the price they locked, or their group's team price
+    const candidates = [toCents(catalog.price), r?.drop_cents, r?.lock_cents, groupCents].filter((c): c is number => typeof c === 'number' && c > 0)
     const cents = Math.min(...candidates)
-    prices.set(r.product_id, {
+    prices.set(productId, {
       cents,
-      locked: r.lock_cents !== null && cents === r.lock_cents,
-      lockExpires: r.lock_expires ? new Date(r.lock_expires) : null,
-      dropCents: r.drop_cents,
+      locked: r?.lock_cents != null && cents === r.lock_cents,
+      lockExpires: r?.lock_expires ? new Date(r.lock_expires) : null,
+      dropCents: r?.drop_cents ?? null,
+      groupCents,
     })
   }
   return prices

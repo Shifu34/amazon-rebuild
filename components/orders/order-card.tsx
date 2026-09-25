@@ -81,9 +81,9 @@ export function orderMoney(order: Order, view: OrderView) {
   const { currency, fxRate } = order
   const show = (minor: number) => formatMinor(minor, currency)
   const items = itemsTotal(order.items, currency, fxRate).minor
-  const [shipping, tax, duty] = [order.shippingCents, order.taxCents, order.dutyCents].map((c) => convertCents(c, currency, fxRate))
+  const [shipping, tax, duty, credit] = [order.shippingCents, order.taxCents, order.dutyCents, order.creditCents].map((c) => convertCents(c, currency, fxRate))
   // what came off: the whole order, or each cancelled item's price with its tax and duty share (as orderView counts cancelledCents)
-  const cancelled = view.status === 'cancelled' ? items + shipping + tax + duty : view.items.reduce((s, i) => s + (i.cancelledAt ? lineOf(order, i) : 0), 0)
+  const cancelled = view.status === 'cancelled' ? items + shipping + tax + duty - credit : view.items.reduce((s, i) => s + (i.cancelledAt ? lineOf(order, i) : 0), 0)
   const refunds = (list: OrderItem[]) => list.reduce((s, i) => s + lineOf(order, i, i.refundCents ?? 0), 0)
   return {
     country: countryCodeFromName(order.shipTo.country),
@@ -92,9 +92,10 @@ export function orderMoney(order: Order, view: OrderView) {
     shipping: show(shipping),
     tax: show(tax),
     duty: show(duty),
-    beforeTax: show(items + shipping),
+    credit: show(-credit),
+    beforeTax: show(items + shipping - credit),
     cancelled: show(cancelled),
-    charged: show(items + shipping + tax + duty - cancelled),
+    charged: show(items + shipping + tax + duty - credit - cancelled),
     refunded: show(refunds(view.items.filter((i) => i.refundedAt))),
     refund: (list: OrderItem[]) => show(refunds(list)), // the refunds stored on these items
   }
@@ -117,6 +118,7 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
     <dl className="space-y-0.5">
       <Row label="Item(s) Subtotal:" value={m.items} />
       <Row label="Shipping & Handling:" value={m.shipping} />
+      {order.creditCents > 0 && <Row label="Nile day credit:" value={m.credit} />}
       {m.country === 'PK' ? (
         <>
           {order.dutyCents > 0 && <Row label="Import duty (estimated):" value={m.duty} />}
@@ -300,6 +302,7 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold">{view.headline}</h2>
             <p className="text-sm text-muted">{view.subline}</p>
+            {view.pooledNote && <p className="text-sm">{view.pooledNote}</p>}
             {order.replacementFor && (
               <p className="text-sm">
                 Replacement for <Link href={`/orders/${order.replacementFor}`} className="link">order # {order.replacementFor}</Link>

@@ -222,3 +222,32 @@ create table if not exists price_drops (
   expires_at timestamptz not null,
   primary key (user_id, product_id)
 );
+
+-- group buy: a team price that unlocks when enough shoppers commit before the deadline. Nobody is charged unless it fills.
+create table if not exists group_buys (
+  id uuid primary key default gen_random_uuid(),
+  product_id int not null,
+  price_cents int not null,
+  target int not null,
+  ends_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists group_buys_product on group_buys (product_id, ends_at desc);
+
+create table if not exists group_buy_members (
+  group_buy_id uuid not null references group_buys(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  order_id text references orders(id) on delete set null,
+  primary key (group_buy_id, user_id)
+);
+
+-- your nile day: a weekday to pool the week's orders onto, and the shipping we hand back for waiting
+alter table users add column if not exists delivery_day smallint;          -- 0 Sunday … 6 Saturday; null ships as ordered
+alter table orders add column if not exists pooled boolean not null default false;
+alter table orders add column if not exists credit_cents int not null default 0;
+
+-- cash on delivery: what the shopper chose, and whether the parcel was taken (reliability comes from their own history)
+alter table orders add column if not exists payment_kind text not null default 'card';   -- 'card' | 'cod'
+alter table orders add column if not exists confirmed_at timestamptz;
+alter table orders add column if not exists refused_at timestamptz;

@@ -13,6 +13,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 1. **Browse without an account.** Search, filter, open products and fill a cart as a guest. The cart follows you when you sign in.
 2. **Take the fastest tour.** Go to **Sign in** and choose **Explore with a demo account**. You become a fresh sample shopper with an address, a card, a list, browsing history and orders in every state: arriving, shipped, out for delivery, delivered, return started, and cancelled.
 3. **Or do it for real.** Create an account, check out with test card `4242 4242 4242 4242` (any future expiry, any CVC), then track, cancel or return from **Returns & Orders**. On an order, **Demo: mark as delivered** skips the wait so you can try returns and reviews.
+4. **Try the business ideas.** Lock a price and then drop it; join a group buy and fill it; set your nile day and watch the credit appear; pay cash on delivery and refuse a parcel to see your standing change. Each has a **Demo:** control, because none of it should need a three-week wait.
 
 ## What works
 
@@ -28,6 +29,9 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 | **Restock reminders** | On a delivered consumable: "Remind me when this runs out", with a sensible default for the category and a one-click stop. One email, no subscription, no card charged. Daily cron at `/api/reminders` (`vercel.json`), plus a demo button that sends yours now. |
 | **Price lock** | Lock a price for 48 hours while you decide, and checkout charges the lower of the locked and current price. If the price falls again before delivery, the difference comes back automatically as a price-protection refund. A "Demo: drop this price" control makes the static catalog move so you can watch it work. |
 | **Data saver** | A switch in the header (offered automatically on a slow connection) that routes pictures through the image optimiser, stops the home tiles playing and skips prefetching: images on the home page drop 68% (855 KB → 273 KB) and 55% on a product page. Works with JavaScript off. |
+| **Group buy** | A team price that unlocks when enough shoppers commit before a deadline, with a share link. You only pay it if the group fills; if it doesn't, nothing is charged and nothing ships. The one real countdown on a site with no fake urgency. "Demo: fill this group" completes it so you can watch it unlock. |
+| **Your nile day** | Pick a weekday and the week's standard orders arrive together, with the shipping we save handed back as a credit on the order. Chosen, never silently applied: the date and the saving sit next to Standard and Expedited at checkout. |
+| **Cash on delivery** | Pay the courier when it arrives, with one-click order confirmation. Reliability comes from your own history: take your parcels and cash stays free and unlimited; refuse one and we ask 30% up front, and say why. Clears again on your next delivery. |
 | **Cart** | Guest cart that merges on sign-in, quantity stepper, save for later, free-shipping progress, and an empty state for guests and for signed-in shoppers. |
 | **Checkout** | Sign-in gate that returns you to checkout, address book with validation, saved cards (test cards only), a delivery-speed choice for the order, and an order summary with tax. "Place your order" is safe to double-click. Ends on a thank-you page. |
 | **Orders** | Tabs (Orders, Buy Again, Not Yet Shipped, Cancelled), a date filter, order search, order details with an invoice, a tracking timeline, cancel before shipping, returns and replacements with a refund summary, and Buy it again. |
@@ -59,6 +63,9 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 - A reminder when a consumable runs out, instead of a subscription that is easy to start and hard to cancel.
 - Price protection: if the price drops before your order arrives, the difference comes back without asking.
 - Data saver for metered connections, rather than a spinner.
+- A group price with a countdown that is actually real, instead of invented scarcity.
+- One delivery day a week if you want it, and the saved shipping handed back rather than pocketed.
+- Cash on delivery that stays free for people who take their parcels, instead of banning it or charging everyone an advance.
 - Filter chips with "Clear all" and exact result counts.
 - One delivery promise used by product cards, the product page, cart and checkout, so an item never shows two different dates.
 - Double-click-safe orders.
@@ -74,7 +81,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 - **Catalog:** 184 products from [DummyJSON](https://dummyjson.com), held in memory, with a deterministic review corpus (~14 written reviews per product, seeded from the product id in `lib/review-seed.ts`) so ratings, the digest and the review pages have something real to work with. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
 - **Data:** Postgres. Production uses Neon through the Vercel Marketplace. Locally the app uses an embedded PGlite database, so `npm run dev` needs no setup. Money is stored in integer cents. Writes that must be atomic, like placing an order or merging a guest cart, are single SQL statements with CTEs, because Neon's HTTP driver has no interactive transactions.
 - **Auth:** scrypt password hashes, random session tokens stored hashed, httpOnly cookies, and same-site-only `return_to` redirects.
-- **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, links, carousel, suggest, pdp, quick-look, compare, checkout, orders, account, demo, region, data-saver, price-lock, reminders), plus assert-based checks for the catalog, reviews, delivery dates, payments, region pricing and email templates.
+- **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, links, carousel, suggest, pdp, quick-look, compare, checkout, orders, account, demo, region, data-saver, price-lock, reminders, group-buy, nile-day, cod), plus assert-based checks for the catalog, reviews, delivery dates, payments, region pricing and email templates.
 
 ## How it was built
 

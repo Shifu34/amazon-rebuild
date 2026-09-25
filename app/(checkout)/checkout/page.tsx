@@ -5,10 +5,12 @@ import { redirect } from 'next/navigation'
 import { Checkout } from '@/components/checkout/checkout'
 import { formatAddress, getAddresses } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
+import { codStanding } from '@/lib/cod'
 import { getCart, MAX_QTY } from '@/lib/cart'
 import { getProduct } from '@/lib/catalog'
-import { deliveryPromise } from '@/lib/delivery'
+import { deliveryPromise, DEFAULT_DAY } from '@/lib/delivery'
 import { buyNowLine, cartLines, linesKey, quote, type OrderLine } from '@/lib/orders'
+import { getNileDay } from '@/lib/nile-day'
 import { getShopperPrices } from '@/lib/price-lock'
 import { cardExpiry, cardLabel, getCards } from '@/lib/payments'
 import { countryCodeFromName, type CountryCode } from '@/lib/region'
@@ -40,17 +42,25 @@ export default async function CheckoutPage({ searchParams }: PageProps<'/checkou
     if (l.quantity < l.requested) notices.push(`Only ${l.quantity} of ${l.product.title} can be ordered, so we changed the quantity to ${l.quantity}.`)
   }
 
-  const [addresses, cards] = await Promise.all([getAddresses(user.id), getCards(user.id)])
+  const [addresses, cards, cod] = await Promise.all([getAddresses(user.id), getCards(user.id), codStanding(user.id)])
   const now = new Date()
   // both countries up front: the client switches dates, fees and tax with the selected address, no round trip
   const arrives = (p: OrderLine['product'], c: CountryCode) => {
     const { standard, expedited } = deliveryPromise(p, now, c)
     return { standard, expedited }
   }
-  const quotes = (c: CountryCode) => ({ standard: quote(lines, 'standard', now, c), expedited: quote(lines, 'expedited', now, c) })
+  // the pooled quote is always computed, on the shopper's day or the one we propose, so the option can show its date and
+  // saving before they commit to it
+  const nileDay = await getNileDay(user.id)
+  const quotes = (c: CountryCode) => ({
+    standard: quote(lines, 'standard', now, c),
+    expedited: quote(lines, 'expedited', now, c),
+    pooled: quote(lines, 'standard', now, c, nileDay ?? DEFAULT_DAY),
+  })
   return (
     <Checkout
       token={randomUUID()}
+      nileDay={nileDay}
       buy={buy ? { id: buy, qty: lines[0].quantity } : null}
       lines={lines.map(({ product: p, quantity }) => ({
         // each line's own date, from the same promise as the product page and quote() (whose deliverBy is the latest of these)
@@ -61,6 +71,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<'/checkou
       quotes={{ US: quotes('US'), PK: quotes('PK') }}
       addresses={addresses.map((a) => ({ ...a, oneLine: [formatAddress(a), countryCodeFromName(a.country) !== 'US' && a.country].filter(Boolean).join(', ') }))}
       cards={cards.map((c) => ({ ...c, label: cardLabel(c), expiry: cardExpiry(c) }))}
+      cod={{ advanceRate: cod.advanceRate, detail: cod.detail }}
       notices={notices}
     />
   )

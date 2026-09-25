@@ -13,7 +13,7 @@ export const deliveryName = (speed: Speed, country: CountryCode) => `${speed ===
 // `items` are the lines (unit price × quantity), so the Items row adds up with the prices shown; `shippingCents` before the
 // free-shipping discount; `taxCents` null means no tax line (international: the import-fees note)
 export function summaryRows(
-  o: { items: Units[]; shippingCents: number; freeShippingCents: number; taxCents: number | null; dutyCents?: number },
+  o: { items: Units[]; shippingCents: number; freeShippingCents: number; taxCents: number | null; dutyCents?: number; creditCents?: number },
   currency: CurrencyCode,
   rate?: number,
 ) {
@@ -21,6 +21,8 @@ export function summaryRows(
     { label: `Items (${o.items.reduce((n, i) => n + i.quantity, 0)}):`, ...itemsTotal(o.items, currency, rate) },
     { label: 'Shipping & handling:', usdCents: o.shippingCents },
     ...(o.freeShippingCents ? [{ label: 'Free Shipping:', usdCents: -o.freeShippingCents }] : []),
+    // the shipping pooling saved, handed back before tax so the column adds up in either currency
+    ...(o.creditCents ? [{ label: 'Nile day credit:', usdCents: -o.creditCents }] : []),
     ...(o.dutyCents ? [{ label: 'Import duty (estimated):', usdCents: o.dutyCents }] : []),
   ]
   const beforeTax = summarize(pre, currency, rate)
@@ -32,13 +34,17 @@ export function summaryRows(
 
 // A placed order in its own currency and rate. Shipping is stored net of the free-shipping discount, so the FREE rows
 // checkout showed are rebuilt from the order's country rates.
-export function orderSummary(o: Pick<Order, 'shipTo' | 'deliverySpeed' | 'itemsCents' | 'shippingCents' | 'taxCents' | 'dutyCents' | 'currency' | 'fxRate' | 'items'>) {
+export function orderSummary(o: Pick<Order, 'shipTo' | 'deliverySpeed' | 'itemsCents' | 'shippingCents' | 'taxCents' | 'dutyCents' | 'pooled' | 'creditCents' | 'currency' | 'fxRate' | 'items'>) {
   const country = countryCodeFromName(o.shipTo.country)
   const rates = shippingRates(country)
   const free = o.deliverySpeed === 'standard' && rates.freeMin !== null && !o.shippingCents && o.itemsCents > 0 ? toCents(rates.standard) : 0
   return {
-    ...summaryRows({ items: o.items, shippingCents: o.shippingCents + free, freeShippingCents: free, taxCents: country === 'PK' ? null : o.taxCents, dutyCents: o.dutyCents }, o.currency, o.fxRate),
+    ...summaryRows(
+      { items: o.items, shippingCents: o.shippingCents + free, freeShippingCents: free, taxCents: country === 'PK' ? null : o.taxCents, dutyCents: o.dutyCents, creditCents: o.creditCents },
+      o.currency,
+      o.fxRate,
+    ),
     country,
-    speed: free ? 'FREE Standard Delivery' : deliveryName(o.deliverySpeed, country),
+    speed: o.pooled ? 'Nile Day Delivery' : free ? 'FREE Standard Delivery' : deliveryName(o.deliverySpeed, country),
   }
 }

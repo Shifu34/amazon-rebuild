@@ -6,7 +6,7 @@ import { AddressLines, orderMoney, OrderTotals } from '@/components/orders/order
 import { PrintButton } from '@/components/orders/print-button'
 import { requireUser } from '@/lib/auth'
 import { fullDate } from '@/lib/format'
-import { getOrder, orderView } from '@/lib/orders'
+import { getOrder, orderView, paymentLabel } from '@/lib/orders'
 
 export const metadata: Metadata = { title: 'Invoice' }
 
@@ -81,13 +81,13 @@ export default async function InvoicePage({ params }: Props) {
         <div className="grid gap-4 p-3 sm:grid-cols-2">
           <div>
             <b>Payment Method:</b>
-            <p>{order.payment.brand} | Last digits: {order.payment.last4}</p>
+            <p>{order.paymentKind === 'cod' ? paymentLabel(order) : `${order.payment.brand} | Last digits: ${order.payment.last4}`}</p>
           </div>
           <OrderTotals order={order} view={view} />
         </div>
         {view.step >= 1 && view.chargedCents > 0 && (
           <p className="border-t border-[#999] px-3 py-2">
-            <b>Credit Card transactions:</b> {order.payment.brand} ending in {order.payment.last4}: {fullDate(view.shippedAt)}: {m.charged}
+            <b>{order.paymentKind === 'cod' ? 'Cash on delivery:' : 'Credit Card transactions:'}</b> {paymentLabel(order)}: {fullDate(view.shippedAt)}: {m.charged}
           </p>
         )}
       </section>

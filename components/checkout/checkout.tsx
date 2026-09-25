@@ -5,10 +5,12 @@ import { useSearchParams } from 'next/navigation'
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { removeFromCart, updateQuantity } from '@/app/actions/cart'
 import { placedOrderId, placeOrder, type PlaceOrderState } from '@/app/actions/checkout'
+import { saveNileDay } from '@/app/actions/nile-day'
 import { AddressForm } from '@/components/address-form'
 import { CardForm } from '@/components/card-form'
 import { useRegion } from '@/components/region-provider'
 import type { Address } from '@/lib/addresses'
+import { DAY_NAMES, DEFAULT_DAY } from '@/lib/delivery'
 import { longDate, plural, toCents } from '@/lib/format'
 import type { Quote, Speed } from '@/lib/orders'
 import type { Card } from '@/lib/payments'
@@ -24,9 +26,11 @@ type Props = {
   buy: { id: string; qty: number } | null
   lines: Line[]
   linesKey: string
-  quotes: Record<CountryCode, Record<Speed, Quote>> // shipping and tax follow the selected address's country
+  quotes: Record<CountryCode, Record<Speed, Quote> & { pooled: Quote }> // shipping and tax follow the selected address's country
+  nileDay: number | null // the shopper's pooling weekday; null ships as ordered
   addresses: (Address & { oneLine: string })[]
   cards: (Card & { label: string; expiry: string })[]
+  cod: { advanceRate: number; detail: string } // lib/cod.ts: the shopper's cash standing
   notices: string[]
 }
 
@@ -34,9 +38,10 @@ const LEGAL = "By placing your order, you agree to nile's privacy notice and con
 const PLACING = 'nile:placing' // sessionStorage: token of the last checkout submitted in this tab
 const ADDRESS_HEADING = '#address-heading'
 const PAYMENT_HEADING = '#payment-heading'
+const CASH = 'cod'
 const CARD_NUMBER = 'section[aria-labelledby="payment-heading"] input[name="number"]'
 
-export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards, notices }: Props) {
+export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, addresses, cards, cod, notices }: Props) {
   const { currency, rate, country: regionCountry } = useRegion()
   // the shopper's picks live in the URL, so a trip to the cart (or a product page) and Back keeps them
   const params = useSearchParams()
@@ -47,6 +52,9 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
   }
   const address = addresses.find((a) => a.id === params.get('address')) ?? addresses[0]
   const card = cards.find((c) => c.id === params.get('card') && !c.expired) ?? cards.find((c) => !c.expired)
+  // cash rides in the same URL slot as the card, so Back keeps the choice like every other pick here
+  const payCash = params.get('card') === CASH
+  const advancePct = Math.round(cod.advanceRate * 100)
   const speed: Speed = params.get('speed') === 'expedited' ? 'expedited' : 'standard'
 
   const [addressView, setAddressView] = useState<View>('summary')
@@ -81,13 +89,27 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
 
   const aView = addressView === 'summary' && !address ? 'new' : addressView
   // a first-time shopper adds the address first; payment opens once it is saved
-  const cView = cardView === 'summary' && !card ? (cards.length ? 'list' : address ? 'new' : 'locked') : cardView
+  const cView = cardView === 'summary' && !card && !payCash ? (cards.length ? 'list' : address ? 'new' : 'locked') : cardView
   // before an address is saved, quote for the shopper's delivery country
   const country = address ? countryCodeFromName(address.country) : regionCountry
-  const q = quotes[country][speed]
+  // Your nile day is the stored weekday, so it is one bit: set means this standard order waits for it and is credited.
+  // The pooled quote is always sent, on the shopper's day or the one we propose, so the option can show its real date.
+  const pooling = nileDay !== null && speed === 'standard'
+  const day = nileDay ?? DEFAULT_DAY
+  const pooledQuote = quotes[country].pooled
+  const q = pooling ? pooledQuote : quotes[country][speed]
   const summary = summaryRows({ ...q, items: lines.map((l) => ({ priceCents: toCents(l.price), quantity: l.quantity })), taxCents: q.taxLabel ? q.taxCents : null }, currency, rate)
-  const groups = shipments(lines, (l) => l.arrives[country][speed])
-  const blocker = !address ? 'Add a delivery address to continue.' : !card ? 'Add a payment method to continue.' : null
+  // pooled: everything waits for the one day, so the review section shows a single arrival
+  const groups = pooling ? shipments(lines, () => pooledQuote.deliverBy) : shipments(lines, (l) => l.arrives[country][speed])
+  const blocker = !address
+    ? 'Add a delivery address to continue.'
+    : payCash
+      ? cod.advanceRate > 0 && !card
+        ? `Add a card for the ${advancePct}% we take up front on cash orders.`
+        : null
+      : !card
+        ? 'Add a payment method to continue.'
+        : null
   const error = editError || state?.error
   const doneId = placedId ?? state?.orderId
 
@@ -106,6 +128,12 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
         setEditError('There was a problem updating your cart. Please try again.')
       }
     })
+  // the stored day is the choice: setting it pools this order onto that weekday, clearing it ships as ordered
+  const setDay = (d: number | null) => {
+    const form = new FormData()
+    form.set('day', d === null ? '' : String(d))
+    edit(() => saveNileDay(form))
+  }
 
   if (doneId) return <AlreadyPlaced orderId={doneId} />
 
@@ -124,6 +152,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
         {buy && <input type="hidden" name="qty" value={buy.qty} />}
         <input type="hidden" name="addressId" value={address?.id ?? ''} />
         <input type="hidden" name="cardId" value={card?.id ?? ''} />
+        <input type="hidden" name="payment" value={payCash ? CASH : 'card'} />
         <input type="hidden" name="speed" value={speed} />
       </form>
 
@@ -220,20 +249,27 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
           </Section>
         )}
 
-        {cView === 'summary' && card ? (
+        {cView === 'summary' && (payCash || card) ? (
           <Section
             done
             headingId="payment-heading"
-            title={`Paying with ${card.label}`}
+            title={payCash ? 'Paying with Cash on Delivery' : `Paying with ${card!.label}`}
             onChange={() => {
               setCardView('list')
               focusNext.current = PAYMENT_HEADING
             }}
             changeLabel="Change payment method"
           >
-            <p className="text-sm text-muted">
-              {card.nameOnCard} · Expires {card.expiry}
-            </p>
+            {payCash ? (
+              <p className="text-sm text-muted">
+                Pay the courier when it arrives.
+                {cod.advanceRate > 0 && card && ` We take ${advancePct}% now on ${card.label}, the rest in cash.`}
+              </p>
+            ) : (
+              <p className="text-sm text-muted">
+                {card!.nameOnCard} · Expires {card!.expiry}
+              </p>
+            )}
           </Section>
         ) : cView === 'locked' ? (
           <Section headingId="payment-heading" title="Payment method" muted>
@@ -254,7 +290,26 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
                   </>
                 ),
               }))}
-              value={card?.id ?? ''}
+              value={payCash ? CASH : (card?.id ?? '')}
+              onChange={(id) => choose('card', id)}
+            />
+            {/* cash is what most shoppers here trust; the advance, when there is one, says why in plain words */}
+            <h3 className="mt-4 mb-2 text-sm">Other ways to pay</h3>
+            <Choices
+              legend="Cash on delivery"
+              options={[
+                {
+                  id: CASH,
+                  label: (
+                    <>
+                      <b>Cash on Delivery</b>
+                      <span className="block text-muted">Pay the courier when it arrives.</span>
+                      {cod.advanceRate > 0 && <span className="block text-danger">{cod.detail}</span>}
+                    </>
+                  ),
+                },
+              ]}
+              value={payCash ? CASH : ''}
               onChange={(id) => choose('card', id)}
             />
             <button
@@ -273,7 +328,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
                 setCardView('summary')
                 focusNext.current = PAYMENT_HEADING
               }}
-              disabled={!card}
+              disabled={!card && !payCash}
               className="btn btn-cart mt-3"
             >
               Use this payment method
@@ -297,6 +352,22 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
                   : undefined
               }
             />
+            {/* a first-time shopper lands straight on this form, so cash has to be reachable from here too, and a shopper
+                who now owes an advance is told why a card is being asked for at all */}
+            {!cards.length && cod.advanceRate > 0 && <p className="mt-4 text-sm text-danger">{cod.detail}</p>}
+            {!cards.length && (
+              <button
+                type="button"
+                onClick={() => {
+                  choose('card', CASH)
+                  setCardView('summary')
+                  focusNext.current = PAYMENT_HEADING
+                }}
+                className="link mt-4 block cursor-pointer text-sm"
+              >
+                Pay with Cash on Delivery instead
+              </button>
+            )}
           </Section>
         )}
 
@@ -330,7 +401,16 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
                 const split = shipments(lines, (l) => l.arrives[country][s]).length > 1
                 return (
                   <label key={s} className="flex cursor-pointer gap-2 rounded-md p-1.5 text-sm has-[:checked]:bg-[#f0f8f9]">
-                    <input type="radio" name="delivery-speed" checked={speed === s} onChange={() => choose('speed', s)} className="mt-0.5 size-4 shrink-0 accent-link" />
+                    <input
+                      type="radio"
+                      name="delivery-speed"
+                      checked={speed === s && !pooling}
+                      onChange={() => {
+                        choose('speed', s)
+                        if (pooling) setDay(null) // leaving the pooled option turns the nile day off
+                      }}
+                      className="mt-0.5 size-4 shrink-0 accent-link"
+                    />
                     <span>
                       <b className="text-success">
                         {split && 'All by '}
@@ -344,6 +424,38 @@ export function Checkout({ token, buy, lines, linesKey, quotes, addresses, cards
                   </label>
                 )
               })}
+              {/* Your nile day: the week's orders arrive in one trip, and the shipping that saves comes back. The date and
+                  the saving are both on the label, so nothing is ever delayed without the shopper seeing what for. */}
+              <div className="rounded-md p-1.5 has-[:checked]:bg-[#f0f8f9]">
+                <label className="flex cursor-pointer gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="delivery-speed"
+                    checked={pooling}
+                    onChange={() => {
+                      choose('speed', 'standard')
+                      setDay(day)
+                    }}
+                    className="mt-0.5 size-4 shrink-0 accent-link"
+                  />
+                  <span>
+                    <b className="text-success">{longDate(pooledQuote.deliverBy)}</b>
+                    <span className="block">
+                      With the rest of your week
+                      {pooledQuote.creditCents > 0 && <> · you save {formatMoney(pooledQuote.creditCents, currency, rate)}</>}
+                    </span>
+                  </span>
+                </label>
+                {/* the select is a sibling, not inside the label: it would otherwise land in the radio's spoken name */}
+                <span className="mt-1 flex flex-wrap items-center gap-1 pl-6 text-xs text-muted">
+                  Your nile day:
+                  <select value={day} onChange={(e) => setDay(Number(e.target.value))} aria-label="Your nile day" className="select-pill">
+                    {DAY_NAMES.map((name, i) => (
+                      <option key={name} value={i}>{name}</option>
+                    ))}
+                  </select>
+                </span>
+              </div>
             </fieldset>
           </div>
         </section>

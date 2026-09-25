@@ -103,7 +103,7 @@ try {
   const review = page.getByRole('region', { name: 'Review items and delivery' })
   assert.equal(await review.getByText(/^Shipment \d of 2/).count(), 2)
   assert.equal(await review.getByRole('group', { name: 'Choose your delivery option:' }).count(), 1)
-  assert.equal(await review.getByRole('radio').count(), 2)
+  assert.equal(await review.getByRole('radio').count(), 3, 'Standard, Expedited and your nile day')
   await review.getByLabel(/^All by .*Standard Delivery/).waitFor()
 
   step('expedited delivery changes shipping and total')

@@ -4,7 +4,7 @@ import { orderSummary } from '@/components/checkout/summary'
 import { DROP_OFF_DAYS } from '@/components/orders/rules'
 import { formatAddress } from './addresses'
 import { fullDate, longDate } from './format'
-import { itemRefundCents, RETURN_DAYS, type Order, type OrderItem } from './orders'
+import { itemRefundCents, paymentLabel, RETURN_DAYS, type Order, type OrderItem } from './orders'
 import { countryCodeFromName, formatMinor, IMPORT_FEES_NOTE, itemsTotal, lineMinor } from './region'
 
 export type OrderEmailKind = 'confirmation' | 'cancelled' | 'return' | 'delivered'
@@ -35,6 +35,14 @@ const p = (html: string, style = '') => `<p style="${F}margin:0 0 14px;font-size
 const button = (href: string, label: string) =>
   `<a href="${esc(href)}" style="${F}display:inline-block;background:#ffd814;border:1px solid #fcd200;border-radius:999px;padding:10px 24px;color:${C.ink};font-size:14px;text-decoration:none">${esc(label)}</a>`
 const link = (href: string, label: string) => `<a href="${esc(href)}" style="color:#007185;text-decoration:none">${esc(label)}</a>`
+// how the shopper pays: a card charged now, or cash handed to the courier (lib/cod.ts)
+const paidWith = (o: Order) =>
+  o.paymentKind === 'cod'
+    ? o.payment.advanceCents
+      ? `Pay the courier when it arrives. Part paid up front on ${o.payment.brand} ending in ${o.payment.last4}.`
+      : 'Pay the courier when it arrives.'
+    : `Paid with ${paymentLabel(o)}`
+
 // international orders: duties are the carrier's, said wherever amounts are
 const importNote = (o: Order) => (intl(o) ? p(esc(IMPORT_FEES_NOTE), `font-size:13px;color:${C.muted}`) : '')
 const textImportNote = (o: Order) => (intl(o) ? `\n${IMPORT_FEES_NOTE}` : '')
@@ -90,11 +98,11 @@ function confirmation({ order, name, origin }: OrderEmailInput): RenderedEmail {
     itemsTable(order, order.items, lineTotal) +
     summary(rows.map((r) => [r.label, r.text]), ['Order total:', total]) +
     importNote(order) +
-    p(`Paid with ${esc(order.payment.brand)} ending in ${esc(order.payment.last4)}`, `font-size:13px;color:${C.muted}`)
+    p(esc(paidWith(order)), `font-size:13px;color:${C.muted}`)
   return {
     subject: `Ordered: ${quoted(order.items)}`,
     html: layout({ preheader: `Arriving by ${arriving} · Order #${order.id}`, title: 'Thanks for your order!', body, reason: 'You received this email because you placed an order on nile.' }),
-    text: `Thanks for your order, ${firstName(name)}!\n\nArriving by ${arriving} (${speed})\nShip to ${order.shipTo.fullName}, ${place(order)}\nOrder #${order.id}, placed ${fullDate(order.placedAt)}\n\n${textItems(order, order.items, lineTotal)}\n\n${rows.map((r) => `${r.label} ${r.text}`).join('\n')}\nOrder total: ${total}${textImportNote(order)}\nPaid with ${order.payment.brand} ending in ${order.payment.last4}\n\nView or manage order: ${url}${textFooter}`,
+    text: `Thanks for your order, ${firstName(name)}!\n\nArriving by ${arriving} (${speed})\nShip to ${order.shipTo.fullName}, ${place(order)}\nOrder #${order.id}, placed ${fullDate(order.placedAt)}\n\n${textItems(order, order.items, lineTotal)}\n\n${rows.map((r) => `${r.label} ${r.text}`).join('\n')}\nOrder total: ${total}${textImportNote(order)}\n${paidWith(order)}\n\nView or manage order: ${url}${textFooter}`,
   }
 }
 

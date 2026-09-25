@@ -6,8 +6,9 @@ import type { Address } from './addresses'
 import { getCart, MAX_QTY } from './cart'
 import { getProduct, type Product } from './catalog'
 import { query } from './db'
-import { deliveryPromise, shippingRates } from './delivery'
+import { deliveryPromise, isNileDay, nextNileDay, shippingRates } from './delivery'
 import { fullDate, toCents } from './format'
+import { getNileDay } from './nile-day'
 import type { Card } from './payments'
 import { getShopperPrices, priced, protectionCents, spendLocks, type ShopperPrices } from './price-lock'
 import { countryCodeFromName, dutyCentsFor, IMPORT_FEES_NOTE, isCurrencyCode, rateFor, type CountryCode, type CurrencyCode } from './region'
@@ -55,22 +56,31 @@ export type Quote = {
   dutyCents: number // estimated import duty, charged with the order (PK); 0 for US
   dutyLabel: string | null // "Import duty (estimated):"; null when there is none
   importNote: string | null // IMPORT_FEES_NOTE instead of a tax line (PK); null for US
+  pooled: boolean // waiting for the shopper's nile day, so the week arrives in one trip
+  creditCents: number // the shipping that pooling saves, handed back (0 when shipping was already free)
 }
 
 // US: standard is FREE from $35 of items (else $6.99), Expedited $9.99, 8.25% tax. Pakistan: flat $14.99 / $29.99, no tax.
 // Delivery is when the slowest item arrives.
-export function quote(lines: OrderLine[], speed: Speed, now = new Date(), country: CountryCode = 'US'): Quote {
+// `nileDay` (0 Sunday … 6 Saturday) quotes the pooled option: the delivery waits for that weekday and the shipping this
+// saves comes off, tax included, so the column still adds up. Pass it only for the pooled choice, never by default.
+export function quote(lines: OrderLine[], speed: Speed, now = new Date(), country: CountryCode = 'US', nileDay?: number | null): Quote {
   const rates = shippingRates(country)
   const itemCount = lines.reduce((n, l) => n + l.quantity, 0)
   const itemsCents = lines.reduce((sum, l) => sum + toCents(l.product.price) * l.quantity, 0)
   const free = speed === 'standard' && rates.freeMin !== null && itemsCents >= toCents(rates.freeMin)
   const shippingCents = toCents(rates[speed])
   const freeShippingCents = free ? shippingCents : 0
-  const beforeTaxCents = itemsCents + shippingCents - freeShippingCents
-  const taxRate = taxRateFor(country)
-  const taxCents = Math.round(beforeTaxCents * taxRate)
   const deliverBy = new Date(Math.max(now.getTime(), ...lines.map((l) => deliveryPromise(l.product, now, country)[speed].getTime())))
   deliverBy.setUTCHours(20, 0, 0, 0) // delivered by 8pm UTC on the arrival day
+  // pooling only ever waits; a day that isn't later than the promise costs us no trip, so it earns no credit
+  const pooledBy = speed === 'standard' && isNileDay(nileDay) ? nextNileDay(nileDay, deliverBy) : null
+  const pooled = !!pooledBy && pooledBy.getTime() > deliverBy.getTime()
+  const creditCents = pooled ? shippingCents - freeShippingCents : 0
+  const beforeTaxCents = itemsCents + shippingCents - freeShippingCents - creditCents
+  const taxRate = taxRateFor(country)
+  const taxCents = Math.round(beforeTaxCents * taxRate)
+  if (pooledBy) deliverBy.setTime(pooledBy.getTime())
   const intl = country === 'PK'
   // per line, so a mixed basket (a phone and a lipstick) is charged at each category's rate
   // ponytail: duty on goods only; a real customs value includes freight
@@ -80,6 +90,7 @@ export function quote(lines: OrderLine[], speed: Speed, now = new Date(), countr
     totalCents: beforeTaxCents + taxCents + dutyCents, deliverBy,
     country, taxRate, taxLabel: intl ? null : 'Estimated tax to be collected:',
     dutyLabel: dutyCents ? 'Import duty (estimated):' : null, importNote: intl ? IMPORT_FEES_NOTE : null,
+    pooled, creditCents,
   }
 }
 
@@ -99,9 +110,14 @@ const MIGRATIONS = [
   `alter table orders add column if not exists currency text not null default 'USD',
      add column if not exists fx_rate double precision not null default 1`,
   'alter table orders add column if not exists duty_cents int not null default 0',
+  `alter table orders add column if not exists pooled boolean not null default false,
+     add column if not exists credit_cents int not null default 0`,
+  'alter table users add column if not exists delivery_day smallint',
+  `alter table orders add column if not exists payment_kind text not null default 'card',
+     add column if not exists confirmed_at timestamptz, add column if not exists refused_at timestamptz`,
 ]
 let schemaReady: Promise<unknown> | undefined
-function ensureSchema() {
+export function ensureSchema() {
   schemaReady ??= MIGRATIONS.reduce<Promise<unknown>>((p, sql) => p.then(() => query(sql)), Promise.resolve()).catch((e) => {
     schemaReady = undefined
     throw e
@@ -116,7 +132,16 @@ export async function orderIdForKey(userId: string, key: string) {
 }
 
 export type ShipTo = Omit<Address, 'id' | 'isDefault'>
-export type PaymentSnapshot = { brand: string; last4: string; nameOnCard: string }
+// A card, or cash on delivery. `advanceCents` is the part taken on the card above before a cash order ships (lib/cod.ts);
+// without it a cash order carries no card at all.
+export type PaymentSnapshot = { brand: string; last4: string; nameOnCard: string; advanceCents?: number }
+export type PaymentKind = 'card' | 'cod'
+
+// One place to say how an order was paid: the order page, the invoice and every email read from here.
+export function paymentLabel(o: Pick<Order, 'paymentKind' | 'payment'>) {
+  if (o.paymentKind !== 'cod') return `${o.payment.brand} ending in ${o.payment.last4}`
+  return o.payment.advanceCents ? `Cash on Delivery, part paid on ${o.payment.brand} ending in ${o.payment.last4}` : 'Cash on Delivery'
+}
 
 // Inserts the order, its items and (for cart checkouts) deletes the purchased cart lines in ONE statement, so it is
 // atomic without transactions. Returns null when this idempotency key already placed an order.
@@ -124,24 +149,32 @@ export type PaymentSnapshot = { brand: string; last4: string; nameOnCard: string
 // Shipping and tax follow the address's country; `currency` and `fxRate` are the display currency and rate at placement
 // (default USD at 1), which every later view of the order uses.
 export async function createOrder(o: {
-  userId: string; key: string; address: Address; card: Card; lines: OrderLine[]; speed: Speed; fromCart: boolean; placedAt?: Date; deliverBy?: Date
+  userId: string; key: string; address: Address; card: Card | null; lines: OrderLine[]; speed: Speed; fromCart: boolean; placedAt?: Date; deliverBy?: Date
   currency?: CurrencyCode; fxRate?: number
+  paymentKind?: PaymentKind; advanceCents?: number // cash on delivery, and what we take up front (lib/cod.ts)
 }) {
   await ensureSchema()
   // the charge goes through the shopper's own prices, so a lock is honoured on every path into checkout, Buy Now included
   const prices = await getShopperPrices(o.userId)
   const lines = o.lines.map((l) => ({ ...l, product: priced(l.product, prices) }))
-  const q = quote(lines, o.speed, o.placedAt, countryCodeFromName(o.address.country))
+  // a shopper with a nile day set pools their standard orders onto it, which is the option checkout showed them.
+  // A back-dated demo order brings its own date, so it is never pooled.
+  const nileDay = o.deliverBy ? null : await getNileDay(o.userId)
+  const q = quote(lines, o.speed, o.placedAt, countryCodeFromName(o.address.country), nileDay)
   const currency = o.currency ?? 'USD'
   const fxRate = currency === 'USD' ? 1 : (o.fxRate ?? rateFor(currency))
   const a = o.address
   const shipTo: ShipTo = { fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, zip: a.zip, country: a.country, instructions: a.instructions }
-  const payment: PaymentSnapshot = { brand: o.card.brand, last4: o.card.last4, nameOnCard: o.card.nameOnCard }
+  const kind: PaymentKind = o.paymentKind ?? 'card'
+  // cash with an advance keeps the card that took it; plain cash keeps no card details at all
+  const payment: PaymentSnapshot = o.card
+    ? { brand: o.card.brand, last4: o.card.last4, nameOnCard: o.card.nameOnCard, ...(o.advanceCents ? { advanceCents: o.advanceCents } : {}) }
+    : { brand: 'Cash on Delivery', last4: '', nameOnCard: a.fullName }
   const items = lines.map((l) => ({ product_id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price_cents: toCents(l.product.price), quantity: l.quantity }))
   const [row] = await query<{ id: string }>(
     `with o as (
-       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at, currency, fx_rate, duty_cents)
-       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()), $16, $17, $18)
+       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at, currency, fx_rate, duty_cents, pooled, credit_cents, payment_kind)
+       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()), $16, $17, $18, $19, $20, $21)
        on conflict (idempotency_key) do nothing
        returning id
      ), items as (
@@ -155,7 +188,8 @@ export async function createOrder(o: {
      )
      select id from o`,
     [newOrderId(), o.userId, JSON.stringify(shipTo), JSON.stringify(payment), o.speed, q.itemsCents, q.shippingCents - q.freeShippingCents,
-      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null, currency, fxRate, q.dutyCents],
+      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null, currency, fxRate, q.dutyCents,
+      q.pooled, q.creditCents, kind],
   )
   if (row?.id) await spendLocks(o.userId, lines.map((l) => l.product.id)) // a lock buys one order, not a standing discount
   return row?.id ?? null
@@ -183,11 +217,16 @@ export type Order = {
   currency: CurrencyCode // display currency when placed; show every amount of this order in it
   fxRate: number // with this rate (1 for USD)
   payment: PaymentSnapshot
+  paymentKind: PaymentKind
+  confirmedAt: Date | null // cash orders ship once the shopper confirms
+  refusedAt: Date | null // the parcel came back; counts against their cash standing
   deliverySpeed: Speed
   itemsCents: number
   shippingCents: number
   taxCents: number
   dutyCents: number // estimated import duty charged with the order (PK); 0 for US
+  pooled: boolean // waited for the shopper's nile day
+  creditCents: number // the shipping pooling saved, credited back
   totalCents: number
   placedAt: Date
   deliverBy: Date
@@ -199,13 +238,15 @@ export type Order = {
 type ItemRow = Omit<OrderItem, 'returnedAt' | 'cancelledAt' | 'refundedAt'> & { returnedAt: string | null; cancelledAt: string | null; refundedAt: string | null }
 type OrderRow = {
   id: string; ship_to: ShipTo; payment: PaymentSnapshot; delivery_speed: Speed; items_cents: number; shipping_cents: number; tax_cents: number
-  duty_cents: number | null; total_cents: number; placed_at: Date; deliver_by: Date; cancelled_at: Date | null; replacement_for: string | null; items: ItemRow[]
+  duty_cents: number | null; pooled: boolean | null; credit_cents: number | null
+  payment_kind: string | null; confirmed_at: Date | null; refused_at: Date | null
+  total_cents: number; placed_at: Date; deliver_by: Date; cancelled_at: Date | null; replacement_for: string | null; items: ItemRow[]
   currency: string; fx_rate: number | string
 }
 
 const ORDER_SELECT = `
-  select o.id, o.ship_to, o.payment, o.delivery_speed, o.items_cents, o.shipping_cents, o.tax_cents, o.duty_cents, o.total_cents, o.placed_at, o.deliver_by,
-    o.cancelled_at, o.replacement_for, o.currency, o.fx_rate,
+  select o.id, o.ship_to, o.payment, o.delivery_speed, o.items_cents, o.shipping_cents, o.tax_cents, o.duty_cents, o.pooled, o.credit_cents, o.total_cents, o.placed_at, o.deliver_by,
+    o.cancelled_at, o.replacement_for, o.currency, o.fx_rate, o.payment_kind, o.confirmed_at, o.refused_at,
     coalesce(json_agg(json_build_object('productId', i.product_id, 'title', i.title, 'thumbnail', i.thumbnail, 'priceCents', i.price_cents,
       'quantity', i.quantity, 'returnReason', i.return_reason, 'returnedAt', i.returned_at, 'cancelledAt', i.cancelled_at,
       'returnCode', i.return_code, 'returnMethod', i.return_method, 'returnResolution', i.return_resolution, 'refundCents', i.refund_cents,
@@ -220,11 +261,16 @@ const fromRow = (r: OrderRow): Order => ({
   currency: isCurrencyCode(r.currency) ? r.currency : 'USD',
   fxRate: Number(r.fx_rate) || 1,
   payment: r.payment,
+  paymentKind: r.payment_kind === 'cod' ? 'cod' : 'card', // orders placed before cash on delivery
+  confirmedAt: toDate(r.confirmed_at as unknown as string | null),
+  refusedAt: toDate(r.refused_at as unknown as string | null),
   deliverySpeed: r.delivery_speed,
   itemsCents: r.items_cents,
   shippingCents: r.shipping_cents,
   taxCents: r.tax_cents,
   dutyCents: r.duty_cents ?? 0, // orders placed before landed-cost pricing
+  pooled: r.pooled ?? false, // orders placed before nile day
+  creditCents: r.credit_cents ?? 0,
   totalCents: r.total_cents,
   placedAt: new Date(r.placed_at),
   deliverBy: new Date(r.deliver_by),
@@ -380,6 +426,8 @@ export function orderView(o: Order, now = new Date()) {
     refundCents,
     canReturn: items.some((i) => i.state.kind === 'open'),
     returnPending: items.some((i) => i.state.kind === 'return-started'),
+    // said on the order and in Your Orders, so a later date always carries its reason
+    pooledNote: o.pooled && s.status !== 'cancelled' ? 'Arriving on your nile day' : null,
   }
 }
 export type OrderView = ReturnType<typeof orderView>

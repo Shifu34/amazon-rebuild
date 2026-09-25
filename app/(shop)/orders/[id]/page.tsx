@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Fragment } from 'react'
+import { confirmCodOrder, demoRefuseDelivery } from '@/app/actions/cod'
 import { demoMarkDelivered, demoReceiveReturn } from '@/app/actions/orders'
 import { CheckCircleIcon } from '@/components/checkout/icons'
 import { AddressLines, Crumbs, ItemRow, OrderActions, OrderTotals } from '@/components/orders/order-card'
@@ -10,7 +11,8 @@ import { Progress } from '@/components/orders/progress'
 import { requireUser } from '@/lib/auth'
 import { getProduct } from '@/lib/catalog'
 import { fullDate, plural } from '@/lib/format'
-import { getOrder, orderView, reviewedProductIds } from '@/lib/orders'
+import { getOrder, orderView, paymentLabel, reviewedProductIds } from '@/lib/orders'
+import { formatMoney } from '@/lib/region'
 import { getReminders, reminderWeeks } from '@/lib/reminders'
 
 export const metadata: Metadata = { title: 'Order Details' }
@@ -60,6 +62,24 @@ export default async function OrderDetailsPage({ params, searchParams }: Props) 
           </div>
         )}
 
+        {/* a cash order waits for one tap before it ships: the cheap step that stops most refusals (lib/cod.ts) */}
+        {order.paymentKind === 'cod' && !order.confirmedAt && !order.cancelledAt && (
+          <section aria-label="Confirm this order" className="rounded-lg border border-[#e77600] bg-[#fef8f2] p-4 max-md:order-1">
+            <h2 className="font-bold">Awaiting your confirmation</h2>
+            <p className="mt-1 text-sm">We won&apos;t ship this cash order until you confirm you want it.</p>
+            <form action={confirmCodOrder} className="mt-3">
+              <input type="hidden" name="orderId" value={order.id} />
+              <button type="submit" className="btn btn-cart">Confirm this order</button>
+            </form>
+          </section>
+        )}
+        {order.refusedAt && (
+          <section aria-label="Refused" className="rounded-lg border border-line bg-[#f7f8f8] p-4 text-sm max-md:order-1">
+            <h2 className="font-bold">Parcel refused</h2>
+            <p className="mt-1">Nothing was charged. Cash orders now ask for part of the total up front until your next delivery is taken.</p>
+          </section>
+        )}
+
         <section aria-label="Order summary" className="grid gap-4 rounded-lg border border-line p-4 text-sm max-md:order-1 md:grid-cols-3">
           <div>
             <h2 className="font-bold">Ship to</h2>
@@ -67,7 +87,10 @@ export default async function OrderDetailsPage({ params, searchParams }: Props) 
           </div>
           <div>
             <h2 className="font-bold">Payment method</h2>
-            <p>{order.payment.brand} ending in {order.payment.last4}</p>
+            <p>{paymentLabel(order)}</p>
+            {order.paymentKind === 'cod' && order.payment.advanceCents ? (
+              <p className="text-xs text-muted">{formatMoney(order.payment.advanceCents, order.currency, order.fxRate)} paid up front, the rest to the courier.</p>
+            ) : null}
           </div>
           <div>
             <h2 className="font-bold">Order Summary</h2>
@@ -80,6 +103,7 @@ export default async function OrderDetailsPage({ params, searchParams }: Props) 
             <div>
               <h2 id="shipment-status" className="text-lg font-bold">{view.headline}</h2>
               <p className="text-sm text-muted">{view.subline}</p>
+              {view.pooledNote && <p className="text-sm">{view.pooledNote}</p>}
               {view.step >= 0 && (
                 <div className="mt-3 max-w-md">
                   <Progress step={view.step} />
@@ -121,6 +145,13 @@ export default async function OrderDetailsPage({ params, searchParams }: Props) 
                   : 'Deliveries here are simulated. This pretends you ordered yesterday and delivers it now, so you can try tracking, returns and reviews without waiting.'}
               </p>
             </form>
+            {order.paymentKind === 'cod' && !delivered && !order.refusedAt && !order.cancelledAt && (
+              <form action={demoRefuseDelivery} className="mt-3 border-t border-line pt-3">
+                <input type="hidden" name="orderId" value={order.id} />
+                <button type="submit" className="btn btn-plain">Demo: refuse delivery</button>
+                <p className="mt-1 text-xs text-muted">Turns the courier away, as a shopper can with cash on delivery. Nothing is charged, and you can see what it does to your cash standing.</p>
+              </form>
+            )}
           </section>
         )}
       </div>

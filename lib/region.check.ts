@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 import { summaryRows } from '@/components/checkout/summary'
 import { appliedFilters, displayNumber, parseQuery, toSearch } from '@/components/search/params'
 import { formatAddress, validateAddress } from './addresses'
-import { deliveryPromise, deliveryText } from './delivery'
+import { deliveryPromise, deliveryText, nextNileDay } from './delivery'
 import { getProduct, products, search } from './catalog'
 import { itemRefundCents, quote, taxRateFor, trackingEvents, type Order, type OrderLine } from './orders'
 import { toCents } from './format'
+import { ADVANCE_RATE, advanceCents } from './cod'
 import { protectionCents } from './price-lock'
 import {
   COUNTRIES, convertCents, countryCodeFromName, CURRENCIES, dutyCentsFor, formatDollars, formatMinor, formatMoney, fromDisplayAmount, IMPORT_FEES_NOTE,
@@ -168,9 +169,34 @@ assert.equal(itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK', { dutyCent
 assert.equal(itemRefundCents({ priceCents: 500, quantity: 1 }, 'PK', { dutyCents: 700, itemsCents: 2000 }), 675)
 assert.equal(itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK', { dutyCents: 0, itemsCents: 2000 }), 2000)
 
+// your nile day: the delivery waits for that weekday and the shipping it saves comes off, tax included
+const TUE = new Date('2026-09-22T20:00:00Z') // what usStd promises, a Tuesday
+assert.equal(day(nextNileDay(5, TUE)), '2026-09-25', 'Friday after a Tuesday promise')
+assert.equal(day(nextNileDay(2, TUE)), '2026-09-22', 'the promise already lands on the chosen day')
+const under35: OrderLine[] = [lines[1]] // $9.99, so standard shipping is charged and there is a saving to hand back
+const pooled = quote(under35, 'standard', MON, 'US', 5)
+assert.deepEqual(
+  [pooled.pooled, pooled.creditCents, pooled.beforeTaxCents, pooled.taxCents, pooled.totalCents, day(pooled.deliverBy)],
+  [true, 699, 999, 82, 1081, '2026-09-25'],
+  'the $6.99 shipping comes back and tax follows it down',
+)
+const sameDay = quote(under35, 'standard', MON, 'US', 2)
+assert.deepEqual([sameDay.pooled, sameDay.creditCents, day(sameDay.deliverBy)], [false, 0, '2026-09-22'], 'no wait, no credit')
+assert.equal(quote(under35, 'standard', MON, 'US', 5).deliverBy > quote(under35, 'standard', MON, 'US').deliverBy, true, 'pooling only ever waits')
+assert.equal(quote(lines, 'expedited', MON, 'US', 5).pooled, false, 'expedited is never pooled')
+const pkPooled = quote(lines, 'standard', MON, 'PK', 5) // Pakistan shipping is never free, so the whole $14.99 comes back
+assert.deepEqual([pkPooled.creditCents, pkPooled.totalCents, day(pkPooled.deliverBy)], [1499, 9449, '2026-10-02'])
+const overFree = quote(lines, 'standard', MON, 'US', 5) // already FREE over $35: nothing to hand back
+assert.deepEqual([overFree.pooled, overFree.creditCents], [true, 0])
+// the credit row is a negative line, so the column still adds up in rupees
+const pooledRows = summaryRows({ items: [{ priceCents: 999, quantity: 1 }], shippingCents: 699, freeShippingCents: 0, creditCents: 699, taxCents: null }, 'PKR')
+assert.deepEqual(pooledRows.rows.map((r) => r.label), ['Items (1):', 'Shipping & handling:', 'Nile day credit:'])
+assert.equal(pooledRows.rows[2].text, `-${pooledRows.rows[1].text}`, 'the credit cancels the shipping it saved')
+
 // tracking: Pakistan orders read as an international trip to "City, Pakistan"; US orders keep "City, ST"
 const shipped = (country: string, state: string): Order => ({
-  id: '113-1234567-1234567', currency: 'USD', fxRate: 1, deliverySpeed: 'standard', itemsCents: 0, shippingCents: 0, taxCents: 0, dutyCents: 0, totalCents: 0,
+  id: '113-1234567-1234567', currency: 'USD', fxRate: 1, deliverySpeed: 'standard', itemsCents: 0, shippingCents: 0, taxCents: 0, dutyCents: 0,
+  paymentKind: 'card', confirmedAt: null, refusedAt: null, pooled: false, creditCents: 0, totalCents: 0,
   shipTo: { fullName: 'A', phone: '', line1: '', line2: '', city: 'Lahore', state, zip: '54000', country, instructions: '' },
   payment: { brand: 'Visa', last4: '4242', nameOnCard: 'A' }, placedAt: new Date(MON.getTime() - 20 * 86_400_000), deliverBy: new Date(MON.getTime() - 86_400_000),
   cancelledAt: null, replacementFor: null, items: [],
@@ -241,5 +267,12 @@ const lockedQuote = quote([{ product: locked, quantity: 1, requested: 1 }], 'sta
 assert.equal(lockedQuote.itemsCents, shelf - 400)
 assert.equal(lockedQuote.dutyCents, dutyCentsFor('PK', locked.category, shelf - 400), 'duty follows the price actually charged')
 assert.equal(lockedQuote.totalCents, lockedQuote.itemsCents + lockedQuote.shippingCents + lockedQuote.dutyCents)
+
+// cash on delivery: nothing up front in good standing, 30% after a refused parcel, and the same amount in rupees
+assert.equal(advanceCents(10_000, 0), 0, 'good standing pays nothing up front')
+assert.equal(advanceCents(10_000, ADVANCE_RATE), 3000)
+assert.equal(advanceCents(8499, ADVANCE_RATE), 2550, 'rounded to the cent, not floored')
+assert.equal(formatMoney(advanceCents(8499, ADVANCE_RATE), 'PKR'), 'PKR 7,065.29', 'the advance converts like every other amount')
+assert.equal(advanceCents(8499, ADVANCE_RATE) + (8499 - advanceCents(8499, ADVANCE_RATE)), 8499, 'advance plus cash due is the whole order')
 
 console.log('region ok')

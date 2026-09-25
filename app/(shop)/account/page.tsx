@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions/auth'
 import { demoSendReminders } from '@/app/actions/reminders'
+import { NileDay } from '@/components/account/nile-day'
 import { ReminderList } from '@/components/orders/reminder'
 import { getAddresses } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
@@ -9,6 +10,8 @@ import { one } from '@/lib/db'
 import { plural } from '@/lib/format'
 import { historyPaused } from '@/lib/history'
 import { getLists } from '@/lib/lists'
+import { codStanding } from '@/lib/cod'
+import { getNileDay } from '@/lib/nile-day'
 import { cardLabel, getCards } from '@/lib/payments'
 import { getReminders } from '@/lib/reminders'
 
@@ -26,13 +29,15 @@ const ICON = {
 
 export default async function AccountPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireUser('/account')
-  const [addresses, cards, lists, viewed, paused, reminders, sp] = await Promise.all([
+  const [addresses, cards, lists, viewed, paused, reminders, nileDay, cod, sp] = await Promise.all([
     getAddresses(user.id),
     getCards(user.id),
     getLists(user.id),
     one<{ n: number }>('select count(*)::int as n from browsing_history where user_id = $1', [user.id]),
     historyPaused(user.id),
     getReminders(user.id),
+    getNileDay(user.id),
+    codStanding(user.id),
     searchParams,
   ])
   // the email's one-click stop lands back here (app/api/reminders/stop)
@@ -99,6 +104,16 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           Stopped. We won&apos;t remind you about {stopped} again.
         </p>
       )}
+
+      <div className="mt-5">
+        <NileDay day={nileDay} />
+      </div>
+
+      {/* cash standing in plain words: what it costs them today and how it changes (lib/cod.ts) */}
+      <section aria-labelledby="cod-standing" className="mt-5 rounded-lg border border-line p-4">
+        <h2 id="cod-standing" className="font-bold">{cod.headline}</h2>
+        <p className="mt-1 text-sm">{cod.detail}</p>
+      </section>
 
       <div className="mt-5">
         <ReminderList

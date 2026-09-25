@@ -13,7 +13,8 @@ const order: Order = {
   id: '113-1234567-7654321',
   shipTo: { fullName: 'Ada <b>Lovelace</b>', phone: '2065550142', line1: '410 Terry Ave N', line2: '', city: 'Seattle', state: 'WA', zip: '98109', country: 'United States', instructions: '' },
   payment: { brand: 'Visa', last4: '4242', nameOnCard: 'Ada' },
-  deliverySpeed: 'standard', itemsCents: 4997, shippingCents: 0, taxCents: 412, dutyCents: 0, totalCents: 5409, currency: 'USD', fxRate: 1,
+  paymentKind: 'card', confirmedAt: null, refusedAt: null,
+  deliverySpeed: 'standard', itemsCents: 4997, shippingCents: 0, taxCents: 412, dutyCents: 0, pooled: false, creditCents: 0, totalCents: 5409, currency: 'USD', fxRate: 1,
   placedAt: new Date('2026-09-14T10:00:00Z'), deliverBy: new Date('2026-09-17T20:00:00Z'), cancelledAt: null, replacementFor: null,
   items: [item(1, 'Essence Mascara Lash Princess <script>alert(1)</script>', 999, 2), item(2, 'Red Lipstick', 2999, 1)],
 }
@@ -78,6 +79,17 @@ assert.ok(restock.html.includes(stopUrl) && restock.text.includes(stopUrl), 'eve
 assert.ok(restock.html.includes(`${origin}/dp/31`), 'buy it again links to the product')
 assert.ok(!restock.html.includes('<script>') && !restock.html.includes('<img src=x'), 'product and shopper text is escaped')
 assert.ok(restock.html.includes('nothing is subscribed and no card is charged') && restock.text.includes('nothing is subscribed'))
+
+// cash on delivery reads as cash, with or without an advance, and never claims a card was charged
+const cod = orderEmail('confirmation', { order: { ...order, paymentKind: 'cod', payment: { brand: 'Cash on Delivery', last4: '', nameOnCard: 'Ada' } }, name: 'Ada', origin })
+assert.ok(cod.html.includes('Pay the courier when it arrives.') && cod.text.includes('Pay the courier when it arrives.'))
+assert.ok(!cod.html.includes('Paid with') && !cod.text.includes('ending in'), 'no card language on a cash order')
+const codAdvance = orderEmail('confirmation', {
+  order: { ...order, paymentKind: 'cod', payment: { brand: 'Visa', last4: '4242', nameOnCard: 'Ada', advanceCents: 1623 } },
+  name: 'Ada',
+  origin,
+})
+assert.ok(codAdvance.text.includes('Part paid up front on Visa ending in 4242.'), 'the advance names the card that took it')
 
 assert.equal(canReceiveEmail('demo-abc@example.com'), false)
 assert.equal(canReceiveEmail('qa@mail.test'), false)

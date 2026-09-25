@@ -9,6 +9,7 @@ import { PinIcon } from '@/components/icons'
 import { LocationPicker } from '@/components/nav-drawer'
 import { BoughtTogether } from '@/components/pdp/bought-together'
 import { PurchaseControls } from '@/components/pdp/buy-box'
+import { GroupBuy } from '@/components/pdp/group-buy'
 import { PriceLock } from '@/components/pdp/price-lock'
 import { Gallery } from '@/components/pdp/gallery'
 import { RatingBreakdown, ReviewCard, WriteReviewPrompt } from '@/components/pdp/reviews'
@@ -25,6 +26,7 @@ import { compactCount, fullDate, longDate, plural, toCents } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
 import { dutyCentsFor, formatDollars, formatMoney, IMPORT_FEES_NOTE, itemsTotal } from '@/lib/region'
+import { getGroupBuy } from '@/lib/group-buy'
 import { getShopperPrices, activeLock, priced } from '@/lib/price-lock'
 import { getRegion } from '@/lib/region-server'
 import { ReviewDigest } from '@/components/reviews/digest'
@@ -104,6 +106,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const shopperPrices = await getShopperPrices(user?.id)
   const p = priced(catalogProduct, shopperPrices)
   const lock = activeLock(p.id, shopperPrices)
+  const group = await getGroupBuy(catalogProduct.id, user?.id)
   const [cart, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName, address }, jar] = await Promise.all([
     cartSummary(),
     user ? getLists(user.id) : [],
@@ -286,6 +289,18 @@ export default async function ProductPage({ params, searchParams }: Props) {
                   priceText={formatMoney(toCents(p.price), currency, rate)}
                   locked={lock ? { text: formatMoney(lock.cents, currency, rate), expiresAt: lock.expires.toISOString() } : null}
                 />
+                {group && !group.over && (
+                  <GroupBuy
+                    productId={group.product.id}
+                    groupId={group.id}
+                    teamPrice={formatMoney(group.priceCents, currency, rate)}
+                    joined={group.joined}
+                    target={group.target}
+                    endsAt={group.endsAt.toISOString()}
+                    mine={group.mine}
+                    filled={group.filled}
+                  />
+                )}
               </div>
               <table className="mt-4 w-full text-xs">
                 <tbody>

@@ -88,6 +88,19 @@ export function deliveryText(p: { free: boolean; feeUsd: number; freeMinUsd: num
   }
 }
 
+// Your nile day (lib/nile-day.ts reads and writes the shopper's): the weekday their week's orders are pooled onto.
+export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+export const isNileDay = (v: unknown): v is number => Number.isInteger(v) && Number(v) >= 0 && Number(v) <= 6
+// ponytail: Friday is what we propose to a shopper who hasn't picked a day; the select changes it in one click
+export const DEFAULT_DAY = 5
+
+// The first `weekday` on or after `from`, in UTC like the rest of the promise. Pooling only ever waits, never jumps ahead.
+export function nextNileDay(weekday: number, from: Date) {
+  const d = new Date(from)
+  d.setUTCDate(d.getUTCDate() + ((weekday - d.getUTCDay() + 7) % 7))
+  return d
+}
+
 export function relativeDay(d: Date, now = new Date()) {
   const days = Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / DAY)
   return days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : shortDate(d)

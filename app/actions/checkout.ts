@@ -4,8 +4,12 @@ import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getAddress } from '@/lib/addresses'
 import { getUser, requireUser } from '@/lib/auth'
+import { advanceCents, codStanding } from '@/lib/cod'
 import { queueOrderEmail } from '@/lib/order-emails'
-import { buyNowLine, cartLines, createOrder, linesKey, orderIdForKey } from '@/lib/orders'
+import { recordGroupOrder } from '@/lib/group-buy'
+import { buyNowLine, cartLines, createOrder, linesKey, orderIdForKey, quote } from '@/lib/orders'
+import { getNileDay } from '@/lib/nile-day'
+import { countryCodeFromName } from '@/lib/region'
 import { getShopperPrices } from '@/lib/price-lock'
 import { DECLINED_LAST4, getCard } from '@/lib/payments'
 import { getRegion } from '@/lib/region-server'
@@ -48,17 +52,31 @@ export async function placeOrder(_prev: PlaceOrderState, form: FormData): Promis
 
   const address = await getAddress(user.id, String(form.get('addressId') ?? ''))
   if (!address) return { error: 'Please select a delivery address.' }
+  const cash = form.get('payment') === 'cod'
   const card = await getCard(user.id, String(form.get('cardId') ?? ''))
-  if (!card) return { error: 'Please select a payment method.' }
-  if (card.expired) return { error: 'Your card has expired. Please select another payment method or add a new card.' }
-  if (card.last4 === DECLINED_LAST4) return { error: 'There was a problem with your payment. Your card was declined. Please select another payment method or add a new card.' }
+  if (!cash && !card) return { error: 'Please select a payment method.' }
+  if (card && card.expired) return { error: 'Your card has expired. Please select another payment method or add a new card.' }
+  if (card && card.last4 === DECLINED_LAST4 && !cash) {
+    return { error: 'There was a problem with your payment. Your card was declined. Please select another payment method or add a new card.' }
+  }
+  // a refused parcel means we take part of a cash order up front, on the card they picked (lib/cod.ts)
+  const standing = cash ? await codStanding(user.id) : null
+  if (standing?.advanceRate && !card) return { error: `Please add a card for the ${Math.round(standing.advanceRate * 100)}% we take up front on cash orders.` }
 
   const speed = form.get('speed') === 'expedited' ? 'expedited' : 'standard'
   // the order keeps the currency and rate shown right now; shipping and tax follow the address's country
   const { currency, rate } = await getRegion()
-  const created = await createOrder({ userId: user.id, key, address, card, lines, speed, fromCart: !buy, currency, fxRate: rate })
+  const advance = standing?.advanceRate ? advanceCents(quote(lines, speed, undefined, countryCodeFromName(address.country), await getNileDay(user.id)).totalCents, standing.advanceRate) : 0
+  const created = await createOrder({
+    userId: user.id, key, address, lines, speed, fromCart: !buy, currency, fxRate: rate,
+    card: cash && !advance ? null : card, paymentKind: cash ? 'cod' : 'card', advanceCents: advance,
+  })
   const id = created ?? (await orderIdForKey(user.id, key))
   if (!id) return { error: "We couldn't place your order. Please try again." }
-  if (created) await queueOrderEmail('confirmation', user.id, created) // once per order, never for a repeated submit
+  if (created) {
+    // a group buy the shopper has now bought on: the membership keeps the order, so they can't leave it afterwards
+    await recordGroupOrder(user.id, lines.map((l) => l.product.id), created)
+    await queueOrderEmail('confirmation', user.id, created) // once per order, never for a repeated submit
+  }
   redirect(`/thankyou/${id}`)
 }
