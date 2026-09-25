@@ -25,7 +25,10 @@ nile delivers to the **United States (US)** and **Pakistan (PK)** and shows pric
 |---|---|---|
 | Standard | ship days + 1 business day; FREE from $35 of items, else $6.99 | ship days + 8 business days; flat $14.99, never free |
 | Expedited | ceil(ship days / 2) business days; $9.99 | ceil(ship days / 2) + 4 business days; flat $29.99 |
-| Tax | 8.25% of items + shipping, line "Estimated tax to be collected:" | none. Show `IMPORT_FEES_NOTE` instead of a tax line |
+| Tax | 8.25% of items + shipping, line "Estimated tax to be collected:" | none |
+| Import duty | none | estimated per category (`DUTY_RATES`), charged with the order as "Import duty (estimated):", with `IMPORT_FEES_NOTE` in place of a tax line |
+
+**Landed cost.** An international shopper sees the delivered price, not a surprise from the courier: the product page says "… to your door" (price + duty + standard shipping), the cart names the duty, and checkout charges it. Duty is estimated per line from its category, so a mixed basket is charged at each category's rate. A refund returns that line's share of the duty the order actually charged (prorated from `Order.dutyCents`), so an order placed before landed-cost pricing refunds exactly what it charged.
 
 **Orders** save `currency` and `fxRate` at placement: the display currency at that moment, and its rate (1 for USD). **Every view of an order uses the order's own values**, whatever the current display currency is. That covers Your Orders, details, invoice, tracking, cancel, return and refund amounts, the thank-you page, and emails.
 
@@ -144,11 +147,14 @@ For US the note is "FREE delivery on orders of $35 or more", or "... of PKR 9,69
 ```ts
 quote(lines, speed, now = new Date(), country: CountryCode = 'US') → Quote & {
   country, taxRate, taxLabel: string | null /* US */, importNote: string | null /* PK: IMPORT_FEES_NOTE */
+  dutyCents: number, dutyLabel: string | null /* PK: "Import duty (estimated):" */
 }
 taxRateFor(country = 'US'): number   // 0.0825 | 0
-itemRefundCents(item, country = 'US') // PK refunds carry no tax: pass countryCodeFromName(order.shipTo.country)
-createOrder({ ..., currency?: CurrencyCode, fxRate?: number })   // shipping and tax come from address.country
-Order.currency: CurrencyCode; Order.fxRate: number; Order.shipTo.country: 'United States' | 'Pakistan'
+dutyRateFor(category): number        // lib/region.ts DUTY_RATES, DUTY_DEFAULT 0.2
+dutyCentsFor(country, category, usdCents): number // 0 outside PK
+itemRefundCents(item, country = 'US', order?) // pass the order so the refund carries its duty share; PK has no tax
+createOrder({ ..., currency?: CurrencyCode, fxRate?: number })   // shipping, tax and duty come from address.country
+Order.currency: CurrencyCode; Order.fxRate: number; Order.dutyCents: number; Order.shipTo.country: 'United States' | 'Pakistan'
 ```
 
 - The database columns are `orders.currency` (text, default `'USD'`) and `orders.fx_rate` (double precision, default 1). A free replacement order copies them from the order it replaces.

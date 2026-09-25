@@ -13,7 +13,7 @@ import { deliveryPromise, relativeDay, shippingRates } from '@/lib/delivery'
 import { plural, toCents } from '@/lib/format'
 import { getHistory } from '@/lib/history'
 import { cartLines, quote } from '@/lib/orders'
-import { COUNTRIES, formatDollars, formatMinor, itemsTotal, summarize } from '@/lib/region'
+import { COUNTRIES, formatDollars, formatMinor, formatMoney, itemsTotal, summarize } from '@/lib/region'
 import { getRegion, type RequestRegion } from '@/lib/region-server'
 
 export const metadata: Metadata = { title: 'Shopping Cart' }
@@ -24,12 +24,18 @@ export default async function CartPage() {
   const active = lines.filter((l) => !l.savedForLater)
   const saved = lines.filter((l) => l.savedForLater)
   const unavailable = active.filter((l) => l.product.stock <= 0)
-  const { itemCount, itemsCents } = quote(buyable, 'standard', undefined, country)
+  const { itemCount, itemsCents, dutyCents } = quote(buyable, 'standard', undefined, country)
   // unit prices as shown × quantities, so the lines add up to the subtotal in PKR too
   const items = itemsTotal(buyable.map((l) => ({ priceCents: toCents(l.product.price), quantity: l.quantity })), currency, rate)
   const subtotal = (
     <>
       Subtotal ({plural(itemCount, 'item')}): <b className="whitespace-nowrap">{formatMinor(items.minor, currency)}</b>
+      {/* landed cost: the duty is charged with the order, so say the amount here rather than surprising them at the door */}
+      {dutyCents > 0 && (
+        <span className="mt-0.5 block text-xs text-muted">
+          + {formatMoney(dutyCents, currency, rate)} import duty, included at checkout. Nothing to pay on delivery.
+        </span>
+      )}
     </>
   )
   const inCart = new Set(lines.map((l) => l.product.id))

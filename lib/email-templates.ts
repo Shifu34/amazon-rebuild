@@ -28,7 +28,7 @@ const place = (o: Order) => [formatAddress({ ...o.shipTo, line1: '', line2: '' }
 // of its price and tax share (a cancellation: all of it; a return: the stored refund). `total` sums a column of them.
 const units = (o: Order) => (i: OrderItem) => itemsTotal([i], o.currency, o.fxRate).minor
 const refundOf = (o: Order, usdCents: (i: OrderItem) => number) => (i: OrderItem) =>
-  lineMinor(i, itemRefundCents(i, countryCodeFromName(o.shipTo.country)), usdCents(i), o.currency, o.fxRate)
+  lineMinor(i, itemRefundCents(i, countryCodeFromName(o.shipTo.country), o), usdCents(i), o.currency, o.fxRate)
 const total = (o: Order, items: OrderItem[], amount: (i: OrderItem) => number) => formatMinor(items.reduce((s, i) => s + amount(i), 0), o.currency)
 
 const p = (html: string, style = '') => `<p style="${F}margin:0 0 14px;font-size:14px;line-height:21px;${style}">${html}</p>`
@@ -101,7 +101,7 @@ function confirmation({ order, name, origin }: OrderEmailInput): RenderedEmail {
 function cancelled({ order, name, origin, productIds = [] }: OrderEmailInput): RenderedEmail {
   const items = order.items.filter((i) => i.cancelledAt && (!productIds.length || productIds.includes(i.productId)))
   const whole = !!order.cancelledAt && order.items.every((i) => i.cancelledAt)
-  const refund = refundOf(order, (i) => itemRefundCents(i, countryCodeFromName(order.shipTo.country)))
+  const refund = refundOf(order, (i) => itemRefundCents(i, countryCodeFromName(order.shipTo.country), order))
   const notCharged = whole ? orderSummary(order).total : total(order, items, refund)
   const url = `${origin}/orders/${order.id}`
   const title = whole ? 'Your order has been canceled' : items.length === 1 ? 'An item has been canceled' : `${items.length} items have been canceled`

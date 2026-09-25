@@ -3,16 +3,18 @@
 import Form from 'next/form'
 import { SearchIcon } from '@/components/icons'
 
-type Props = { productId: number; star: string; starOptions: [string, string][]; verifiedOnly: boolean; sort: string; keyword: string }
+type Props = { productId: number; star: string; starOptions: [string, string][]; verifiedOnly: boolean; sort: string; keyword: string; mentions?: string }
 
 // GET form: selects apply on change (client navigation), the keyword applies on Search/Enter. Every change resets to page 1.
-export function ReviewFilters({ productId, star, starOptions, verifiedOnly, sort, keyword }: Props) {
+export function ReviewFilters({ productId, star, starOptions, verifiedOnly, sort, keyword, mentions }: Props) {
   return (
     <Form
       action={`/product-reviews/${productId}`}
       onChange={(e) => (e.target as HTMLElement).tagName === 'SELECT' && e.currentTarget.requestSubmit()}
       className="space-y-3"
     >
+      {/* the digest's aspect filter is not a control here, so carry it or a dropdown change would drop it */}
+      {mentions && <input type="hidden" name="mentions" value={mentions} />}
       <div className="flex max-w-md gap-2">
         <label htmlFor="review-search" className="sr-only">Search customer reviews</label>
         <input id="review-search" name="filterByKeyword" type="search" defaultValue={keyword} placeholder="Search customer reviews" className="input h-9" />

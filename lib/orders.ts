@@ -9,7 +9,7 @@ import { query } from './db'
 import { deliveryPromise, shippingRates } from './delivery'
 import { fullDate, toCents } from './format'
 import type { Card } from './payments'
-import { countryCodeFromName, IMPORT_FEES_NOTE, isCurrencyCode, rateFor, type CountryCode, type CurrencyCode } from './region'
+import { countryCodeFromName, dutyCentsFor, IMPORT_FEES_NOTE, isCurrencyCode, rateFor, type CountryCode, type CurrencyCode } from './region'
 
 // Estimated sales tax: one flat 8.25% on items + shipping for every US address (a stand-in for per-state rates).
 export const TAX_RATE = 0.0825
@@ -50,6 +50,8 @@ export type Quote = {
   country: CountryCode
   taxRate: number
   taxLabel: string | null // "Estimated tax to be collected:" (US); null when there is no tax line
+  dutyCents: number // estimated import duty, charged with the order (PK); 0 for US
+  dutyLabel: string | null // "Import duty (estimated):"; null when there is none
   importNote: string | null // IMPORT_FEES_NOTE instead of a tax line (PK); null for US
 }
 
@@ -68,9 +70,14 @@ export function quote(lines: OrderLine[], speed: Speed, now = new Date(), countr
   const deliverBy = new Date(Math.max(now.getTime(), ...lines.map((l) => deliveryPromise(l.product, now, country)[speed].getTime())))
   deliverBy.setUTCHours(20, 0, 0, 0) // delivered by 8pm UTC on the arrival day
   const intl = country === 'PK'
+  // per line, so a mixed basket (a phone and a lipstick) is charged at each category's rate
+  // ponytail: duty on goods only; a real customs value includes freight
+  const dutyCents = lines.reduce((sum, l) => sum + dutyCentsFor(country, l.product.category, toCents(l.product.price) * l.quantity), 0)
   return {
-    speed, itemCount, itemsCents, shippingCents, freeShippingCents, beforeTaxCents, taxCents, totalCents: beforeTaxCents + taxCents, deliverBy,
-    country, taxRate, taxLabel: intl ? null : 'Estimated tax to be collected:', importNote: intl ? IMPORT_FEES_NOTE : null,
+    speed, itemCount, itemsCents, shippingCents, freeShippingCents, beforeTaxCents, taxCents, dutyCents,
+    totalCents: beforeTaxCents + taxCents + dutyCents, deliverBy,
+    country, taxRate, taxLabel: intl ? null : 'Estimated tax to be collected:',
+    dutyLabel: dutyCents ? 'Import duty (estimated):' : null, importNote: intl ? IMPORT_FEES_NOTE : null,
   }
 }
 
@@ -89,6 +96,7 @@ const MIGRATIONS = [
      add column if not exists replacement_order_id text`,
   `alter table orders add column if not exists currency text not null default 'USD',
      add column if not exists fx_rate double precision not null default 1`,
+  'alter table orders add column if not exists duty_cents int not null default 0',
 ]
 let schemaReady: Promise<unknown> | undefined
 function ensureSchema() {
@@ -127,8 +135,8 @@ export async function createOrder(o: {
   const items = o.lines.map((l) => ({ product_id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price_cents: toCents(l.product.price), quantity: l.quantity }))
   const [row] = await query<{ id: string }>(
     `with o as (
-       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at, currency, fx_rate)
-       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()), $16, $17)
+       insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at, currency, fx_rate, duty_cents)
+       values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, coalesce($15::timestamptz, now()), $16, $17, $18)
        on conflict (idempotency_key) do nothing
        returning id
      ), items as (
@@ -142,7 +150,7 @@ export async function createOrder(o: {
      )
      select id from o`,
     [newOrderId(), o.userId, JSON.stringify(shipTo), JSON.stringify(payment), o.speed, q.itemsCents, q.shippingCents - q.freeShippingCents,
-      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null, currency, fxRate],
+      q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null, currency, fxRate, q.dutyCents],
   )
   return row?.id ?? null
 }
@@ -173,6 +181,7 @@ export type Order = {
   itemsCents: number
   shippingCents: number
   taxCents: number
+  dutyCents: number // estimated import duty charged with the order (PK); 0 for US
   totalCents: number
   placedAt: Date
   deliverBy: Date
@@ -184,12 +193,12 @@ export type Order = {
 type ItemRow = Omit<OrderItem, 'returnedAt' | 'cancelledAt' | 'refundedAt'> & { returnedAt: string | null; cancelledAt: string | null; refundedAt: string | null }
 type OrderRow = {
   id: string; ship_to: ShipTo; payment: PaymentSnapshot; delivery_speed: Speed; items_cents: number; shipping_cents: number; tax_cents: number
-  total_cents: number; placed_at: Date; deliver_by: Date; cancelled_at: Date | null; replacement_for: string | null; items: ItemRow[]
+  duty_cents: number | null; total_cents: number; placed_at: Date; deliver_by: Date; cancelled_at: Date | null; replacement_for: string | null; items: ItemRow[]
   currency: string; fx_rate: number | string
 }
 
 const ORDER_SELECT = `
-  select o.id, o.ship_to, o.payment, o.delivery_speed, o.items_cents, o.shipping_cents, o.tax_cents, o.total_cents, o.placed_at, o.deliver_by,
+  select o.id, o.ship_to, o.payment, o.delivery_speed, o.items_cents, o.shipping_cents, o.tax_cents, o.duty_cents, o.total_cents, o.placed_at, o.deliver_by,
     o.cancelled_at, o.replacement_for, o.currency, o.fx_rate,
     coalesce(json_agg(json_build_object('productId', i.product_id, 'title', i.title, 'thumbnail', i.thumbnail, 'priceCents', i.price_cents,
       'quantity', i.quantity, 'returnReason', i.return_reason, 'returnedAt', i.returned_at, 'cancelledAt', i.cancelled_at,
@@ -209,6 +218,7 @@ const fromRow = (r: OrderRow): Order => ({
   itemsCents: r.items_cents,
   shippingCents: r.shipping_cents,
   taxCents: r.tax_cents,
+  dutyCents: r.duty_cents ?? 0, // orders placed before landed-cost pricing
   totalCents: r.total_cents,
   placedAt: new Date(r.placed_at),
   deliverBy: new Date(r.deliver_by),
@@ -312,8 +322,14 @@ export function pathWithQuery(path: string, sp: Record<string, string | string[]
 
 // what a return or cancellation gives back for one line: its price plus its share of the tax (none for Pakistan orders:
 // pass countryCodeFromName(order.shipTo.country))
-export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>, country: CountryCode = 'US') =>
-  i.priceCents * i.quantity + Math.round(i.priceCents * i.quantity * taxRateFor(country))
+// What a line gives back: the goods, their tax share (US) and this line's share of the import duty the order was charged
+// (PK), prorated by value. Without the order there is no duty share, so an order placed before landed-cost pricing
+// refunds exactly what it charged.
+export const itemRefundCents = (i: Pick<OrderItem, 'priceCents' | 'quantity'>, country: CountryCode = 'US', order?: Pick<Order, 'dutyCents' | 'itemsCents'>) => {
+  const goods = i.priceCents * i.quantity
+  const duty = order?.dutyCents && order.itemsCents ? Math.round((order.dutyCents * goods) / order.itemsCents) : 0
+  return goods + Math.round(goods * taxRateFor(country)) + duty
+}
 const monthDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
 
 function arrivingDay(d: Date, now: Date) {
@@ -337,7 +353,7 @@ export function orderView(o: Order, now = new Date()) {
   const items = o.items.map((i) => ({ ...i, state: itemState(i, s.status, s.deliveredAt, now) }))
   // not charged for cancelled items (the whole total when the order is cancelled); refunds count once issued
   const country = countryCodeFromName(o.shipTo.country)
-  const cancelledCents = s.status === 'cancelled' ? o.totalCents : items.reduce((sum, i) => sum + (i.cancelledAt ? itemRefundCents(i, country) : 0), 0)
+  const cancelledCents = s.status === 'cancelled' ? o.totalCents : items.reduce((sum, i) => sum + (i.cancelledAt ? itemRefundCents(i, country, o) : 0), 0)
   const refundCents = items.reduce((sum, i) => sum + (i.refundedAt ? (i.refundCents ?? 0) : 0), 0)
   const hour = s.deliveredAt.toLocaleTimeString('en-US', { hour: 'numeric', timeZone: 'UTC' }).replace(':00', '')
   const headline =

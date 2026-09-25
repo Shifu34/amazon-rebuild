@@ -75,7 +75,7 @@ export async function startReturn(_prev: OrderFormState, form: FormData): Promis
   const country = countryCodeFromName(order.shipTo.country) // Pakistan refunds carry no tax, and replacements ship internationally
   let fee = returnFeeCents(reason, method, replace)
   const items = chosen.map((i) => {
-    const full = replace ? 0 : itemRefundCents(i, country)
+    const full = replace ? 0 : itemRefundCents(i, country, order)
     const kept = Math.min(fee, full)
     fee -= kept
     return { productId: i.productId, refundCents: full - kept }

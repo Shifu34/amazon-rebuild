@@ -68,9 +68,9 @@ function ShipToDisclosure({ shipTo }: { shipTo: ShipTo }) {
   )
 }
 
-// One item's `usdCents` (default: all of it, price and tax share) in the order's currency, adding up with its unit price
+// One item's `usdCents` (default: all of it: price, tax share and duty share) in the order's currency, adding up with its unit price
 const lineOf = (order: OrderRef, i: OrderItem, usdCents?: number) => {
-  const full = itemRefundCents(i, countryCodeFromName(order.shipTo.country))
+  const full = itemRefundCents(i, countryCodeFromName(order.shipTo.country), order)
   return lineMinor(i, full, usdCents ?? full, order.currency, order.fxRate)
 }
 
@@ -81,9 +81,9 @@ export function orderMoney(order: Order, view: OrderView) {
   const { currency, fxRate } = order
   const show = (minor: number) => formatMinor(minor, currency)
   const items = itemsTotal(order.items, currency, fxRate).minor
-  const [shipping, tax] = [order.shippingCents, order.taxCents].map((c) => convertCents(c, currency, fxRate))
-  // what came off: the whole order, or each cancelled item's price and tax share (as orderView counts cancelledCents)
-  const cancelled = view.status === 'cancelled' ? items + shipping + tax : view.items.reduce((s, i) => s + (i.cancelledAt ? lineOf(order, i) : 0), 0)
+  const [shipping, tax, duty] = [order.shippingCents, order.taxCents, order.dutyCents].map((c) => convertCents(c, currency, fxRate))
+  // what came off: the whole order, or each cancelled item's price with its tax and duty share (as orderView counts cancelledCents)
+  const cancelled = view.status === 'cancelled' ? items + shipping + tax + duty : view.items.reduce((s, i) => s + (i.cancelledAt ? lineOf(order, i) : 0), 0)
   const refunds = (list: OrderItem[]) => list.reduce((s, i) => s + lineOf(order, i, i.refundCents ?? 0), 0)
   return {
     country: countryCodeFromName(order.shipTo.country),
@@ -91,9 +91,10 @@ export function orderMoney(order: Order, view: OrderView) {
     items: show(items),
     shipping: show(shipping),
     tax: show(tax),
+    duty: show(duty),
     beforeTax: show(items + shipping),
     cancelled: show(cancelled),
-    charged: show(items + shipping + tax - cancelled),
+    charged: show(items + shipping + tax + duty - cancelled),
     refunded: show(refunds(view.items.filter((i) => i.refundedAt))),
     refund: (list: OrderItem[]) => show(refunds(list)), // the refunds stored on these items
   }
@@ -109,7 +110,7 @@ function Row({ label, value, className = '' }: { label: string; value: string; c
 }
 
 // Order Summary lines. Cancelled items come off before the Grand Total, so it is what the shopper is actually charged.
-// Pakistan orders have no sales tax: the import fees note stands where the tax lines are.
+// Pakistan orders have no sales tax: the estimated import duty and its note stand where the tax lines are.
 export function OrderTotals({ order, view }: { order: Order; view: OrderView }) {
   const m = orderMoney(order, view)
   return (
@@ -117,10 +118,13 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
       <Row label="Item(s) Subtotal:" value={m.items} />
       <Row label="Shipping & Handling:" value={m.shipping} />
       {m.country === 'PK' ? (
-        <div>
-          <dt className="sr-only">Import fees:</dt>
-          <dd className="text-xs text-muted">{IMPORT_FEES_NOTE}</dd>
-        </div>
+        <>
+          {order.dutyCents > 0 && <Row label="Import duty (estimated):" value={m.duty} />}
+          <div>
+            <dt className="sr-only">Import fees:</dt>
+            <dd className="text-xs text-muted">{IMPORT_FEES_NOTE}</dd>
+          </div>
+        </>
       ) : (
         <>
           <Row label="Total before tax:" value={m.beforeTax} />
@@ -134,7 +138,8 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
   )
 }
 
-type OrderRef = Pick<Order, 'id' | 'currency' | 'fxRate' | 'shipTo'>
+// itemsCents and dutyCents let a line show its share of the import duty the order was charged
+type OrderRef = Pick<Order, 'id' | 'currency' | 'fxRate' | 'shipTo' | 'itemsCents' | 'dutyCents'>
 
 function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
   const s = item.state

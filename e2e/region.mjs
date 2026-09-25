@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 
 const base = process.argv[2] ?? 'http://localhost:3000'
-const NOTE = 'Import fees and duties, if any, are collected by the carrier on delivery.'
+const NOTE = 'Import duty is estimated and included, so the courier collects nothing on delivery.'
 const PKR = /^PKR [\d,]+\.\d{2}$/
 const USD = /^\$[\d,]+\.\d{2}$/
 
@@ -149,17 +149,17 @@ try {
   assert.ok(await standard.isChecked())
   await summary().getByText(NOTE).waitFor()
   const std = await rows(summary())
-  assert.deepEqual(Object.keys(std), ['Items (2):', 'Shipping & handling:', 'Order total:'], `no tax rows: ${JSON.stringify(std)}`)
+  assert.deepEqual(Object.keys(std), ['Items (2):', 'Shipping & handling:', 'Import duty (estimated):', 'Order total:'], `duty, no tax: ${JSON.stringify(std)}`)
   assert.equal(std['Shipping & handling:'], 'PKR 4,153.28')
   for (const v of Object.values(std)) assert.match(v, PKR)
-  assert.equal(minor(std['Order total:']), minor(std['Items (2):']) + minor(std['Shipping & handling:']), 'standard total adds up')
+  assert.equal(minor(std['Order total:']), minor(std['Items (2):']) + minor(std['Shipping & handling:']) + minor(std['Import duty (estimated):']), 'standard total adds up')
 
   step('switching to Expedited changes shipping and the total')
   await expedited.check()
   await summary().getByText('PKR 8,309.33').waitFor()
   const exp = await rows(summary())
   assert.notEqual(exp['Order total:'], std['Order total:'])
-  assert.equal(minor(exp['Order total:']), minor(exp['Items (2):']) + minor(exp['Shipping & handling:']), 'expedited total adds up')
+  assert.equal(minor(exp['Order total:']), minor(exp['Items (2):']) + minor(exp['Shipping & handling:']) + minor(exp['Import duty (estimated):']), 'expedited total adds up')
 
   step('place the order: the thank-you page shows PKR')
   await page.getByRole('button', { name: 'Place your order' }).first().click()
@@ -179,7 +179,7 @@ try {
     await page.goto(`${base}/orders/${orderId}`)
     const r = await rows(page.getByRole('region', { name: 'Order summary' }))
     assert.equal(r['Grand Total:'], total, `details Grand Total ${label}`)
-    assert.equal(minor(r['Grand Total:']), minor(r['Item(s) Subtotal:']) + minor(r['Shipping & Handling:']), `details add up ${label}`)
+    assert.equal(minor(r['Grand Total:']), minor(r['Item(s) Subtotal:']) + minor(r['Shipping & Handling:']) + minor(r['Import duty (estimated):']), `details add up ${label}`)
     assert.equal(r['Estimated tax to be collected:'], undefined)
     await page.getByRole('region', { name: 'Order summary' }).getByText(NOTE).waitFor()
     await page.goto(`${base}/orders/${orderId}/invoice`)

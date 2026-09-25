@@ -105,7 +105,7 @@ export default async function ReturnPage({ params, searchParams }: Props) {
     thumbnail: i.thumbnail,
     quantity: i.quantity,
     priceCents: i.priceCents,
-    refundCents: itemRefundCents(i, country),
+    refundCents: itemRefundCents(i, country, order),
     note: i.state.kind === 'open' ? `Return window closes on ${fullDate(i.state.returnBy)}` : '',
     blocker: returnBlocker(i.state),
     canReplace: (getProduct(i.productId)?.stock ?? 0) > 0,

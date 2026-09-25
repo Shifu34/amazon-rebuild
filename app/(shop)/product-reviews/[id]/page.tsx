@@ -6,7 +6,8 @@ import { RatingBreakdown, ReviewCard, WriteReviewPrompt } from '@/components/pdp
 import { getUser } from '@/lib/auth'
 import { getProduct } from '@/lib/catalog'
 import { plural } from '@/lib/format'
-import { productReviews, sortReviews, STAR_FILTERS } from '@/lib/reviews'
+import { ReviewDigest } from '@/components/reviews/digest'
+import { aspectDigest, isAspect, mentionsAspect, pinnedReviews, productReviews, sortReviews, STAR_FILTERS, verifiedByDefault } from '@/lib/reviews'
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }
 
@@ -25,16 +26,24 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
   const sp = await searchParams
   const param = (k: string) => (typeof sp[k] === 'string' ? sp[k] : '')
   const star = Object.hasOwn(STAR_FILTERS, param('filterByStar')) ? param('filterByStar') : 'all_stars'
-  const verifiedOnly = param('reviewerType') === 'avp_only_reviews'
   const sort = param('sortBy') === 'recent' ? 'recent' : 'helpful'
   const keyword = param('filterByKeyword').trim().slice(0, 100)
+  const mentions = isAspect(param('mentions')) ? param('mentions') : ''
 
   const user = await getUser()
   const { reviews, summary, mine } = await productReviews(p, user?.id)
+  // verified-only is the default once a product has enough verified reviews to leave a list behind (lib/reviews)
+  const verifiedOnly = param('reviewerType') ? param('reviewerType') === 'avp_only_reviews' : verifiedByDefault(reviews)
   const stars = STAR_FILTERS[star].stars
   const needle = keyword.toLowerCase()
   const matches = sortReviews(
-    reviews.filter((r) => stars.includes(r.rating) && (!verifiedOnly || r.verified) && (!needle || `${r.headline}\n${r.body}`.toLowerCase().includes(needle))),
+    reviews.filter(
+      (r) =>
+        stars.includes(r.rating) &&
+        (!verifiedOnly || r.verified) &&
+        (!mentions || mentionsAspect(r, mentions)) &&
+        (!needle || `${r.headline}\n${r.body}`.toLowerCase().includes(needle)),
+    ),
     sort,
   )
   const pages = Math.max(1, Math.ceil(matches.length / PER_PAGE))
@@ -45,13 +54,14 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
   const href = (pageNumber: number) => {
     const q = new URLSearchParams()
     if (star !== 'all_stars') q.set('filterByStar', star)
-    if (verifiedOnly) q.set('reviewerType', 'avp_only_reviews')
+    if (mentions) q.set('mentions', mentions)
+    q.set('reviewerType', verifiedOnly ? 'avp_only_reviews' : 'all_reviews')
     if (sort === 'recent') q.set('sortBy', 'recent')
     if (keyword) q.set('filterByKeyword', keyword)
     if (pageNumber > 1) q.set('pageNumber', String(pageNumber))
     return q.size ? `${base}?${q}` : base
   }
-  const filtered = star !== 'all_stars' || verifiedOnly || !!keyword
+  const filtered = star !== 'all_stars' || verifiedOnly || !!keyword || !!mentions
   const chip = 'rounded-full bg-[#f0f2f2] px-2.5 py-0.5'
 
   return (
@@ -76,6 +86,27 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
         </aside>
 
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <ReviewDigest
+            aspects={aspectDigest(verifiedOnly ? reviews.filter((r) => r.verified) : reviews)}
+            pinned={pinnedReviews(reviews)}
+            verified={{ only: verifiedOnly, count: reviews.filter((r) => r.verified).length, total: reviews.length }}
+            mentions={mentions}
+            filtered={filtered}
+            link={(patch) => {
+              const q = new URLSearchParams()
+              const next: Record<string, string | undefined> = { mentions, reviewerType: verifiedOnly ? 'avp_only_reviews' : 'all_reviews', ...patch }
+              if ('verified' in patch) next.reviewerType = patch.verified === 'only' ? 'avp_only_reviews' : 'all_reviews'
+              delete next.verified
+              if (star !== 'all_stars') next.filterByStar = star
+              if (keyword) next.filterByKeyword = keyword
+              if (sort === 'recent') next.sortBy = sort
+              for (const [k, v] of Object.entries(next)) if (v) q.set(k, v)
+              return q.size ? `${base}?${q}` : base
+            }}
+            productId={p.id}
+            signedIn={!!user}
+            returnTo={href(page)}
+          />
           <ReviewFilters
             productId={p.id}
             star={star}
@@ -83,6 +114,7 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
             verifiedOnly={verifiedOnly}
             sort={sort}
             keyword={keyword}
+            mentions={mentions}
           />
           <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-line py-2 text-[13px]" aria-live="polite">
             {filtered && (
@@ -90,6 +122,7 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
                 <span className="font-bold text-muted">FILTERED BY</span>
                 {star !== 'all_stars' && <span className={chip}>{STAR_FILTERS[star].label}</span>}
                 {verifiedOnly && <span className={chip}>Verified purchase only</span>}
+                {mentions && <span className={chip}>mentions &ldquo;{mentions}&rdquo;</span>}
                 {keyword && <span className={chip}>&ldquo;{keyword}&rdquo;</span>}
                 <Link href={base} className="link">Clear filter</Link>
                 <span aria-hidden className="text-line">|</span>

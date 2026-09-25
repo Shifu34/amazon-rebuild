@@ -1,6 +1,7 @@
 // Run: npx tsx lib/catalog.check.ts
 import assert from 'node:assert/strict'
 import { bestSellers, boughtTogether, getProduct, products, search, suggest } from './catalog'
+import { seedReviews } from './review-seed'
 
 assert.equal(products.length, 184)
 assert.equal(getProduct(1)?.id, 1)
@@ -42,5 +43,23 @@ assert.ok(suggest('phone').products.every((p) => p.category === 'smartphones'), 
 assert.equal(bestSellers(undefined, 5).length, 5)
 assert.ok(boughtTogether(getProduct(1)!).every((p) => p.id !== 1))
 assert.ok(products.some((p) => p.badge === 'best-seller') && products.some((p) => p.listPrice && p.listPrice > p.price))
+
+// Seeded reviews (lib/review-seed.ts): stable text, stars that agree with the product's average, and dates in the past.
+const seedable = (p: (typeof products)[number]) => ({ id: p.id, category: p.category, rating: p.rating, ratingCount: p.ratingCount, boughtPastMonth: p.boughtPastMonth })
+const twice = products.slice(0, 5).map(seedable)
+assert.deepEqual(twice.map(seedReviews), twice.map(seedReviews), 'same product, same reviews on every render')
+assert.ok(products.every((p) => p.reviews.length >= 6 && p.reviews.length <= 23), 'every product carries a readable number of reviews')
+assert.ok(products.every((p) => p.reviews.slice(0, 3).every((r) => r.body === '')), "DummyJSON's own three one-liners are kept as they were")
+const now = Date.now()
+assert.ok(products.every((p) => p.reviews.every((r) => new Date(r.date).getTime() <= now)), 'no review is dated in the future')
+for (const p of products) {
+  const written = p.reviews.slice(3)
+  const mean = written.reduce((sum, r) => sum + r.rating, 0) / written.length
+  assert.ok(Math.abs(mean - p.rating) <= 0.2, `${p.title}: reviews average ${mean.toFixed(2)} but the product shows ${p.rating}`)
+  assert.ok(written.every((r) => r.body.length > 20 && r.comment.length > 3), `${p.title}: every review has a headline and a body`)
+}
+const written = products.flatMap((p) => p.reviews.slice(3))
+const share = written.filter((r) => r.verified).length / written.length
+assert.ok(share > 0.6 && share < 0.8, `verified purchases are the majority but not all of them: ${(share * 100).toFixed(0)}%`)
 
 console.log('catalog ok')

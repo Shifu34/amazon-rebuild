@@ -70,8 +70,24 @@ export const COUNTRIES: Record<CountryCode, Country> = {
   },
 }
 
-// shown instead of a tax line on international (PK) checkouts and order summaries
-export const IMPORT_FEES_NOTE = 'Import fees and duties, if any, are collected by the carrier on delivery.'
+// International orders are landed-cost priced: the duty estimate is charged with the order, so nothing is collected at the
+// door. Amazon quotes an Import Fees Deposit deep in checkout; we show the whole "to your door" price from the buy box on.
+export const IMPORT_FEES_NOTE = 'Import duty is estimated and included, so the courier collects nothing on delivery.'
+
+// Pakistan customs, by catalog category: indicative duty + import-stage tax bands, not an HS-code tariff.
+// ponytail: flat per-category rates, a real HS table if we ever clear our own shipments
+export const DUTY_RATES: Record<string, number> = {
+  smartphones: 0.3, tablets: 0.2, laptops: 0.2, 'mobile-accessories': 0.2,
+  beauty: 0.35, 'skin-care': 0.35, fragrances: 0.35,
+  tops: 0.3, 'womens-dresses': 0.3, 'womens-shoes': 0.3, 'womens-bags': 0.3, 'womens-jewellery': 0.3, 'womens-watches': 0.3,
+  'mens-shirts': 0.3, 'mens-shoes': 0.3, 'mens-watches': 0.3, sunglasses: 0.3,
+  'kitchen-accessories': 0.25, furniture: 0.25, 'home-decoration': 0.25,
+  'sports-accessories': 0.2, groceries: 0.15,
+}
+export const DUTY_DEFAULT = 0.2
+export const dutyRateFor = (category: string) => (Object.hasOwn(DUTY_RATES, category) ? DUTY_RATES[category] : DUTY_DEFAULT)
+// the country's duty rate on a line; US buyers pay none
+export const dutyCentsFor = (country: CountryCode, category: string, usdCents: number) => (country === 'PK' ? Math.round(usdCents * dutyRateFor(category)) : 0)
 
 export const isCurrencyCode = (v: unknown): v is CurrencyCode => typeof v === 'string' && Object.hasOwn(CURRENCIES, v)
 export const isCountryCode = (v: unknown): v is CountryCode => typeof v === 'string' && Object.hasOwn(COUNTRIES, v)

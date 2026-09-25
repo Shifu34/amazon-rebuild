@@ -138,11 +138,14 @@ const lines: OrderLine[] = [
 const pkStd = quote(lines, 'standard', MON, 'PK')
 assert.deepEqual(
   [pkStd.itemsCents, pkStd.shippingCents, pkStd.freeShippingCents, pkStd.taxCents, pkStd.totalCents, pkStd.taxRate, pkStd.taxLabel, pkStd.importNote],
-  [6999, 1499, 0, 0, 8498, 0, null, IMPORT_FEES_NOTE],
+  [6999, 1499, 0, 0, 10948, 0, null, IMPORT_FEES_NOTE],
 )
+// landed cost: both lines are beauty (35%), charged with the order so nothing is collected at the door
+assert.deepEqual([pkStd.dutyCents, pkStd.dutyLabel], [2450, 'Import duty (estimated):'])
+assert.deepEqual([quote(lines, 'standard', MON, 'US').dutyCents, quote(lines, 'standard', MON, 'US').dutyLabel], [0, null], 'no duty inside the US')
 assert.equal(day(pkStd.deliverBy), '2026-10-01', 'slowest item, international')
 const pkExp = quote(lines, 'expedited', MON, 'PK')
-assert.deepEqual([pkExp.shippingCents, pkExp.taxCents, pkExp.totalCents, day(pkExp.deliverBy)], [2999, 0, 9998, '2026-09-23'])
+assert.deepEqual([pkExp.shippingCents, pkExp.taxCents, pkExp.totalCents, day(pkExp.deliverBy)], [2999, 0, 12448, '2026-09-23'])
 const usStd = quote(lines, 'standard', MON)
 assert.deepEqual(
   [usStd.shippingCents, usStd.freeShippingCents, usStd.taxCents, usStd.totalCents, usStd.country, usStd.taxLabel, usStd.importNote],
@@ -153,11 +156,19 @@ const usExp = quote(lines, 'expedited', MON, 'US')
 assert.deepEqual([usExp.shippingCents, usExp.freeShippingCents, usExp.taxCents], [999, 0, Math.round((6999 + 999) * 0.0825)])
 assert.equal(quote([lines[1]], 'standard', MON, 'US').freeShippingCents, 0, 'under $35 pays shipping')
 assert.deepEqual([taxRateFor('US'), taxRateFor('PK')], [0.0825, 0])
-assert.deepEqual([itemRefundCents({ priceCents: 1000, quantity: 2 }), itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK')], [2165, 2000])
+assert.deepEqual(
+  [itemRefundCents({ priceCents: 1000, quantity: 2 }), itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK')],
+  [2165, 2000],
+  'a US refund returns the tax share; with no order there is no duty share',
+)
+// a Pakistan refund returns this line's share of the duty the order was charged, and nothing for an older order
+assert.equal(itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK', { dutyCents: 700, itemsCents: 2000 }), 2700)
+assert.equal(itemRefundCents({ priceCents: 500, quantity: 1 }, 'PK', { dutyCents: 700, itemsCents: 2000 }), 675)
+assert.equal(itemRefundCents({ priceCents: 1000, quantity: 2 }, 'PK', { dutyCents: 0, itemsCents: 2000 }), 2000)
 
 // tracking: Pakistan orders read as an international trip to "City, Pakistan"; US orders keep "City, ST"
 const shipped = (country: string, state: string): Order => ({
-  id: '113-1234567-1234567', currency: 'USD', fxRate: 1, deliverySpeed: 'standard', itemsCents: 0, shippingCents: 0, taxCents: 0, totalCents: 0,
+  id: '113-1234567-1234567', currency: 'USD', fxRate: 1, deliverySpeed: 'standard', itemsCents: 0, shippingCents: 0, taxCents: 0, dutyCents: 0, totalCents: 0,
   shipTo: { fullName: 'A', phone: '', line1: '', line2: '', city: 'Lahore', state, zip: '54000', country, instructions: '' },
   payment: { brand: 'Visa', last4: '4242', nameOnCard: 'A' }, placedAt: new Date(MON.getTime() - 20 * 86_400_000), deliverBy: new Date(MON.getTime() - 86_400_000),
   cancelledAt: null, replacementFor: null, items: [],
@@ -177,6 +188,11 @@ assert.equal(formatMinor(itemsTotal([rolex], 'PKR').minor, 'PKR'), 'PKR 132,993,
 const lemonWater = summaryRows({ items: [{ priceCents: 79, quantity: 1 }, { priceCents: 99, quantity: 1 }], shippingCents: 1499, freeShippingCents: 0, taxCents: null }, 'PKR')
 assert.deepEqual([lemonWater.rows.map((r) => `${r.label} ${r.text}`), lemonWater.total], [['Items (2): PKR 493.19', 'Shipping & handling: PKR 4,153.28'], 'PKR 4,646.47'])
 assert.equal(summarize([{ label: 'items', usdCents: 158, minor: 43778 }], 'PKR').total.text, 'PKR 437.78', 'a part’s minor is used as is')
+// an international summary carries its own duty row and drops the tax one
+const landed = summaryRows({ items: [{ priceCents: 1000, quantity: 1 }], shippingCents: 1499, freeShippingCents: 0, taxCents: null, dutyCents: 350 }, 'PKR')
+assert.deepEqual(landed.rows.map((r) => r.label), ['Items (1):', 'Shipping & handling:', 'Import duty (estimated):'])
+assert.equal(landed.rows[2].text, 'PKR 969.75')
+assert.equal(landed.note, IMPORT_FEES_NOTE)
 // a line's refund: all of it (cancel), less a return fee, or nothing left once the fee took it all
 assert.equal(lineMinor(rolex, 47999970, 47999970, 'PKR'), 13299351690)
 assert.equal(lineMinor(rolex, 47999970, 47999970 - 699, 'PKR'), 13299351690 - convertCents(699, 'PKR'), 'the fee row is exactly PKR 1,936.72')

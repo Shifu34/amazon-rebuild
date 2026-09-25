@@ -20,9 +20,11 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 |---|---|
 | **Home & browse** | Department **video tiles** like Amazon's: hover a tile and its video plays, turning each product through its angles; moving off pauses it, and it ends on a replay button (Play, Pause and Replay buttons for keyboard and touch). Department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. Every product card (rows, search and department results, Today's Deals, Best Sellers) has **Quick look**: a dialog with the price, "See product details" and a "Customers also bought" strip you can click through. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
 | **Search** | Header search with instant suggestions and a department scope. A department page opens with "Featured categories" circles; hovering one reveals its top brands. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
-| **Pakistan & rupees** | Prices in US dollars or Pakistani rupees (switch in the EN menu; a Pakistani visitor gets rupees and "Deliver to Pakistan" by default). Pakistan addresses with provinces, 5-digit postal codes and Pakistani phone numbers. International shipping to Pakistan with an import-fees note, and orders keep the currency they were placed in. Rules in [`docs/region.md`](docs/region.md). |
+| **Pakistan & rupees** | Prices in US dollars or Pakistani rupees (switch in the EN menu; a Pakistani visitor gets rupees and "Deliver to Pakistan" by default). Pakistan addresses with provinces, 5-digit postal codes and Pakistani phone numbers. Landed-cost pricing: the product page shows the real "to your door" price, and checkout charges the estimated import duty with the order instead of leaving the courier to collect it. Orders keep the currency they were placed in, and a refund returns that line's share of the duty. Rules in [`docs/region.md`](docs/region.md). |
 | **Emails** | Amazon-style order confirmation, cancellation, return and delivery emails, sent over Gmail SMTP and capped per recipient and per day. Test addresses (`@example.com`) are never emailed. |
-| **Product page** | Image gallery with zoom and full-screen view. The buy box shows the delivery date with an order-by countdown, stock messages and quantity, plus Add to Cart (with an "Added to cart" sheet), Buy Now and Add to List. Below: frequently bought together, related products, reviews with a rating histogram and filters, a full reviews page, and writing a review with "Verified Purchase". |
+| **Product page** | Image gallery with zoom and full-screen view. The buy box shows the delivery date with an order-by countdown, stock messages and quantity, plus Add to Cart (with an "Added to cart" sheet), Buy Now and Add to List. Below: frequently bought together, related products, a full reviews page, and writing a review with "Verified Purchase". |
+| **Review digest** | "What buyers say": the aspects reviewers actually mention (battery, fit, delivery, value…) with "6 of 8 positive" bars, verified purchases first, and the most helpful positive and critical review pinned. Every number is checkable — click a bar and the list below is exactly those reviews. |
+| **Compare** | Tick up to four products from search or a department, and a docked tray follows you. The compare page puts them side by side: price, delivery date, rating, availability, warranty, returns, weight and dimensions, with "show differences only" and Add to Cart per column. |
 | **Cart** | Guest cart that merges on sign-in, quantity stepper, save for later, free-shipping progress, and an empty state for guests and for signed-in shoppers. |
 | **Checkout** | Sign-in gate that returns you to checkout, address book with validation, saved cards (test cards only), a delivery-speed choice for the order, and an order summary with tax. "Place your order" is safe to double-click. Ends on a thank-you page. |
 | **Orders** | Tabs (Orders, Buy Again, Not Yet Shipped, Cancelled), a date filter, order search, order details with an invoice, a tracking timeline, cancel before shipping, returns and replacements with a refund summary, and Buy it again. |
@@ -41,12 +43,16 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 - **Prime, Video, Music, Kindle, Alexa, Amazon Business, the seller marketplace:** each is a separate product from shopping.
 - **Ads and sponsored placements:** noise for the shopper. Leaving them out is a better-than-Amazon choice.
-- **Real payments, SMS, OTP, 2FA, passkeys:** these need outside services. Payments are simulated and accept test cards only, so nobody types a real card into a demo.- **Product variants, coupons, lightning-deal countdowns:** the catalog has no such data, and fake urgency is worse than none.
-- **Also out:** customer service chat, registries, gift cards, Subscribe & Save, the AI shopping assistant and review summaries, per-state tax and ZIP-based delivery.
+- **Real payments, SMS, OTP, 2FA, passkeys:** these need outside services. Payments are simulated and accept test cards only, so nobody types a real card into a demo.
+- **Product variants, coupons, lightning-deal countdowns:** the catalog has no such data, and fake urgency is worse than none.
+- **Also out:** customer service chat, registries, gift cards, Subscribe & Save, the AI shopping assistant, per-state tax and ZIP-based delivery. Reviews are digested by counting what reviewers wrote, never summarised by a model you can't check.
 
 ### Better than Amazon
 
 - No ads or sponsored rows.
+- The delivered price up front for international shoppers, duty included, instead of a customs bill at the door.
+- A review digest whose every number clicks through to the reviews behind it, instead of an AI summary you can't check.
+- Compare from the search results, where the decision actually happens.
 - Filter chips with "Clear all" and exact result counts.
 - One delivery promise used by product cards, the product page, cart and checkout, so an item never shows two different dates.
 - Double-click-safe orders.
@@ -59,10 +65,10 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 ## How it's built
 
 - **App:** Next.js 16 App Router (Server Components and Server Actions), React 19, Tailwind 4, TypeScript. No ORM, no UI kit, no auth library.
-- **Catalog:** 184 products from [DummyJSON](https://dummyjson.com), held in memory. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
+- **Catalog:** 184 products from [DummyJSON](https://dummyjson.com), held in memory, with a deterministic review corpus (~14 written reviews per product, seeded from the product id in `lib/review-seed.ts`) so ratings, the digest and the review pages have something real to work with. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
 - **Data:** Postgres. Production uses Neon through the Vercel Marketplace. Locally the app uses an embedded PGlite database, so `npm run dev` needs no setup. Money is stored in integer cents. Writes that must be atomic, like placing an order or merging a guest cart, are single SQL statements with CTEs, because Neon's HTTP driver has no interactive transactions.
 - **Auth:** scrypt password hashes, random session tokens stored hashed, httpOnly cookies, and same-site-only `return_to` redirects.
-- **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, links, carousel, suggest, pdp, quick-look, checkout, orders, account, demo, region), plus assert-based checks for the catalog, delivery dates, payments, region pricing and email templates.
+- **Tests:** a headless Chrome end-to-end script per flow in `e2e/` (smoke, search, home, links, carousel, suggest, pdp, quick-look, compare, checkout, orders, account, demo, region), plus assert-based checks for the catalog, reviews, delivery dates, payments, region pricing and email templates.
 
 ## How it was built
 

@@ -124,17 +124,49 @@ try {
   await page.getByText('Review submitted - Thank you!').waitFor()
   await page.getByRole('link', { name: 'Back to the product' }).click()
   const reviews = page.getByRole('region', { name: 'Customer reviews' })
-  await reviews.getByText(headline).waitFor()
-  await reviews.getByRole('link', { name: 'Edit your review' }).waitFor()
+  await reviews.getByText(headline).first().waitFor() // pinned as 'most helpful positive' and again in the list
+  await reviews.getByRole('link', { name: 'Edit your review' }).first().waitFor()
   // "Your review · Edit" sits in muted text: the link is underlined so it isn't told apart by colour alone
-  assert.equal(await reviews.getByRole('link', { name: 'Edit', exact: true }).evaluate((a) => getComputedStyle(a).textDecorationLine), 'underline')
+  assert.equal(await reviews.getByRole('link', { name: 'Edit', exact: true }).first().evaluate((a) => getComputedStyle(a).textDecorationLine), 'underline')
 
   await page.goto(`${base}/product-reviews/${product.id}?filterByStar=four_star`)
-  await page.getByText(headline).waitFor()
+  await page.getByText(headline).first().waitFor()
   await page.getByLabel('Star rating').selectOption('one_star')
   await page.waitForURL(/filterByStar=one_star/)
   await page.getByText('FILTERED BY').waitFor()
   assert.equal(await page.getByText(headline).count(), 0)
+
+  step('review digest: an aspect bar filters to exactly the reviews it counted, and verified-only changes the count')
+  // ?verified=all is the unfiltered view, where a bar's total is the whole list behind it (lib/review-seed.ts gives
+  // every product a corpus, so which aspects appear depends on the product, never on hard-coded counts)
+  await page.goto(`${base}/dp/125?verified=all#reviews`)
+  const digest = page.getByRole('region', { name: 'What buyers say' })
+  const bar = digest.getByRole('link', { name: /positive$/ }).first()
+  await bar.waitFor()
+  const [, aspect, positive, mentions] = (await bar.innerText()).match(/^(.+)\n(\d+) of (\d+) positive$/)
+  assert.ok(Number(mentions) >= 3, 'a bar needs at least three mentions')
+  assert.ok(Number(positive) <= Number(mentions))
+  await digest.getByRole('heading', { name: 'Most helpful positive' }).waitFor()
+  await digest.getByRole('heading', { name: 'Most helpful critical' }).waitFor()
+  await bar.click()
+  await page.waitForURL(new RegExp(`mentions=${encodeURIComponent(aspect).replace(/%20/g, '(\\+|%20)')}`))
+  // the bar's total is the list it filters to: the number on the bar is checkable, not a claim
+  await page.getByRole('heading', { name: `${mentions} reviews mentioning ${aspect}` }).waitFor()
+  // the pinned pair steps aside while a filter is on
+  assert.equal(await digest.getByRole('heading', { name: 'Most helpful positive' }).count(), 0)
+  // clearing drops the aspect and falls back to the verified-purchases default
+  await page.getByRole('link', { name: 'Clear filter' }).click()
+  await page.waitForURL((u) => !u.searchParams.has('mentions'))
+  assert.equal(await page.getByRole('heading', { name: new RegExp(`mentioning ${aspect}`) }).count(), 0)
+
+  step('verified purchases: the default view hides unverified reviews and says how many it kept')
+  await page.goto(`${base}/dp/125#reviews`)
+  const all = Number((await digest.innerText()).match(/of (\d+) reviews/)[1])
+  const kept = Number((await digest.innerText()).match(/(\d+) of \d+ reviews are from verified purchases/)[1])
+  assert.ok(kept > 0 && kept < all, `verified purchases are a real subset: ${kept} of ${all}`)
+  await page.getByRole('heading', { name: `${kept} reviews from verified purchases` }).waitFor()
+  await digest.getByRole('link', { name: `Show all ${all}` }).click()
+  await page.getByRole('heading', { name: 'Top reviews' }).waitFor()
 
   step('1280x800: the list menu paints above the sticky "On this page" bar and a mouse click on the second list saves')
   await page.setViewportSize({ width: 1280, height: 800 })

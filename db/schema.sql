@@ -61,6 +61,7 @@ create table if not exists orders (
   items_cents int not null,
   shipping_cents int not null,
   tax_cents int not null,
+  duty_cents int not null default 0,
   total_cents int not null,
   placed_at timestamptz not null default now(),
   deliver_by timestamptz not null,

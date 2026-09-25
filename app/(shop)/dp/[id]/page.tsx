@@ -18,15 +18,16 @@ import { Stars } from '@/components/stars'
 import { getUser } from '@/lib/auth'
 import { cartSummary, MAX_QTY } from '@/lib/cart'
 import { boughtTogether, categoryName, DEPARTMENTS, getProduct, inCategory, isDeal, popularity, products, related, type Product } from '@/lib/catalog'
-import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
+import { deliveryPromise, deliveryText, relativeDay, shippingRates } from '@/lib/delivery'
 import { compactCount, fullDate, longDate, plural, toCents } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
-import { formatDollars, IMPORT_FEES_NOTE, itemsTotal } from '@/lib/region'
+import { dutyCentsFor, formatDollars, formatMoney, IMPORT_FEES_NOTE, itemsTotal } from '@/lib/region'
 import { getRegion } from '@/lib/region-server'
-import { productReviews, sortReviews } from '@/lib/reviews'
+import { ReviewDigest } from '@/components/reviews/digest'
+import { aspectDigest, isAspect, mentionsAspect, pinnedReviews, productReviews, sortReviews, verifiedByDefault } from '@/lib/reviews'
 
-type Props = { params: Promise<{ id: string }> }
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }
 
 const findProduct = (id: string) => (/^\d{1,9}$/.test(id) ? getProduct(Number(id)) : undefined)
 
@@ -89,9 +90,11 @@ function InfoTable({ title, rows }: { title: string; rows: [string, React.ReactN
 
 const slim = ({ id, title, thumbnail, price }: Product) => ({ id, title, thumbnail, price })
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const p = findProduct((await params).id)
   if (!p) notFound()
+  const sp = await searchParams
+  const param = (k: string) => (typeof sp[k] === 'string' ? sp[k] : '')
 
   const user = await getUser()
   const [cart, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName, address }, jar] = await Promise.all([
@@ -110,6 +113,9 @@ export default async function ProductPage({ params }: Props) {
   const promise = deliveryPromise(p, new Date(), country)
   const { standard, fastest, within } = promise
   const { label, note } = deliveryText(promise, currency, rate)
+  // landed cost: what an international shopper actually pays, said here instead of sprung on them at checkout
+  const dutyCents = dutyCentsFor(country, p.category, toCents(p.price))
+  const shipCents = toCents(shippingRates(country).standard)
   const zip = jar.get('zip')?.value
   const deliverTo = address
     ? `Deliver to ${address.fullName.split(' ')[0]} - ${address.city} ${address.zip}`
@@ -138,7 +144,19 @@ export default async function ProductPage({ params }: Props) {
     .filter((x) => dept?.categories.includes(x.category) && x.category !== p.category && x.stock > 0 && !pairs.includes(x))
     .sort((a, b) => popularity(b) - popularity(a))
     .slice(0, 12)
-  const topReviews = sortReviews(reviews, 'helpful').slice(0, 8)
+  // Reviews: the digest counts the same set the list shows, so every bar clicks through to exactly those reviews (lib/reviews)
+  const mentions = isAspect(param('mentions')) ? param('mentions') : ''
+  const verifiedCount = reviews.filter((r) => r.verified).length
+  const verifiedOnly = param('verified') ? param('verified') === 'only' : verifiedByDefault(reviews)
+  const aspects = aspectDigest(verifiedOnly ? reviews.filter((r) => r.verified) : reviews)
+  const shown = reviews.filter((r) => (!mentions || mentionsAspect(r, mentions)) && (!verifiedOnly || r.verified))
+  const topReviews = sortReviews(shown, 'helpful').slice(0, 8)
+  const reviewLink = (patch: Record<string, string | undefined>) => {
+    const q = new URLSearchParams()
+    const next = { mentions, verified: param('verified'), ...patch }
+    for (const [k, v] of Object.entries(next)) if (v) q.set(k, v)
+    return `/dp/${p.id}${q.size ? `?${q}` : ''}#reviews`
+  }
   const recent = history.filter((h) => h.product.id !== p.id).slice(0, 20)
   // The catalog's weight and dimensions are unitless demo numbers (a 4 "pound" mascara), so they stay off the page.
   const specs: [string, string][] = [
@@ -207,6 +225,14 @@ export default async function ProductPage({ params }: Props) {
                 List Price: <s>{formatDollars(p.listPrice, currency, rate)}</s>
                 <InfoPopover id="list-price-info" label="About List Price">
                   The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller.
+                </InfoPopover>
+              </p>
+            )}
+            {dutyCents > 0 && (
+              <p className="mt-1.5 text-sm">
+                <b>{formatMoney(toCents(p.price) + dutyCents + shipCents, currency, rate)} to your door</b>
+                <InfoPopover id="landed-cost-info" label="About the delivered price">
+                  Includes {formatMoney(dutyCents, currency, rate)} estimated import duty and {formatMoney(shipCents, currency, rate)} international shipping, so nothing is collected on delivery.
                 </InfoPopover>
               </p>
             )}
@@ -358,17 +384,35 @@ export default async function ProductPage({ params }: Props) {
           <RatingBreakdown summary={summary} productId={p.id} />
         </div>
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <h3 className="text-lg">Top reviews from the United States</h3>
+          <ReviewDigest
+            aspects={aspects}
+            pinned={pinnedReviews(reviews)}
+            verified={{ only: verifiedOnly, count: verifiedCount, total: reviews.length }}
+            mentions={mentions}
+            filtered={!!mentions || verifiedOnly}
+            link={reviewLink}
+            productId={p.id}
+            signedIn={!!user}
+            returnTo={reviewLink({})}
+          />
+          <h3 className="text-lg">
+            {mentions || verifiedOnly ? `${plural(shown.length, 'review')}` : 'Top reviews'}
+            {mentions && ` mentioning ${mentions}`}
+            {verifiedOnly && ' from verified purchases'}
+          </h3>
+          {(mentions || (verifiedOnly && param('verified'))) && (
+            <Link href={reviewLink({ mentions: undefined, verified: verifiedOnly ? 'all' : undefined })} className="link text-sm">Clear filter</Link>
+          )}
           {topReviews.length ? (
             <div className="divide-y divide-line">
               {topReviews.map((r) => (
-                <ReviewCard key={r.id} review={r} productId={p.id} signedIn={!!user} returnTo={`/dp/${p.id}#reviews`} />
+                <ReviewCard key={r.id} review={r} productId={p.id} signedIn={!!user} returnTo={reviewLink({})} />
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm">No customer reviews</p>
+            <p className="mt-3 text-sm">No customer reviews match this filter.</p>
           )}
-          {reviews.length > topReviews.length && <Link href={`/product-reviews/${p.id}`} className="link mt-2 inline-block font-bold">See more reviews ›</Link>}
+          {shown.length > topReviews.length && <Link href={`/product-reviews/${p.id}`} className="link mt-2 inline-block font-bold">See more reviews ›</Link>}
         </div>
         <div className="border-t border-line pt-6 lg:col-start-1 lg:row-start-2 lg:self-start">
           <WriteReviewPrompt productId={p.id} hasReview={!!mine} />

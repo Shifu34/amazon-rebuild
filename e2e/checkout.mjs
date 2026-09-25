@@ -190,12 +190,14 @@ try {
   await page.getByText('12 Mall Road, Lahore, Punjab 54000, Pakistan').waitFor()
   const pkAddress = new URL(page.url()).searchParams.get('address')
 
-  step('Pakistan checkout: international options, flat shipping, no tax line, import-fees note, the column adds up')
+  step('Pakistan checkout: international options, flat shipping, no tax line, duty included, the column adds up')
   await review.getByLabel(/Standard International Delivery/).waitFor()
-  await summary().getByText('Import fees and duties, if any, are collected by the carrier on delivery.').waitFor()
+  await summary().getByText('Import duty is estimated and included, so the courier collects nothing on delivery.').waitFor()
   assert.equal(await summary().getByText('Estimated tax to be collected:').count(), 0)
   assert.equal(await amount('Shipping & handling:'), 4153.28) // $14.99 at 277.07
-  assert.equal(await amount('Order total:'), Math.round(((await amount('Items (')) + 4153.28) * 100) / 100)
+  const duty = await amount('Import duty (estimated):')
+  assert.ok(duty > 0, 'import duty is charged with the order, not at the door')
+  assert.equal(await amount('Order total:'), Math.round(((await amount('Items (')) + 4153.28 + duty) * 100) / 100)
 
   step('switching the address to the US and back updates options and totals')
   await page.getByRole('button', { name: 'Change delivery address' }).click()
@@ -213,7 +215,7 @@ try {
   await page.getByText('Lahore, Punjab 54000, Pakistan').waitFor()
   await page.getByText('Standard International Delivery').waitFor()
   const details = page.getByRole('complementary', { name: 'Order details' })
-  await details.getByText('Import fees and duties, if any, are collected by the carrier on delivery.').waitFor()
+  await details.getByText('Import duty is estimated and included, so the courier collects nothing on delivery.').waitFor()
   const pkTotal = () => details.locator('dl > div').filter({ hasText: 'Order total:' }).locator('dd').textContent()
   const placedTotal = await pkTotal()
   assert.match(placedTotal, /^PKR [\d,]+\.\d{2}$/)

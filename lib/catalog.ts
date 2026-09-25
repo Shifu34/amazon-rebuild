@@ -1,10 +1,12 @@
 // Read-only catalog: 184 DummyJSON products held in memory, plus the Amazon-style signals derived from them.
 // Search, facets and sorting run in memory; at this size that is faster than any database round trip.
 import raw from '@/data/products.json'
+import { seedReviews } from './review-seed'
 
 type RawProduct = (typeof raw.products)[number]
 
-export type Review = { rating: number; comment: string; date: string; reviewerName: string }
+// `comment` is the headline; `body` is the written review under it (empty on DummyJSON's own one-liners)
+export type Review = { rating: number; comment: string; body: string; date: string; reviewerName: string; verified: boolean }
 
 export type Product = {
   id: number
@@ -85,6 +87,9 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 
 function derive(p: RawProduct): Product {
   const discount = Math.round(p.discountPercentage)
+  const ratingCount = Math.round(40 + noise(p.id) ** 2 * 24000)
+  const boughtPastMonth = noise(p.id + 7) < 0.55 ? [50, 100, 200, 300, 500, 1000, 2000, 5000][Math.floor(noise(p.id + 3) * 8)] : 0
+  const rating = Math.round(p.rating * 10) / 10
   return {
     id: p.id,
     title: p.title,
@@ -94,8 +99,8 @@ function derive(p: RawProduct): Product {
     price: p.price,
     listPrice: discount >= 5 ? round2(p.price / (1 - p.discountPercentage / 100)) : null,
     discount: discount >= 5 ? discount : 0,
-    rating: Math.round(p.rating * 10) / 10,
-    ratingCount: Math.round(40 + noise(p.id) ** 2 * 24000),
+    rating,
+    ratingCount,
     stock: p.stock,
     tags: p.tags,
     images: p.images,
@@ -106,8 +111,12 @@ function derive(p: RawProduct): Product {
     weight: p.weight,
     dimensions: p.dimensions,
     sku: p.sku,
-    reviews: p.reviews.map(({ rating, comment, date, reviewerName }) => ({ rating, comment, date, reviewerName })),
-    boughtPastMonth: noise(p.id + 7) < 0.55 ? [50, 100, 200, 300, 500, 1000, 2000, 5000][Math.floor(noise(p.id + 3) * 8)] : 0,
+    // DummyJSON's three one-liners, then the product's own corpus (lib/review-seed.ts) so the page has something to summarise
+    reviews: [
+      ...p.reviews.map(({ rating, comment, date, reviewerName }) => ({ rating, comment, body: '', date, reviewerName, verified: false })),
+      ...seedReviews({ id: p.id, category: p.category, rating, ratingCount, boughtPastMonth }),
+    ],
+    boughtPastMonth,
     badge: null,
     createdAt: p.meta.createdAt,
   }

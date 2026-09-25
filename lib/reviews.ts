@@ -2,6 +2,7 @@
 // 5-star histogram derived deterministically from the catalog's average and rating count.
 import { getProduct, type Product } from './catalog'
 import { one, query } from './db'
+import { apportion, starShares } from './review-seed'
 
 export type ReviewItem = {
   id: string // uuid for shopper reviews, seed-{productId}-{index} for catalog reviews
@@ -32,6 +33,54 @@ export const STAR_FILTERS: Record<string, { label: string; stars: number[] }> = 
 }
 export const starFilterKey = (star: number) => ['one_star', 'two_star', 'three_star', 'four_star', 'five_star'][star - 1]
 
+// What reviewers talk about, matched against the review text itself so every count links to the reviews behind it.
+// Sentiment words ("great", "disappointed") are deliberately absent: they only restate the star rating.
+export const ASPECTS: Record<string, RegExp> = {
+  delivery: /\b(shipping|delivery|deliver(?:ed)?|arrived|shipped|packaging|packaged)\b/i,
+  quality: /\b(quality|build|material|sturdy|solid|flimsy|broke|broken|cheaply)\b/i,
+  'value for money': /\b(value|price|pricey|money|worth|cheap|expensive|overpriced)\b/i,
+  'as described': /\b(described|description|accurate|advertis\w+|photos?|pictures?)\b/i,
+  'buy again': /\b(recommend|buy again|repurchase|reorder)\b/i,
+  'fit and size': /\b(fit|fits|size|sizing|small|large|tight|loose)\b/i,
+  battery: /\b(batter(?:y|ies)|charge|charging|power)\b/i,
+  'sound and screen': /\b(sound|audio|volume|screen|display|bright(?:ness)?)\b/i,
+}
+
+export const isAspect = (key: string) => Object.hasOwn(ASPECTS, key)
+const reviewText = (r: ReviewItem) => `${r.headline}\n${r.body}`
+export const mentionsAspect = (r: ReviewItem, key: string) => isAspect(key) && ASPECTS[key].test(reviewText(r))
+
+export type Aspect = { key: string; mentions: number; positive: number }
+
+// An aspect needs this many mentions before we show a bar for it: below that the ratio says nothing.
+export const MIN_MENTIONS = 3
+
+// "delivery — 12 of 17 positive": the total is every review that mentions it and the count is those rated 4-5, so
+// clicking through to ?mentions=delivery shows exactly the reviews behind both numbers (3-star ones count in the
+// total but never as positive). Cheap enough to run per render: a handful of regexes over a product's reviews.
+export function aspectDigest(reviews: ReviewItem[]): Aspect[] {
+  return Object.keys(ASPECTS)
+    .map((key) => {
+      const said = reviews.filter((r) => ASPECTS[key].test(reviewText(r)))
+      return { key, mentions: said.length, positive: said.filter((r) => r.rating >= 4).length }
+    })
+    .filter((a) => a.mentions >= MIN_MENTIONS)
+    .sort((a, b) => b.mentions - a.mentions || a.key.localeCompare(b.key))
+    .slice(0, 6)
+}
+
+// The two reviews people actually want: the most helpful praise and the most helpful complaint, by real votes.
+export function pinnedReviews(reviews: ReviewItem[]) {
+  const best = (list: ReviewItem[]) => sortReviews(list, 'helpful')[0]
+  return { positive: best(reviews.filter((r) => r.rating >= 4)), critical: best(reviews.filter((r) => r.rating <= 2)) }
+}
+
+// Verified-only is the honest default, but switching it on before a product has verified reviews would empty the
+// list. Same threshold as an aspect bar: enough to mean something. It also never defaults on over the viewer's own
+// review: writing one and not finding it on the page reads as a bug, whatever the filter says.
+export const verifiedByDefault = (reviews: ReviewItem[]) =>
+  reviews.filter((r) => r.verified).length >= MIN_MENTIONS && !reviews.some((r) => r.own && !r.verified)
+
 // ponytail: the dev server applies db/schema.sql only when it first connects, so re-apply this slice's
 // additions once per process; drop it once every environment has run the current schema.
 let ready: Promise<unknown> | undefined
@@ -55,30 +104,6 @@ const ensureSchema = () =>
        )`,
     ),
   ))
-
-// Largest-remainder rounding: integers proportional to `weights` that add up to exactly `total`.
-function apportion(weights: number[], total: number) {
-  const sum = weights.reduce((a, b) => a + b, 0) || 1
-  const exact = weights.map((w) => (w / sum) * total)
-  const out = exact.map(Math.floor)
-  let left = total - out.reduce((a, b) => a + b, 0)
-  for (const i of exact.map((x, i) => i).sort((a, b) => exact[b] - out[b] - (exact[a] - out[a]))) if (left-- > 0) out[i]++
-  return out
-}
-
-// Star shares proportional to e^(t * star), with t bisected so the mean equals the average.
-function starShares(average: number) {
-  const shares = (t: number) => [1, 2, 3, 4, 5].map((s) => Math.exp(t * s))
-  const mean = (w: number[]) => w.reduce((a, x, i) => a + x * (i + 1), 0) / w.reduce((a, b) => a + b, 0)
-  let lo = -20
-  let hi = 20
-  for (let i = 0; i < 50; i++) {
-    const mid = (lo + hi) / 2
-    if (mean(shares(mid)) < average) lo = mid
-    else hi = mid
-  }
-  return shares(lo)
-}
 
 export function summarize(p: Product, shopperRatings: number[]): RatingSummary {
   const counts = apportion(starShares(p.rating), p.ratingCount)
@@ -141,9 +166,9 @@ export async function productReviews(p: Product, viewerId?: string) {
       author: r.reviewerName,
       rating: r.rating,
       headline: r.comment,
-      body: '',
+      body: r.body,
       date: new Date(r.date),
-      verified: false,
+      verified: r.verified,
       helpful: f?.helpful ?? 0,
       fromShopper: false,
       own: false,

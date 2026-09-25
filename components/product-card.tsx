@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CompareCheckbox } from '@/components/compare/compare'
 import { isDeal, type Product } from '@/lib/catalog'
 import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
 import { compactCount } from '@/lib/format'
@@ -51,6 +52,7 @@ export async function ProductCard({ product: p, priority = false, children }: { 
           <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
         </Link>
         <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
+        <CompareCheckbox id={p.id} title={p.title} thumbnail={p.thumbnail} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1 pt-2">
         {p.badge && <div><Badge badge={p.badge} /></div>}
