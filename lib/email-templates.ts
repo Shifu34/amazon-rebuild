@@ -165,3 +165,29 @@ function delivered({ order, name, origin }: OrderEmailInput): RenderedEmail {
 
 const RENDER: Record<OrderEmailKind, (input: OrderEmailInput) => RenderedEmail> = { confirmation, cancelled, return: returnStarted, delivered }
 export const orderEmail = (kind: OrderEmailKind, input: OrderEmailInput) => RENDER[kind](input)
+
+// The restock reminder: one nudge for something they bought and will have used up. It sells nothing they didn't already
+// choose, and every send carries the one-click stop, because a reminder nobody can turn off is a subscription.
+export function restockEmail({ product, name, origin, stopUrl }: { product: { id: number; title: string; thumbnail: string }; name: string; origin: string; stopUrl: string }): RenderedEmail {
+  const url = `${origin}/dp/${product.id}`
+  const cell = `${F}border-top:1px solid ${C.line};padding:10px 0;vertical-align:top`
+  const item = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 14px"><tr>
+<td width="68" style="${cell}"><img src="${esc(product.thumbnail)}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;object-fit:contain;background:#f7f7f7;border-radius:6px"></td>
+<td style="${cell};padding-left:12px;font-size:14px;line-height:19px">${esc(product.title)}</td>
+</tr></table>`
+  const body =
+    p(`Hi ${esc(firstName(name))}, you asked us to remind you when this was about to run out.`) +
+    item +
+    p(`${button(url, 'Buy it again')}&nbsp;&nbsp;${link(stopUrl, 'Stop reminding me')}`) +
+    p('This is a one-off reminder: nothing is subscribed and no card is charged.', `font-size:13px;color:${C.muted}`)
+  return {
+    subject: `Running low on ${clip(product.title)}?`,
+    html: layout({
+      preheader: `A reminder you set for ${clip(product.title)}`,
+      title: 'Time to restock?',
+      body,
+      reason: 'You received this email because you asked nile to remind you about this item once.',
+    }),
+    text: `Hi ${firstName(name)}, you asked us to remind you when ${product.title} was about to run out.\n\nBuy it again: ${url}\nStop reminding me: ${stopUrl}\n\nThis is a one-off reminder: nothing is subscribed and no card is charged.${textFooter}`,
+  }
+}

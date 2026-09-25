@@ -3,11 +3,13 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { after } from 'next/server'
+import { dataSaver } from '@/app/actions/data-saver'
 import { AddToList } from '@/components/add-to-list'
 import { PinIcon } from '@/components/icons'
 import { LocationPicker } from '@/components/nav-drawer'
 import { BoughtTogether } from '@/components/pdp/bought-together'
 import { PurchaseControls } from '@/components/pdp/buy-box'
+import { PriceLock } from '@/components/pdp/price-lock'
 import { Gallery } from '@/components/pdp/gallery'
 import { RatingBreakdown, ReviewCard, WriteReviewPrompt } from '@/components/pdp/reviews'
 import { Price } from '@/components/price'
@@ -23,6 +25,7 @@ import { compactCount, fullDate, longDate, plural, toCents } from '@/lib/format'
 import { getHistory, recordView } from '@/lib/history'
 import { getLists } from '@/lib/lists'
 import { dutyCentsFor, formatDollars, formatMoney, IMPORT_FEES_NOTE, itemsTotal } from '@/lib/region'
+import { getShopperPrices, activeLock, priced } from '@/lib/price-lock'
 import { getRegion } from '@/lib/region-server'
 import { ReviewDigest } from '@/components/reviews/digest'
 import { aspectDigest, isAspect, mentionsAspect, pinnedReviews, productReviews, sortReviews, verifiedByDefault } from '@/lib/reviews'
@@ -91,12 +94,16 @@ function InfoTable({ title, rows }: { title: string; rows: [string, React.ReactN
 const slim = ({ id, title, thumbnail, price }: Product) => ({ id, title, thumbnail, price })
 
 export default async function ProductPage({ params, searchParams }: Props) {
-  const p = findProduct((await params).id)
-  if (!p) notFound()
+  const catalogProduct = findProduct((await params).id)
+  if (!catalogProduct) notFound()
   const sp = await searchParams
   const param = (k: string) => (typeof sp[k] === 'string' ? sp[k] : '')
 
   const user = await getUser()
+  // every price on this page is the shopper's own: a locked price, a demo drop, or the shelf price
+  const shopperPrices = await getShopperPrices(user?.id)
+  const p = priced(catalogProduct, shopperPrices)
+  const lock = activeLock(p.id, shopperPrices)
   const [cart, lists, { reviews, summary, mine }, history, { currency, rate, country, countryName, address }, jar] = await Promise.all([
     cartSummary(),
     user ? getLists(user.id) : [],
@@ -185,7 +192,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
       {/* DOM order is gallery, title, price, buy box, specs so focus follows the columns; on phones the title moves above the gallery. */}
       <div className="mt-3 grid gap-x-8 gap-y-4 pb-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto_1fr] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(240px,270px)] lg:grid-rows-[auto_auto_1fr]">
         <div className="md:sticky md:top-3 md:col-start-1 md:row-span-4 md:row-start-1 md:self-start lg:row-span-3">
-          <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} />
+          <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} saver={await dataSaver()} />
         </div>
 
         <div className="max-md:order-first md:col-start-2 md:row-start-1">
@@ -274,6 +281,11 @@ export default async function ProductPage({ params, searchParams }: Props) {
               </p>
               <div className="mt-3">
                 <PurchaseControls product={slim(p)} max={Math.min(p.stock, MAX_QTY)} stock={p.stock} signedIn={!!user} inCart={inCart} cart={cartTotals} picks={pairs.map(slim)} />
+                <PriceLock
+                  productId={p.id}
+                  priceText={formatMoney(toCents(p.price), currency, rate)}
+                  locked={lock ? { text: formatMoney(lock.cents, currency, rate), expiresAt: lock.expires.toISOString() } : null}
+                />
               </div>
               <table className="mt-4 w-full text-xs">
                 <tbody>

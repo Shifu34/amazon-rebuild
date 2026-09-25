@@ -1,7 +1,7 @@
 // Run: npx tsx lib/email-templates.check.ts
 import assert from 'node:assert/strict'
 import { canReceiveEmail } from './email'
-import { orderEmail } from './email-templates'
+import { orderEmail, restockEmail } from './email-templates'
 import type { Order, OrderItem } from './orders'
 import { IMPORT_FEES_NOTE } from './region'
 
@@ -64,6 +64,20 @@ const pkRet = orderEmail('return', { order: { ...pk, items: returned.items.map((
 assert.ok(pkRet.text.includes('Estimated refund: PKR 8,309.33') && pkRet.html.includes(IMPORT_FEES_NOTE))
 const pkDel = orderEmail('delivered', { order: pk, name: 'Ayesha', origin })
 assert.ok(pkDel.html.includes('PKR 8,309.33') && pkDel.html.includes(IMPORT_FEES_NOTE) && !pkDel.html.includes('$'))
+
+// the restock reminder: names the product, offers the reorder and the stop, and promises nothing recurring
+const stopUrl = 'https://nile.example/api/reminders/stop?id=8f14e45f-ceea-467a-9a8c-0f1e2d3c4b5a'
+const restock = restockEmail({
+  product: { id: 31, title: 'Lemon <script>alert(1)</script>', thumbnail: 'https://cdn.dummyjson.com/31.webp' },
+  name: 'Ada <img src=x onerror=alert(1)>',
+  origin,
+  stopUrl,
+})
+assert.equal(restock.subject, 'Running low on Lemon <script>alert(1)</script>?') // plain text; the html body escapes it
+assert.ok(restock.html.includes(stopUrl) && restock.text.includes(stopUrl), 'every send carries the one-click stop')
+assert.ok(restock.html.includes(`${origin}/dp/31`), 'buy it again links to the product')
+assert.ok(!restock.html.includes('<script>') && !restock.html.includes('<img src=x'), 'product and shopper text is escaped')
+assert.ok(restock.html.includes('nothing is subscribed and no card is charged') && restock.text.includes('nothing is subscribed'))
 
 assert.equal(canReceiveEmail('demo-abc@example.com'), false)
 assert.equal(canReceiveEmail('qa@mail.test'), false)

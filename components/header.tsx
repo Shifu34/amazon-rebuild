@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { cookies, headers } from 'next/headers'
 import { Suspense } from 'react'
 import { signOut } from '@/app/actions/auth'
+import { dataSaver, setDataSaver } from '@/app/actions/data-saver'
+import { DataSaverPrompt } from './data-saver'
 import { getUser } from '@/lib/auth'
 import { cartCount } from '@/lib/cart'
 import { CATEGORY_NAMES, DEPARTMENTS } from '@/lib/catalog'
@@ -35,7 +37,7 @@ const line2 = 'block text-sm leading-[15px] font-bold whitespace-nowrap'
 
 export async function Header() {
   const user = await getUser()
-  const [count, location] = await Promise.all([cartCount(), deliverTo()])
+  const [count, location, saver] = await Promise.all([cartCount(), deliverTo(), dataSaver()])
   const firstName = user ? user.name.split(' ')[0] : null
   const account = user ? { hasAddress: Boolean(location.fromAddress) } : null
   // signed in: the address book; guests: a dialog to sign in or enter a ZIP
@@ -160,7 +162,17 @@ export async function Header() {
         {shortcuts.map(([label, href]) => (
           <Link key={href} href={href} className="nav-item px-2 py-1.5">{label}</Link>
         ))}
+        {/* a plain form, so the switch works before (and without) any JavaScript — the point of the feature.
+            role="switch" carries the state in aria-checked, so the on/off word stays out of the accessible name */}
+        <form action={setDataSaver} className="ml-auto shrink-0">
+          <input type="hidden" name="on" value={saver ? '0' : '1'} />
+          <button type="submit" role="switch" aria-checked={saver} aria-label="Data saver" className="nav-item flex cursor-pointer items-center gap-1.5 px-2 py-1.5">
+            <span aria-hidden>Data saver</span>
+            <span aria-hidden className={`rounded-sm px-1 text-[11px] font-bold ${saver ? 'bg-brand text-ink' : 'bg-white/15'}`}>{saver ? 'ON' : 'OFF'}</span>
+          </button>
+        </form>
       </nav>
+      <DataSaverPrompt on={saver} />
 
       {deliver(
         'flex w-full items-center gap-1.5 bg-nav-lighter px-3 py-2 text-[13px] lg:hidden',

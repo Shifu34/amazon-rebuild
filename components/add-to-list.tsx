@@ -24,7 +24,13 @@ function ListPicker({ productId, lists }: { productId: number; lists: ListOption
     return result
   }, null)
   const wrap = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
+
+  // the buy box can end up low on a short window, so bring the whole menu into view rather than opening it off-screen
+  useEffect(() => {
+    if (menu) menuRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [menu])
 
   useEffect(() => {
     if (!menu) return
@@ -63,7 +69,7 @@ function ListPicker({ productId, lists }: { productId: number; lists: ListOption
         </button>
 
       {menu && (
-        <div id={menuId} className="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-line bg-white py-2 text-sm shadow-[0_0_14px_rgba(15,17,17,0.35)]">
+        <div ref={menuRef} id={menuId} className="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-line bg-white py-2 text-sm shadow-[0_0_14px_rgba(15,17,17,0.35)]">
           {lists.length > 0 && (
             <form action={action}>
               {productField}

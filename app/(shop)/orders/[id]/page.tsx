@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Fragment } from 'react'
 import { demoMarkDelivered, demoReceiveReturn } from '@/app/actions/orders'
 import { CheckCircleIcon } from '@/components/checkout/icons'
 import { AddressLines, Crumbs, ItemRow, OrderActions, OrderTotals } from '@/components/orders/order-card'
+import { RestockReminder } from '@/components/orders/reminder'
 import { Progress } from '@/components/orders/progress'
 import { requireUser } from '@/lib/auth'
+import { getProduct } from '@/lib/catalog'
 import { fullDate, plural } from '@/lib/format'
 import { getOrder, orderView, reviewedProductIds } from '@/lib/orders'
+import { getReminders, reminderWeeks } from '@/lib/reminders'
 
 export const metadata: Metadata = { title: 'Order Details' }
 
@@ -16,7 +20,7 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<str
 export default async function OrderDetailsPage({ params, searchParams }: Props) {
   const { id } = await params
   const user = await requireUser(`/orders/${encodeURIComponent(id)}`)
-  const [order, reviewed] = await Promise.all([getOrder(user.id, id), reviewedProductIds(user.id)])
+  const [order, reviewed, reminders] = await Promise.all([getOrder(user.id, id), reviewedProductIds(user.id), getReminders(user.id)])
   if (!order) notFound()
   const { cancelled } = await searchParams
   const view = orderView(order)
@@ -88,14 +92,20 @@ export default async function OrderDetailsPage({ params, searchParams }: Props) 
               </div>
             )}
             <ul className="space-y-5 md:col-start-1 md:row-start-2 md:mt-1">
-              {view.items.map((i) => (
-                <ItemRow
-                  key={i.productId}
-                  item={i}
-                  order={order}
-                  review={delivered && i.state.kind !== 'cancelled' ? { reviewed: reviewed.has(i.productId) } : undefined}
-                />
-              ))}
+              {view.items.map((i) => {
+                // a consumable you already have: offer the nudge once it's actually been delivered
+                const weeks = delivered && i.state.kind !== 'cancelled' ? reminderWeeks(getProduct(i.productId)?.category ?? '') : 0
+                return (
+                  <Fragment key={i.productId}>
+                    <ItemRow item={i} order={order} review={delivered && i.state.kind !== 'cancelled' ? { reviewed: reviewed.has(i.productId) } : undefined} />
+                    {weeks > 0 && (
+                      <li className="-mt-3 sm:pl-[102px]">
+                        <RestockReminder productId={i.productId} orderId={order.id} weeks={weeks} reminder={reminders.find((r) => r.product.id === i.productId)} />
+                      </li>
+                    )}
+                  </Fragment>
+                )
+              })}
             </ul>
           </div>
         </section>

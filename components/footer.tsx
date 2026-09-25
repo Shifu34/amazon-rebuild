@@ -116,7 +116,11 @@ export async function Footer() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-center text-[#ddd]">© 2026 nile, a working rebuild of Amazon.com. Not affiliated with Amazon.</p>
+        {/* says plainly what the header switch changes, so nobody has to guess what they are turning on */}
+        <p className="mt-4 text-center text-[#999]">
+          Data saver (top of the page) loads smaller pictures, stops the home tiles playing and skips prefetching. Handy on metered mobile data.
+        </p>
+        <p className="mt-2 text-center text-[#ddd]">© 2026 nile, a working rebuild of Amazon.com. Not affiliated with Amazon.</p>
       </div>
     </footer>
   )

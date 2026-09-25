@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions/auth'
+import { demoSendReminders } from '@/app/actions/reminders'
+import { ReminderList } from '@/components/orders/reminder'
 import { getAddresses } from '@/lib/addresses'
 import { requireUser } from '@/lib/auth'
 import { one } from '@/lib/db'
@@ -8,6 +10,7 @@ import { plural } from '@/lib/format'
 import { historyPaused } from '@/lib/history'
 import { getLists } from '@/lib/lists'
 import { cardLabel, getCards } from '@/lib/payments'
+import { getReminders } from '@/lib/reminders'
 
 export const metadata: Metadata = { title: 'Your Account' }
 
@@ -21,15 +24,19 @@ const ICON = {
   history: 'M12 21a9 9 0 1 0-9-9M3 12v-4M3 12h4M12 7v5l3.5 2',
 }
 
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireUser('/account')
-  const [addresses, cards, lists, viewed, paused] = await Promise.all([
+  const [addresses, cards, lists, viewed, paused, reminders, sp] = await Promise.all([
     getAddresses(user.id),
     getCards(user.id),
     getLists(user.id),
     one<{ n: number }>('select count(*)::int as n from browsing_history where user_id = $1', [user.id]),
     historyPaused(user.id),
+    getReminders(user.id),
+    searchParams,
   ])
+  // the email's one-click stop lands back here (app/api/reminders/stop)
+  const stopped = sp.reminder === 'stopped' ? String(sp.title ?? 'That item') : null
   const address = addresses[0] // default first
   const card = cards[0]
   const listItems = lists.reduce((n, l) => n + l.itemCount, 0)
@@ -86,6 +93,24 @@ export default async function AccountPage() {
           </li>
         ))}
       </ul>
+
+      {stopped && (
+        <p role="status" className="mt-5 rounded-lg border border-line bg-[#f7f8f8] p-3 text-sm">
+          Stopped. We won&apos;t remind you about {stopped} again.
+        </p>
+      )}
+
+      <div className="mt-5">
+        <ReminderList
+          reminders={reminders}
+          demo={
+            <form action={demoSendReminders} className="mt-3 rounded-lg border-2 border-dashed border-[#c7c7c7] p-3">
+              <button type="submit" className="btn btn-plain">Demo: send due reminders now</button>
+              <p className="mt-1 text-xs text-muted">Reminders are weeks away, so this brings yours forward and emails them now.</p>
+            </form>
+          }
+        />
+      </div>
 
       <form action={signOut} className="mt-8 border-t border-line pt-6">
         <button type="submit" className="btn btn-plain btn-lg">Sign Out</button>

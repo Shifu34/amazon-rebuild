@@ -133,7 +133,14 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
       )}
       {view.cancelledCents > 0 && <Row label={view.status === 'cancelled' ? 'Cancelled:' : 'Cancelled items:'} value={`−${m.cancelled}`} />}
       <Row label="Grand Total:" value={m.charged} className="font-bold" />
-      {view.refundCents > 0 && <Row label="Refund total:" value={m.refunded} className={`font-bold ${green}`} />}
+      {view.refundCents > 0 && (
+        // a refund with no return behind it is price protection (lib/price-lock), so say so
+        <Row
+          label={view.items.filter((i) => i.refundedAt).every((i) => !i.returnedAt) ? 'Price protection refund:' : 'Refund total:'}
+          value={m.refunded}
+          className={`font-bold ${green}`}
+        />
+      )}
     </dl>
   )
 }

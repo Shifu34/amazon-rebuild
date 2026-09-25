@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { QuadCard, type Card, type Tile } from '@/components/home/cards'
 import { DealRail } from '@/components/home/deal'
 import { inScope, ranked } from '@/components/home/scope'
+import { dataSaver } from '@/app/actions/data-saver'
 import { PictureTiles, type PictureTile } from '@/components/home/tiles'
 import { ProductCarousel } from '@/components/product-carousel'
 import { displayAmount, parseQuery, toHref, toSearch, toUrlDollars, type Query } from '@/components/search/params'
@@ -150,7 +151,7 @@ export default async function Home() {
       <h1 className="sr-only">nile home</h1>
       {/* overflow-x-clip: sr-only prices inside the shared carousels are positioned outside their scroll box and would widen the page */}
       <div className="mx-auto max-w-[1536px] overflow-x-clip pt-2">
-        <PictureTiles tiles={TILES} />
+        <PictureTiles tiles={TILES} saver={await dataSaver()} />
         <div className="space-y-3 px-4 pt-5 sm:space-y-[25px]">
           <CardGrid cards={cards.slice(0, PAGE / 2)} offset={0} />
           <div className={railBox}>

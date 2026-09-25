@@ -183,3 +183,42 @@ create index if not exists sent_emails_to_created on sent_emails (to_address, cr
 alter table orders
   add column if not exists currency text not null default 'USD',
   add column if not exists fx_rate double precision not null default 1;
+
+-- restock reminders: one nudge when a consumable is due, never a subscription. One row per shopper and product, replaced
+-- when they set it again; `sent_at` closes it and `cancelled_at` records a one-click stop.
+create table if not exists reminders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  product_id int not null,
+  order_id text references orders(id) on delete set null,
+  due_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  sent_at timestamptz,
+  cancelled_at timestamptz
+);
+create unique index if not exists reminders_user_product on reminders (user_id, product_id);
+create index if not exists reminders_due on reminders (due_at);
+
+-- price locks: today's price held while the shopper decides, honoured by checkout until it expires
+create table if not exists price_locks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  product_id int not null,
+  price_cents int not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used_at timestamptz
+);
+create unique index if not exists price_locks_user_product on price_locks (user_id, product_id);
+
+-- demo price drops: the catalog is static, so a walkthrough can't wait for a real price change. The demo control lowers a
+-- product's price for one shopper (server-computed, never a price sent by the client) so price locks and price protection
+-- can be seen working.
+create table if not exists price_drops (
+  user_id uuid not null references users(id) on delete cascade,
+  product_id int not null,
+  price_cents int not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  primary key (user_id, product_id)
+);

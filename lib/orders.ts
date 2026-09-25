@@ -9,6 +9,7 @@ import { query } from './db'
 import { deliveryPromise, shippingRates } from './delivery'
 import { fullDate, toCents } from './format'
 import type { Card } from './payments'
+import { getShopperPrices, priced, protectionCents, spendLocks, type ShopperPrices } from './price-lock'
 import { countryCodeFromName, dutyCentsFor, IMPORT_FEES_NOTE, isCurrencyCode, rateFor, type CountryCode, type CurrencyCode } from './region'
 
 // Estimated sales tax: one flat 8.25% on items + shipping for every US address (a stand-in for per-state rates).
@@ -28,10 +29,11 @@ export async function cartLines(): Promise<OrderLine[]> {
 }
 
 // buy now: just this product, the cart is untouched; null when the id is unknown or it is out of stock
-export function buyNowLine(id: unknown, qty: unknown): OrderLine | null {
+// `prices` (the shopper's locks and demo drops) makes Buy Now quote what checkout will charge; without it, the shelf price
+export function buyNowLine(id: unknown, qty: unknown, prices?: ShopperPrices): OrderLine | null {
   const product = getProduct(Number(id))
   if (!product || product.stock <= 0) return null
-  return orderLine(product, Math.max(1, Math.floor(Number(qty)) || 1))
+  return orderLine(prices ? priced(product, prices) : product, Math.max(1, Math.floor(Number(qty)) || 1))
 }
 
 // what the shopper saw (product, quantity, price); placeOrder refuses to charge anything else
@@ -126,13 +128,16 @@ export async function createOrder(o: {
   currency?: CurrencyCode; fxRate?: number
 }) {
   await ensureSchema()
-  const q = quote(o.lines, o.speed, o.placedAt, countryCodeFromName(o.address.country))
+  // the charge goes through the shopper's own prices, so a lock is honoured on every path into checkout, Buy Now included
+  const prices = await getShopperPrices(o.userId)
+  const lines = o.lines.map((l) => ({ ...l, product: priced(l.product, prices) }))
+  const q = quote(lines, o.speed, o.placedAt, countryCodeFromName(o.address.country))
   const currency = o.currency ?? 'USD'
   const fxRate = currency === 'USD' ? 1 : (o.fxRate ?? rateFor(currency))
   const a = o.address
   const shipTo: ShipTo = { fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, city: a.city, state: a.state, zip: a.zip, country: a.country, instructions: a.instructions }
   const payment: PaymentSnapshot = { brand: o.card.brand, last4: o.card.last4, nameOnCard: o.card.nameOnCard }
-  const items = o.lines.map((l) => ({ product_id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price_cents: toCents(l.product.price), quantity: l.quantity }))
+  const items = lines.map((l) => ({ product_id: l.product.id, title: l.product.title, thumbnail: l.product.thumbnail, price_cents: toCents(l.product.price), quantity: l.quantity }))
   const [row] = await query<{ id: string }>(
     `with o as (
        insert into orders (id, user_id, ship_to, payment, delivery_speed, items_cents, shipping_cents, tax_cents, total_cents, deliver_by, idempotency_key, placed_at, currency, fx_rate, duty_cents)
@@ -152,6 +157,7 @@ export async function createOrder(o: {
     [newOrderId(), o.userId, JSON.stringify(shipTo), JSON.stringify(payment), o.speed, q.itemsCents, q.shippingCents - q.freeShippingCents,
       q.taxCents, q.totalCents, o.deliverBy ?? q.deliverBy, o.key, JSON.stringify(items), o.fromCart, `u:${o.userId}`, o.placedAt ?? null, currency, fxRate, q.dutyCents],
   )
+  if (row?.id) await spendLocks(o.userId, lines.map((l) => l.product.id)) // a lock buys one order, not a standing discount
   return row?.id ?? null
 }
 
@@ -475,7 +481,30 @@ export async function markDelivered(userId: string, orderId: string) {
      returning id`,
     [orderId, userId],
   )
+  if (rows.length) await payPriceProtection(userId, orderId)
   return rows.length > 0 // false when it was already delivered, cancelled or not this user's
+}
+
+// Price protection: if a line's price fell between the order and delivery, the difference comes back automatically.
+// Only lines that are still plain purchases are paid: a cancelled, returned or already refunded line has its own money.
+// TODO: a "price protection refund" email, once lib/email-templates.ts is free (it follows the cancelled/return pattern).
+async function payPriceProtection(userId: string, orderId: string) {
+  const order = await getOrder(userId, orderId)
+  if (!order) return
+  const prices = await getShopperPrices(userId)
+  const owed = order.items.flatMap((i) => {
+    if (i.cancelledAt || i.returnedAt || i.refundedAt) return []
+    const nowCents = prices.get(i.productId)?.cents ?? toCents(getProduct(i.productId)?.price ?? 0)
+    const cents = protectionCents(i.priceCents, i.quantity, nowCents)
+    return cents > 0 ? [{ product_id: i.productId, refund_cents: cents }] : []
+  })
+  if (!owed.length) return
+  await query(
+    `update order_items oi set refund_cents = x.refund_cents, refunded_at = now()
+     from jsonb_to_recordset($2::jsonb) as x(product_id int, refund_cents int)
+     where oi.order_id = $1 and oi.product_id = x.product_id and oi.refunded_at is null and oi.returned_at is null and oi.cancelled_at is null`,
+    [orderId, JSON.stringify(owed)],
+  )
 }
 
 // Demo control: the carrier scans the returned items, so their refunds are issued.

@@ -6,8 +6,10 @@ import { formatAddress, validateAddress } from './addresses'
 import { deliveryPromise, deliveryText } from './delivery'
 import { getProduct, products, search } from './catalog'
 import { itemRefundCents, quote, taxRateFor, trackingEvents, type Order, type OrderLine } from './orders'
+import { toCents } from './format'
+import { protectionCents } from './price-lock'
 import {
-  COUNTRIES, convertCents, countryCodeFromName, CURRENCIES, formatDollars, formatMinor, formatMoney, fromDisplayAmount, IMPORT_FEES_NOTE,
+  COUNTRIES, convertCents, countryCodeFromName, CURRENCIES, dutyCentsFor, formatDollars, formatMinor, formatMoney, fromDisplayAmount, IMPORT_FEES_NOTE,
   itemsTotal, lineMinor, minorParts, moneyParts, rateFor, summarize, USD_TO_PKR,
 } from './region'
 
@@ -220,5 +222,24 @@ for (const paisa of new Set(inStock.map((p) => shownPaisa(p.price)))) {
   filtered(Math.round(paisa + 1) / 100)
   filtered(Math.round(paisa - 50) / 100, Math.round(paisa + 49.5) / 100) // half-rupee decimals
 }
+
+// price lock and price protection: the shopper pays the lowest of shelf, demo drop and locked price, and gets the
+// difference back if it falls before delivery (lib/price-lock.ts)
+const shelf = toCents(getProduct(1)!.price)
+const mine = (o: { lock?: number; drop?: number }): number => Math.min(...[shelf, o.drop, o.lock].filter((c): c is number => typeof c === 'number' && c > 0))
+assert.equal(mine({ lock: shelf + 500 }), shelf, 'a lock above the shelf price never charges more')
+assert.equal(mine({ lock: shelf - 300 }), shelf - 300, 'a lock under the shelf price wins')
+assert.equal(mine({ lock: shelf - 100, drop: shelf - 400 }), shelf - 400, 'a bigger demo drop beats the lock')
+// an expired or spent lock is not in the map at all, so the shopper is back to the shelf price
+assert.equal(mine({}), shelf)
+assert.equal(protectionCents(1000, 2, 900), 200, 'both units are protected')
+assert.equal(protectionCents(1000, 1, 1000), 0, 'no refund when the price held')
+assert.equal(protectionCents(1000, 3, 1200), 0, 'a rise is never charged after the fact')
+// the charged price carries the duty and the order total with it
+const locked = { ...getProduct(1)!, price: (shelf - 400) / 100 }
+const lockedQuote = quote([{ product: locked, quantity: 1, requested: 1 }], 'standard', MON, 'PK')
+assert.equal(lockedQuote.itemsCents, shelf - 400)
+assert.equal(lockedQuote.dutyCents, dutyCentsFor('PK', locked.category, shelf - 400), 'duty follows the price actually charged')
+assert.equal(lockedQuote.totalCents, lockedQuote.itemsCents + lockedQuote.shippingCents + lockedQuote.dutyCents)
 
 console.log('region ok')

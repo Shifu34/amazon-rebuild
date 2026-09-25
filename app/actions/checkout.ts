@@ -6,6 +6,7 @@ import { getAddress } from '@/lib/addresses'
 import { getUser, requireUser } from '@/lib/auth'
 import { queueOrderEmail } from '@/lib/order-emails'
 import { buyNowLine, cartLines, createOrder, linesKey, orderIdForKey } from '@/lib/orders'
+import { getShopperPrices } from '@/lib/price-lock'
 import { DECLINED_LAST4, getCard } from '@/lib/payments'
 import { getRegion } from '@/lib/region-server'
 
@@ -34,7 +35,7 @@ export async function placeOrder(_prev: PlaceOrderState, form: FormData): Promis
   const placed = await orderIdForKey(user.id, key)
   if (placed) return { error: 'You already placed this order.', orderId: placed }
 
-  const line = buy ? buyNowLine(buy, qty) : null
+  const line = buy ? buyNowLine(buy, qty, await getShopperPrices(user.id)) : null
   const lines = buy ? (line ? [line] : []) : await cartLines()
   if (!lines.length) {
     if (!buy) redirect('/cart')

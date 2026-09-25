@@ -1,8 +1,10 @@
+import Image from 'next/image'
 import Link from 'next/link'
+import { dataSaver } from '@/app/actions/data-saver'
 import type { Product } from '@/lib/catalog'
 import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
-import { DeliveryLine } from './product-card'
+import { DeliveryLine, shot } from './product-card'
 import { QuickLook } from './quick-look'
 import { Scroller } from './scroller'
 import { Stars } from './stars'
@@ -11,7 +13,7 @@ import { Stars } from './stars'
 // `loading="eager"` when the row is visible as the page opens. Prices are in the shopper's display currency.
 export async function ProductCarousel({ title, products, href, details = true, loading = 'lazy' }: { title: string; products: Product[]; href?: string; details?: boolean; loading?: 'lazy' | 'eager' }) {
   if (!products.length) return null
-  const { currency, rate } = await getRegion()
+  const [{ currency, rate }, saver] = await Promise.all([getRegion(), dataSaver()])
   return (
     <section aria-label={title} className="bg-white px-4 pt-4 pb-1">
       <div className="mb-3 flex items-baseline gap-3">
@@ -25,13 +27,18 @@ export async function ProductCarousel({ title, products, href, details = true, l
               {/* with details the title link below is the one link tab stop per product (plus Quick look) */}
               <Link
                 href={`/dp/${p.id}`}
+                prefetch={saver ? false : undefined}
                 className="flex h-[170px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2"
                 aria-label={details ? undefined : p.title}
                 aria-hidden={details || undefined}
                 tabIndex={details ? -1 : undefined}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.thumbnail} alt={details ? '' : p.title} loading={loading} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                {saver ? (
+                  <Image src={p.thumbnail} alt={details ? '' : p.title} width={170} height={170} quality={40} loading={loading} className={shot} />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.thumbnail} alt={details ? '' : p.title} loading={loading} className={shot} />
+                )}
               </Link>
               {details && <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />}
             </div>

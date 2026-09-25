@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useRef, useState } from 'react'
 import { ChevronIcon, CloseIcon } from '@/components/icons'
 
@@ -8,13 +9,28 @@ const LENS = 1 / ZOOM // lens side as a fraction of the main image tile
 
 // Desktop: thumbnail strip (hover or focus swaps) + main image; hovering draws a lens and a zoom pane over the center column; click opens the viewer.
 // Mobile: a swipeable scroll-snap strip with dots; tap opens the viewer.
-export function Gallery({ images, title }: { images: string[]; title: string }) {
+export function Gallery({ images, title, saver = false }: { images: string[]; title: string; saver?: boolean }) {
   const [index, setIndex] = useState(0)
   const [lens, setLens] = useState<{ x: number; y: number } | null>(null) // lens top-left as fractions of the tile, while the mouse is over it
   const [zoomed, setZoomed] = useState<string | null>(null) // transform-origin when zoomed in the viewer
   const dialog = useRef<HTMLDialogElement>(null)
   const n = images.length
   const many = n > 1
+  // Data saver: every picture on the page goes through Next's optimiser at a lower quality. Default mode keeps the raw
+  // CDN file, byte for byte. `size` is the box the picture sits in, so the optimiser fetches roughly that.
+  const shot = (
+    src: string,
+    alt: string,
+    size: number,
+    className: string,
+    o: { priority?: boolean; loading?: 'eager' | 'lazy'; style?: React.CSSProperties } = {},
+  ) =>
+    saver ? (
+      <Image src={src} alt={alt} width={size} height={size} quality={40} priority={o.priority} loading={o.priority ? undefined : o.loading} style={o.style} className={className} />
+    ) : (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt={alt} fetchPriority={o.priority ? 'high' : undefined} loading={o.loading} style={o.style} className={className} />
+    )
 
   const openViewer = (i: number) => {
     setIndex(i)
@@ -46,8 +62,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
                   aria-current={i === index}
                   className={`block size-11 cursor-pointer overflow-hidden rounded-lg border bg-[#f7f7f7] p-0.5 focus-visible:outline-2 focus-visible:outline-focus ${i === index ? 'border-[#e77600] shadow-[0_0_3px_2px_rgba(228,121,17,0.5)]' : 'border-[#a2a6ac] hover:border-[#e77600]'}`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="" className="size-full object-contain mix-blend-multiply" />
+                  {shot(src, '', 44, 'size-full object-contain mix-blend-multiply')}
                 </button>
               </li>
             ))}
@@ -67,8 +82,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
             aria-label="Open full-screen image viewer"
             className="relative flex aspect-square max-h-[560px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-sm bg-[#f7f7f7] focus-visible:outline-2 focus-visible:outline-focus"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={images[index]} alt={title} fetchPriority="high" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+            {shot(images[index], title, 560, 'max-h-full max-w-full object-contain mix-blend-multiply', { priority: true })}
             {lens && (
               <span
                 aria-hidden
@@ -101,8 +115,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
           {images.map((src, i) => (
             <li key={src} className="w-full shrink-0 snap-center">
               <button type="button" onClick={() => openViewer(i)} aria-label={`Image ${i + 1} of ${n}, open full-screen viewer`} className="flex aspect-square w-full items-center justify-center bg-[#f7f7f7] p-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={i === 0 ? title : ''} loading="eager" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                {shot(src, i === 0 ? title : '', 390, 'max-h-full max-w-full object-contain mix-blend-multiply', { loading: 'eager' })}
               </button>
             </li>
           ))}
@@ -133,8 +146,9 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
               aria-label={zoomed ? 'Zoom out' : 'Zoom in'}
               className={`flex size-full items-center justify-center ${zoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={images[index]} alt={`${title}, image ${index + 1} of ${n}`} className="max-h-full max-w-full object-contain transition-transform" style={zoomed ? { transform: 'scale(2.5)', transformOrigin: zoomed } : undefined} />
+              {shot(images[index], `${title}, image ${index + 1} of ${n}`, 1000, 'max-h-full max-w-full object-contain transition-transform', {
+                style: zoomed ? { transform: 'scale(2.5)', transformOrigin: zoomed } : undefined,
+              })}
             </button>
             {many && (
               <>
@@ -170,8 +184,7 @@ export function Gallery({ images, title }: { images: string[]; title: string }) 
                       aria-current={i === index}
                       className={`block size-14 cursor-pointer rounded-lg border-2 bg-[#f7f7f7] p-1 ${i === index ? 'border-[#e77600]' : 'border-transparent hover:border-line'}`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt="" loading="lazy" className="size-full object-contain mix-blend-multiply" />
+                      {shot(src, '', 56, 'size-full object-contain mix-blend-multiply', { loading: 'lazy' })}
                     </button>
                   </li>
                 ))}

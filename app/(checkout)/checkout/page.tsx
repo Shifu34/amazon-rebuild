@@ -9,6 +9,7 @@ import { getCart, MAX_QTY } from '@/lib/cart'
 import { getProduct } from '@/lib/catalog'
 import { deliveryPromise } from '@/lib/delivery'
 import { buyNowLine, cartLines, linesKey, quote, type OrderLine } from '@/lib/orders'
+import { getShopperPrices } from '@/lib/price-lock'
 import { cardExpiry, cardLabel, getCards } from '@/lib/payments'
 import { countryCodeFromName, type CountryCode } from '@/lib/region'
 
@@ -25,7 +26,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<'/checkou
   let lines: OrderLine[]
   const notices: string[] = []
   if (buy) {
-    const line = buyNowLine(buy, qty)
+    const line = buyNowLine(buy, qty, await getShopperPrices(user.id))
     if (!line) return <Unavailable productId={getProduct(Number(buy))?.id} />
     lines = [line]
   } else {

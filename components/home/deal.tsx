@@ -1,6 +1,9 @@
+import Image from 'next/image'
 import Link from 'next/link'
+import { dataSaver } from '@/app/actions/data-saver'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { Price } from '@/components/price'
+import { shot } from '@/components/product-card'
 import { QuickLook } from '@/components/quick-look'
 import { Scroller } from '@/components/scroller'
 import { Stars } from '@/components/stars'
@@ -24,13 +27,17 @@ export function DealBadge({ discount }: { discount: number }) {
 // `inCart` is the server cart quantity; `priority` loads the image first (first grid row). `data-price` stays US dollars.
 export async function DealCard({ product: p, compact = false, inCart, priority = false }: { product: Product; compact?: boolean; inCart?: number; priority?: boolean }) {
   const href = `/dp/${p.id}`
-  const { currency, rate } = await getRegion()
+  const [{ currency, rate }, saver] = await Promise.all([getRegion(), dataSaver()])
   return (
     <article data-price={p.price} className="group/card relative flex h-full flex-col">
       <div className="relative">
-        <Link href={href} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        <Link href={href} tabIndex={-1} aria-hidden prefetch={saver ? false : undefined} className="flex aspect-square items-center justify-center rounded-lg bg-[#f7f7f7] p-3">
+          {saver ? (
+            <Image src={p.thumbnail} alt="" width={200} height={200} quality={40} loading={priority ? 'eager' : 'lazy'} className={shot} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.thumbnail} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className={shot} />
+          )}
         </Link>
         <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
       </div>

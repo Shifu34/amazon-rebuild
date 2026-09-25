@@ -1,4 +1,6 @@
+import Image from 'next/image'
 import Link from 'next/link'
+import { dataSaver } from '@/app/actions/data-saver'
 import { CompareCheckbox } from '@/components/compare/compare'
 import { isDeal, type Product } from '@/lib/catalog'
 import { deliveryPromise, deliveryText, relativeDay } from '@/lib/delivery'
@@ -8,6 +10,9 @@ import { getRegion } from '@/lib/region-server'
 import { Price } from './price'
 import { QuickLook } from './quick-look'
 import { Stars } from './stars'
+
+// every product shot: white product photos multiply into the grey box behind them
+export const shot = 'max-h-full max-w-full object-contain mix-blend-multiply'
 
 export function Badge({ badge }: { badge: Product['badge'] }) {
   if (badge === 'best-seller') {
@@ -43,13 +48,18 @@ export async function DeliveryLine({ product: p, compact = false }: { product: P
 // Pass `priority` for the first row of a grid so those above-the-fold images load first.
 export async function ProductCard({ product: p, priority = false, children }: { product: Product; priority?: boolean; children?: React.ReactNode }) {
   const href = `/dp/${p.id}`
-  const { currency, rate } = await getRegion()
+  const [{ currency, rate }, saver] = await Promise.all([getRegion(), dataSaver()])
   return (
     <article className="group/card flex h-full flex-col">
       <div className="relative">
-        <Link href={href} className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+        {/* Data saver swaps the CDN original for an optimised, smaller one and stops prefetching; the default path is untouched */}
+        <Link href={href} prefetch={saver ? false : undefined} className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
+          {saver ? (
+            <Image src={p.thumbnail} alt={p.title} width={240} height={240} quality={40} loading={priority ? 'eager' : 'lazy'} className={shot} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.thumbnail} alt={p.title} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : undefined} className={shot} />
+          )}
         </Link>
         <QuickLook id={p.id} title={p.title} thumbnail={p.thumbnail} />
         <CompareCheckbox id={p.id} title={p.title} thumbnail={p.thumbnail} />

@@ -1,22 +1,26 @@
 import { cache } from 'react'
-import { cartOwner } from './auth'
+import { cartOwner, getUser } from './auth'
 import { getProduct, type Product } from './catalog'
 import { query } from './db'
+import { getShopperPrices, priced } from './price-lock'
 
 export type CartLine = { product: Product; quantity: number; savedForLater: boolean; addedAt: Date }
 
 export const MAX_QTY = 30
 
 export const getCart = cache(async (): Promise<CartLine[]> => {
-  const owner = await cartOwner()
+  const [owner, user] = await Promise.all([cartOwner(), getUser()])
   if (!owner) return []
-  const rows = await query<{ product_id: number; quantity: number; saved_for_later: boolean; added_at: Date }>(
-    'select product_id, quantity, saved_for_later, added_at from cart_items where owner = $1 order by added_at desc',
-    [owner],
-  )
+  const [rows, prices] = await Promise.all([
+    query<{ product_id: number; quantity: number; saved_for_later: boolean; added_at: Date }>(
+      'select product_id, quantity, saved_for_later, added_at from cart_items where owner = $1 order by added_at desc',
+      [owner],
+    ),
+    getShopperPrices(user?.id), // a locked or dropped price follows the product into the cart and on to checkout
+  ])
   return rows.flatMap((r) => {
     const product = getProduct(r.product_id)
-    return product ? [{ product, quantity: r.quantity, savedForLater: r.saved_for_later, addedAt: new Date(r.added_at) }] : []
+    return product ? [{ product: priced(product, prices), quantity: r.quantity, savedForLater: r.saved_for_later, addedAt: new Date(r.added_at) }] : []
   })
 })
 

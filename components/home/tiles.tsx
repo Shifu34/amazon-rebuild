@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronIcon } from '@/components/icons'
@@ -10,7 +11,8 @@ export type PictureTile = { title: string; subtitle?: string; href: string; bg: 
 // The tall picture tiles across the top of the home page. Scrolling is native (snap points, swipe, shift+wheel, and focus
 // scrolls a tile into view); the arrows page the row on pointer devices, and each hides at its end of the row.
 // The tiles are above the fold, so their images load eagerly.
-export function PictureTiles({ tiles }: { tiles: PictureTile[] }) {
+// `saver`: Data saver, read from the cookie on the server (app/actions/data-saver.ts)
+export function PictureTiles({ tiles, saver = false }: { tiles: PictureTile[]; saver?: boolean }) {
   const ref = useRef<HTMLUListElement>(null)
   const [at, setAt] = useState({ start: true, end: false })
   const update = () => {
@@ -26,7 +28,7 @@ export function PictureTiles({ tiles }: { tiles: PictureTile[] }) {
     <div className="relative">
       <ul ref={ref} onScroll={update} aria-label="Shop by department" className="flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] motion-safe:scroll-smooth">
         {tiles.map((tile, i) => (
-          <Tile key={tile.href} tile={tile} first={i === 0} />
+          <Tile key={tile.href} tile={tile} first={i === 0} saver={saver} />
         ))}
       </ul>
       <button type="button" hidden={at.start} onClick={() => page(-1)} aria-label="Scroll departments left" className={`${arrow} left-0 rounded-r-lg border border-l-0`}>
@@ -49,7 +51,7 @@ type Playback = 'idle' | 'playing' | 'paused' | 'ended'
 // photo at a time: each product's angles crossfade while the product slowly zooms in. It plays only while the mouse is over
 // the tile and pauses when it leaves; keyboard and touch use the Play button. Only the previous (fading out), current and
 // next (preloading) photos are mounted.
-function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: PictureTile; first: boolean }) {
+function Tile({ tile: { title, subtitle, href, bg, shots }, first, saver }: { tile: PictureTile; first: boolean; saver: boolean }) {
   const frames = shots.flatMap((s, g) => s.map((src, k) => ({ src, k, len: s.length, g })))
   const [state, setState] = useState<Playback>('idle')
   const [cur, setCur] = useState(0)
@@ -77,9 +79,9 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: Pic
     zooms().forEach((a) => a.play())
     setState('playing') // from 'ended' this replays from the first photo
   }
-  // a mouse over the tile plays it, never with reduced motion; touch "hover" is a tap, which follows the link instead
+  // a mouse over the tile plays it, never with reduced motion or Data saver; touch "hover" is a tap, which follows the link
   const hover = (e: React.PointerEvent, on: boolean) => {
-    if (e.pointerType === 'touch' || frames.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (saver || e.pointerType === 'touch' || frames.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return
     if (on && state !== 'playing') play()
     else if (!on && state === 'playing') pause()
   }
@@ -98,7 +100,11 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: Pic
     if (state === 'idle' || state === 'ended') return { opacity: 1, transform: 'scale(1)', transition: into }
     return { opacity: 1, transform: `scale(${ZOOM})`, transition: `${into}, ${zoom}` }
   }
-  const mounted = [...new Set([prev, cur, next])].filter((i): i is number => i !== null && i < frames.length).sort((a, b) => a - b)
+  // At rest a tile is one still: the reel only plays on hover, so preloading the next frame for every tile on every visit
+  // spent ~700 KB of someone's data for a hover that usually never comes. Frames mount once playback starts.
+  const playing = state === 'playing' || state === 'paused'
+  const mounted =
+    saver || !playing ? [cur] : [...new Set([prev, cur, next])].filter((i): i is number => i !== null && i < frames.length).sort((a, b) => a - b)
 
   return (
     <li onPointerEnter={(e) => hover(e, true)} onPointerLeave={(e) => hover(e, false)} className="relative w-[min(285px,64vw)] shrink-0 snap-start">
@@ -111,20 +117,25 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first }: { tile: Pic
         {subtitle && <span className="mt-1 text-lg leading-6">{subtitle}</span>}
         {/* product shots on white multiply into the tile colour */}
         <span ref={area} aria-hidden className="relative -mx-3 mt-2 flex-1">
-          {mounted.map((i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={i}
-              src={frames[i].src}
-              alt=""
-              fetchPriority={i === 0 && first ? 'high' : i === cur ? undefined : 'low'}
-              style={style(i)}
-              className="absolute top-1 left-3 h-[calc(100%-48px)] w-[calc(100%-24px)] max-w-none object-contain mix-blend-multiply"
-            />
-          ))}
+          {mounted.map((i) =>
+            // Data saver: one still, through the optimiser at the tile's own size instead of a full-size CDN photo
+            saver ? (
+              <Image key={i} src={frames[i].src} alt="" width={261} height={390} quality={40} priority={first} style={style(i)} className="absolute top-1 left-3 h-[calc(100%-48px)] w-[calc(100%-24px)] max-w-none object-contain mix-blend-multiply" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={frames[i].src}
+                alt=""
+                fetchPriority={i === 0 && first ? 'high' : i === cur ? undefined : 'low'}
+                style={style(i)}
+                className="absolute top-1 left-3 h-[calc(100%-48px)] w-[calc(100%-24px)] max-w-none object-contain mix-blend-multiply"
+              />
+            ),
+          )}
         </span>
       </Link>
-      {frames.length > 1 && (
+      {frames.length > 1 && !saver && (
         <button
           type="button"
           onClick={() => (state === 'playing' ? pause() : play())}
