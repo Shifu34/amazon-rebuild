@@ -80,7 +80,7 @@ export default async function CheckoutPage({ searchParams }: PageProps<'/checkou
 function Unavailable({ productId }: { productId?: number }) {
   return (
     <div className="mx-auto w-full max-w-[600px] px-4 py-10">
-      <div className="rounded-lg border border-line bg-white p-6 text-center">
+      <div className="card p-8 text-center">
         <h2 className="text-xl">{productId ? 'This item is currently unavailable.' : "We couldn't find that item."}</h2>
         <p className="mt-2 text-sm text-muted">
           {productId ? "We don't know when or if this item will be back in stock." : 'The link may be broken, or the item is no longer sold on nile.'}

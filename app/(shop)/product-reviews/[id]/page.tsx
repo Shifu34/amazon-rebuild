@@ -62,25 +62,25 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
     return q.size ? `${base}?${q}` : base
   }
   const filtered = star !== 'all_stars' || verifiedOnly || !!keyword || !!mentions
-  const chip = 'rounded-full bg-[#f0f2f2] px-2.5 py-0.5'
+  const chip = 'rounded-full border border-line bg-surface px-2.5 py-0.5'
 
   return (
-    <div className="mx-auto max-w-[1300px] px-4 py-6">
+    <div className="mx-auto max-w-[1120px] px-4 py-10 md:px-6">
       {/* Phones read summary, reviews, then the write prompt; on desktop the prompt sits under the histogram. */}
-      <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
+      <div className="grid gap-x-16 gap-y-10 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
         <aside className="space-y-6">
           <Link href={`/dp/${p.id}`} className="group flex items-center gap-3">
-            <span className="flex size-20 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1.5">
+            <span className="flex size-20 shrink-0 items-center justify-center rounded-[10px] bg-page p-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
             </span>
             <span className="min-w-0">
-              <span className="line-clamp-3 text-sm group-hover:text-link-hover group-hover:underline">{p.title}</span>
+              <span className="line-clamp-3 text-sm group-hover:underline">{p.title}</span>
               {p.brand && <span className="block text-xs text-muted">by {p.brand}</span>}
             </span>
           </Link>
           <div>
-            <h1 className="mb-2 text-2xl">Customer reviews</h1>
+            <h1 className="mb-4 text-2xl">Customer reviews</h1>
             <RatingBreakdown summary={summary} productId={p.id} activeStar={star} />
           </div>
         </aside>
@@ -107,6 +107,7 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
             signedIn={!!user}
             returnTo={href(page)}
           />
+          <div className="mt-8" />
           <ReviewFilters
             productId={p.id}
             star={star}
@@ -116,10 +117,10 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
             keyword={keyword}
             mentions={mentions}
           />
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-line py-2 text-[13px]" aria-live="polite">
+          <div className="mt-6 flex flex-wrap items-center gap-2 border-y border-line py-3 text-[13px]" aria-live="polite">
             {filtered && (
               <>
-                <span className="font-bold text-muted">FILTERED BY</span>
+                <span className="font-medium text-muted">Filtered by</span>
                 {star !== 'all_stars' && <span className={chip}>{STAR_FILTERS[star].label}</span>}
                 {verifiedOnly && <span className={chip}>Verified purchase only</span>}
                 {mentions && <span className={chip}>mentions &ldquo;{mentions}&rdquo;</span>}
@@ -157,7 +158,7 @@ export default async function ProductReviewsPage({ params, searchParams }: Props
           )}
         </div>
 
-        <div className="border-t border-line pt-6 lg:col-start-1 lg:row-start-2 lg:self-start">
+        <div className="border-t border-line pt-8 lg:col-start-1 lg:row-start-2 lg:self-start">
           <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
         </div>
       </div>

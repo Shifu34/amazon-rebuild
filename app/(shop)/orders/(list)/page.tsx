@@ -29,7 +29,7 @@ const PER_PAGE = 10
 const DAY = 86_400_000
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="mt-4 rounded-lg border border-line px-4 py-8 text-center text-sm">{children}</div>
+  return <div className="mt-6 border-t border-line px-4 py-12 text-center text-sm">{children}</div>
 }
 
 // product prices in the shopper's current display currency (not the old orders' currencies)
@@ -38,7 +38,7 @@ function BuyAgain({ orders, inCart, region }: { orders: Order[]; inCart: Map<num
   if (!bought.length) {
     return (
       <Empty>
-        <p className="text-base font-bold">There are no items to buy again.</p>
+        <p className="text-lg">There are no items to buy again.</p>
         <p className="mt-1 text-muted">Things you buy show up here, so you can reorder them in one click.</p>
         <Link href="/" className="btn btn-cart btn-lg mt-4">Continue shopping</Link>
       </Empty>
@@ -50,16 +50,16 @@ function BuyAgain({ orders, inCart, region }: { orders: Order[]; inCart: Map<num
       <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
         {bought.map(({ product: p, times, lastPurchased }) => (
           <li key={p.id} className="flex flex-col">
-            <Link href={`/dp/${p.id}`} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-sm bg-[#f7f7f7] p-3">
+            <Link href={`/dp/${p.id}`} tabIndex={-1} aria-hidden className="flex aspect-square items-center justify-center rounded-[10px] bg-page p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
             </Link>
-            <Link href={`/dp/${p.id}`} className="mt-2 line-clamp-2 text-sm hover:text-link-hover hover:underline">{p.title}</Link>
+            <Link href={`/dp/${p.id}`} className="mt-3 line-clamp-2 text-sm hover:underline">{p.title}</Link>
             <div className="mt-1 flex items-center gap-1 text-xs">
               <Stars rating={p.rating} className="h-3.5" />
               <span className="text-muted">({p.ratingCount.toLocaleString('en-US')})</span>
             </div>
-            {p.stock > 0 && <p className="mt-1 text-xl"><Price value={p.price} currency={region.currency} rate={region.rate} /></p>}
+            {p.stock > 0 && <p className="mt-1 font-display text-xl leading-7"><Price value={p.price} currency={region.currency} rate={region.rate} /></p>}
             <p className="mt-1 text-xs text-muted">
               {times > 1 && `Purchased ${times} times · `}Last purchased {fullDate(lastPurchased)}
             </p>
@@ -138,19 +138,19 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
   const rangeText = range.key.startsWith('year-') ? range.label : `the ${range.label}`
 
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-4">
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
       <Crumbs current="Your Orders" />
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[28px] leading-9 font-normal">Your Orders</h1>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-[28px] leading-9">Your Orders</h1>
         <Form action="/orders" role="search" className="flex w-full gap-2 sm:w-auto">
           <label htmlFor="order-search" className="sr-only">Search all orders</label>
-          <input id="order-search" name="q" type="search" defaultValue={q} maxLength={100} placeholder="Search all orders" className="input h-[33px] min-w-0 flex-1 sm:w-64" />
-          <button type="submit" className="btn bg-ink text-white hover:bg-[#303333]">Search Orders</button>
+          <input id="order-search" name="q" type="search" defaultValue={q} maxLength={100} placeholder="Search all orders" className="input min-w-0 flex-1 sm:w-64" />
+          <button type="submit" className="btn btn-plain">Search Orders</button>
         </Form>
       </div>
 
-      <nav aria-label="Order views" className="mt-3 flex gap-4 overflow-x-auto border-b border-line text-sm sm:gap-5">
+      <nav aria-label="Order views" className="mt-6 flex gap-6 overflow-x-auto border-b border-line text-sm">
         {TABS.map((t) => {
           const active = t.key === tab && !q
           return (
@@ -158,7 +158,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
               key={t.key}
               href={tabHref(t.key)}
               aria-current={active ? 'page' : undefined}
-              className={`-mb-px shrink-0 border-b-2 px-1 pb-2 ${active ? 'border-[#e77600] font-bold' : 'link border-transparent'}`}
+              className={`-mb-px shrink-0 border-b-2 px-1 pb-3 ${active ? 'border-accent font-medium text-ink' : 'border-transparent text-muted hover:text-ink'}`}
             >
               {t.short ? (
                 <>
@@ -177,7 +177,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
         <BuyAgain orders={orders} inCart={inCart} region={region} />
       ) : (
         <>
-          <div className="mt-4 text-sm">
+          <div className="mt-6 text-sm">
             {q ? (
               <p>
                 <b>{plural(matches.length, 'order')}</b> matching &ldquo;{q}&rdquo;
@@ -194,7 +194,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
           </div>
 
           {shown.length ? (
-            <ul className="mt-4 space-y-4">
+            <ul className="mt-6 space-y-6">
               {shown.map(({ order, view }) => (
                 <li key={order.id}>
                   <OrderCard order={order} view={view} reviewed={reviewed} />
@@ -203,7 +203,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
             </ul>
           ) : !orders.length ? (
             <Empty>
-              <p className="text-base font-bold">You have not placed any orders yet.</p>
+              <p className="text-lg">You have not placed any orders yet.</p>
               <p className="mt-1 text-muted">When you do, you can track, cancel or return them here.</p>
               <Link href="/" className="btn btn-cart btn-lg mt-4">Continue shopping</Link>
             </Empty>
@@ -229,7 +229,7 @@ async function YourOrders({ user, sp }: { user: User; sp: SearchParams }) {
           )}
 
           {pages > 1 && (
-            <nav aria-label="Pagination" className="mt-6 flex items-center justify-center gap-4 text-sm">
+            <nav aria-label="Pagination" className="mt-10 flex items-center justify-center gap-4 text-sm">
               {page > 1 && <Link href={pageHref(page - 1)} className="btn btn-plain">← Previous</Link>}
               <span>Page {page} of {pages}</span>
               {page < pages && <Link href={pageHref(page + 1)} className="btn btn-plain">Next →</Link>}

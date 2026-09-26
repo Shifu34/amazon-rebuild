@@ -166,7 +166,8 @@ try {
   await page.goto(`${base}/orders/${second}/return`)
   await page.getByText('A return for this item has already started.').waitFor()
   await page.goto(`${base}/orders/${second}/invoice`)
-  await page.getByRole('heading', { name: `Final Details for Order #${second}` }).waitFor()
+  await page.getByRole('heading', { name: 'Invoice', exact: true }).waitFor()
+  await page.getByText(second, { exact: true }).waitFor() // the order number, in the invoice's meta
   await page.getByText('Refund total:').waitFor()
 
   step('Buy it again adds to the cart; Buy Again tab and search')
@@ -184,7 +185,7 @@ try {
   await page.goto(`${base}/orders?q=zzzz`)
   await page.getByText('No orders matched').waitFor()
 
-  step('partly cancelled before delivery: the return page says returns open on delivery; "7 days left" is amber')
+  step('partly cancelled before delivery: the return page says returns open on delivery; "7 days left" is terracotta')
   await addToCart(48, 2) // Bamboo Spatula sorts before the other items (the CK One from Buy it again is still in the cart)
   await addToCart(13, 3) // Bedside Table African Cherry has a 7-day return policy
   await page.goto(`${base}/checkout`)
@@ -199,7 +200,7 @@ try {
   await page.getByRole('button', { name: 'Demo: mark as delivered' }).click()
   await page.getByRole('heading', { name: 'Delivered today' }).waitFor()
   const chip = page.locator('#main').getByText('7 days left', { exact: true })
-  assert.equal(await chip.evaluate((el) => getComputedStyle(el).color), 'rgb(196, 85, 0)', '"7 days left" is amber (≤ 7 days)')
+  assert.equal(await chip.evaluate((el) => getComputedStyle(el).color), 'rgb(168, 68, 42)', '"7 days left" is terracotta (≤ 7 days)')
 
   step('PKR: USD orders keep their dollars, Buy Again follows the display currency, a PKR order adds up and stays PKR')
   await setCurrency('PKR')
@@ -207,7 +208,8 @@ try {
   await page.getByText('Refund issued: $54.11').waitFor()
   assert.match((await summaryRows())['Grand Total:'], /^\$/, 'an order placed in USD stays in USD')
   await page.goto(`${base}/orders?tab=buy-again`)
-  await page.locator('#main li').filter({ has: page.getByRole('link', { name: 'Calvin Klein CK One' }) }).getByText('PKR', { exact: true }).waitFor()
+  // one flat amount now: "PKR 24,933.53" (components/price.tsx)
+  await page.locator('#main li').filter({ has: page.getByRole('link', { name: 'Calvin Klein CK One' }) }).getByText(/^PKR [\d,]+\.\d\d$/).waitFor()
   await addToCart(90, 1)
   await page.goto(`${base}/checkout`)
   const fourth = await placeOrder()

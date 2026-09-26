@@ -21,21 +21,22 @@ export function PictureTiles({ tiles, saver = false }: { tiles: PictureTile[]; s
   }
   // snap-mandatory settles the scroll on the nearest tile start, so the next page opens on a whole tile
   const page = (dir: 1 | -1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.9 })
+  // a quiet round control that sits over the row's edge, rather than Amazon's tall white slab
   const arrow =
-    'absolute top-1/2 z-10 hidden h-[100px] w-[50px] -translate-y-1/2 cursor-pointer items-center justify-center border-line bg-white shadow-[0_1px_4px_rgba(15,17,17,0.2)] hover:bg-[#f7fafa] focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink md:flex [&_path]:[stroke-width:1.5]'
+    'absolute top-1/2 z-10 hidden size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-line bg-surface shadow-[0_2px_10px_rgba(25,23,19,0.12)] hover:bg-page focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink md:flex [&_path]:[stroke-width:1.5]'
 
   return (
     <div className="relative">
-      <ul ref={ref} onScroll={update} aria-label="Shop by department" className="flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 [scrollbar-width:none] motion-safe:scroll-smooth">
+      <ul ref={ref} onScroll={update} aria-label="Shop by department" className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 [scrollbar-width:none] motion-safe:scroll-smooth">
         {tiles.map((tile, i) => (
           <Tile key={tile.href} tile={tile} first={i === 0} saver={saver} />
         ))}
       </ul>
-      <button type="button" hidden={at.start} onClick={() => page(-1)} aria-label="Scroll departments left" className={`${arrow} left-0 rounded-r-lg border border-l-0`}>
-        <ChevronIcon className="size-9 rotate-180" />
+      <button type="button" hidden={at.start} onClick={() => page(-1)} aria-label="Scroll departments left" className={`${arrow} -left-5`}>
+        <ChevronIcon className="size-6 rotate-180" />
       </button>
-      <button type="button" hidden={at.end} onClick={() => page(1)} aria-label="Scroll departments right" className={`${arrow} right-0 rounded-l-lg border border-r-0`}>
-        <ChevronIcon className="size-9" />
+      <button type="button" hidden={at.end} onClick={() => page(1)} aria-label="Scroll departments right" className={`${arrow} -right-5`}>
+        <ChevronIcon className="size-6" />
       </button>
     </div>
   )
@@ -107,14 +108,14 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first, saver }: { ti
     saver || !playing ? [cur] : [...new Set([prev, cur, next])].filter((i): i is number => i !== null && i < frames.length).sort((a, b) => a - b)
 
   return (
-    <li onPointerEnter={(e) => hover(e, true)} onPointerLeave={(e) => hover(e, false)} className="relative w-[min(285px,64vw)] shrink-0 snap-start">
+    <li onPointerEnter={(e) => hover(e, true)} onPointerLeave={(e) => hover(e, false)} className="relative w-[min(260px,62vw)] shrink-0 snap-start">
       <Link
         href={href}
         style={{ backgroundColor: bg }}
-        className="flex aspect-[285/457] flex-col overflow-hidden rounded-xl px-3 pt-4 text-ink focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ink"
+        className="flex aspect-[260/360] flex-col overflow-hidden rounded-[10px] border border-line px-4 pt-5 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
-        <span className="font-display text-[29px] leading-[33px] font-black tracking-[-0.01em]">{title}</span>
-        {subtitle && <span className="mt-1 text-lg leading-6">{subtitle}</span>}
+        <span className="font-display text-[23px] leading-7">{title}</span>
+        {subtitle && <span className="mt-1 text-sm leading-5 text-muted">{subtitle}</span>}
         {/* product shots on white multiply into the tile colour */}
         <span ref={area} aria-hidden className="relative -mx-3 mt-2 flex-1">
           {mounted.map((i) =>
@@ -140,7 +141,7 @@ function Tile({ tile: { title, subtitle, href, bg, shots }, first, saver }: { ti
           type="button"
           onClick={() => (state === 'playing' ? pause() : play())}
           aria-label={`${verb} ${title}`}
-          className="absolute bottom-3 left-3 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black text-white hover:bg-[#333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="absolute bottom-4 left-4 flex size-8 cursor-pointer items-center justify-center rounded-full bg-ink/85 text-white hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           <svg viewBox="0 0 16 16" className="size-4" aria-hidden>
             {verb === 'Pause' ? (

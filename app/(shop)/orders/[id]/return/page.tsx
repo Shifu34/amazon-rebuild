@@ -19,7 +19,7 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<str
 // same column and breadcrumb as the rest of the orders flow
 function Shell({ orderId, children }: { orderId: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-4">
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
       <Crumbs current="Return or replace items" orderId={orderId} />
       {children}
     </div>
@@ -37,10 +37,10 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
 
   return (
     <Shell orderId={order.id}>
-      <section className="mt-3 flex max-w-[700px] gap-3 rounded-lg border border-line p-5">
-        <CheckCircleIcon className="mt-0.5 size-6 shrink-0 text-[#0b7b3c]" />
-        <div className="min-w-0 flex-1 space-y-3 text-sm">
-          <h1 className="text-lg font-bold text-[#0b7b3c]">{done ? 'Return complete' : 'Return started'}</h1>
+      <section className="card mt-4 flex max-w-[700px] gap-4 p-6">
+        <CheckCircleIcon className="mt-1 size-6 shrink-0 text-accent" />
+        <div className="min-w-0 flex-1 space-y-4 text-sm">
+          <h1 className="text-xl leading-7">{done ? 'Return complete' : 'Return started'}</h1>
           {!done &&
             (pickup ? (
               <p className="text-base">Carrier pickup on <b>{longDate(addBusinessDays(startedAt, 1))}</b></p>
@@ -49,11 +49,11 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
             ))}
           <div>
             <p className="text-xs text-muted">Return code</p>
-            <p className="font-mono text-[28px] leading-9 font-bold tracking-wider select-all">{code}</p>
+            <p className="price text-[28px] leading-9 tracking-[0.12em] select-all">{code}</p>
           </div>
           {!done && (
             <p>
-              <b>What to bring:</b> {pickup ? `The item. ${RETURN_METHODS['ups-pickup'].note}` : 'Only the item. No box or label needed. Show this code at the carrier store.'}
+              <span className="font-medium">What to bring:</span> {pickup ? `The item. ${RETURN_METHODS['ups-pickup'].note}` : 'Only the item. No box or label needed. Show this code at the carrier store.'}
             </p>
           )}
           {first.replacementOrderId ? (
@@ -65,7 +65,7 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
           ) : (
             <p>Your refund of <b>{refund}</b> to {payment} will be issued after we receive your item.</p>
           )}
-          <ul className="flex flex-wrap gap-2" aria-label="Items in this return">
+          <ul className="flex flex-wrap gap-2 pt-1" aria-label="Items in this return">
             {items.map((i) => (
               <li key={i.productId} title={i.title}>
                 <Thumb src={i.thumbnail} size="size-16" />
@@ -73,7 +73,7 @@ function Confirmation({ order, view, items, code }: { order: Order; view: OrderV
               </li>
             ))}
           </ul>
-          <div className="flex flex-wrap items-center gap-4 pt-1">
+          <div className="flex flex-wrap items-center gap-4 pt-2">
             <Link href={back} className="btn btn-plain btn-lg">Back to order</Link>
             {view.canReturn && <Link href={`${back}/return`} className="link">Return another item</Link>}
           </div>
@@ -116,10 +116,10 @@ export default async function ReturnPage({ params, searchParams }: Props) {
     const focus = view.items.find((i) => i.productId === itemParam) ?? view.items.find((i) => i.state.kind !== 'cancelled') ?? view.items[0]
     return (
       <Shell orderId={order.id}>
-        <h1 className="mt-2 text-[28px] leading-9 font-normal">Return or replace items</h1>
-        <div role="alert" className="mt-4 max-w-[700px] rounded-lg border border-line p-4 text-sm">
-          <p className="font-bold">{view.status === 'cancelled' ? 'This order was cancelled, so there is nothing to return.' : focus && returnBlocker(focus.state)}</p>
-          <Link href={back} className="btn btn-plain mt-4">Back to order</Link>
+        <h1 className="text-[28px] leading-9">Return or replace items</h1>
+        <div role="alert" className="card mt-6 max-w-[700px] p-5 text-sm">
+          <p>{view.status === 'cancelled' ? 'This order was cancelled, so there is nothing to return.' : focus && returnBlocker(focus.state)}</p>
+          <Link href={back} className="btn btn-plain mt-5">Back to order</Link>
         </div>
       </Shell>
     )
@@ -127,9 +127,9 @@ export default async function ReturnPage({ params, searchParams }: Props) {
 
   return (
     <Shell orderId={order.id}>
-      <h1 className="mt-2 text-[28px] leading-9 font-normal">Return or replace items</h1>
-      <p className="text-sm text-muted">Order # {order.id} · delivered {fullDate(view.deliveredAt)}</p>
-      <div className="mt-4">
+      <h1 className="text-[28px] leading-9">Return or replace items</h1>
+      <p className="price mt-1 text-sm text-muted">Order # {order.id} · delivered {fullDate(view.deliveredAt)}</p>
+      <div className="mt-8">
         <ReturnForm
           orderId={order.id}
           items={items}

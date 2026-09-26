@@ -133,7 +133,7 @@ try {
   await page.getByText(headline).first().waitFor()
   await page.getByLabel('Star rating').selectOption('one_star')
   await page.waitForURL(/filterByStar=one_star/)
-  await page.getByText('FILTERED BY').waitFor()
+  await page.getByText('Filtered by').waitFor()
   assert.equal(await page.getByText(headline).count(), 0)
 
   step('review digest: an aspect bar filters to exactly the reviews it counted, and verified-only changes the count')

@@ -24,15 +24,15 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
       aria-labelledby={titleId}
       onClose={() => open && onClose()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="m-auto max-h-[calc(100dvh-32px)] w-[min(450px,calc(100vw-32px))] rounded-lg p-0 text-ink shadow-[0_0_14px_rgba(15,17,17,0.5)] backdrop:bg-[rgba(15,17,17,0.5)]"
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(450px,calc(100vw-32px))] rounded-[10px] bg-surface p-0 text-ink shadow-[0_10px_40px_rgba(25,23,19,0.2)] backdrop:bg-[rgba(25,23,19,0.35)]"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-line bg-[#f0f2f2] py-1 pr-1 pl-4">
-        <h2 id={titleId} className="text-base">{title}</h2>
-        <button type="button" onClick={onClose} aria-label="Close" className="flex size-10 cursor-pointer items-center justify-center rounded-md hover:bg-[#e3e6e6] focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
+      <div className="flex items-center justify-between gap-3 border-b border-line py-2 pr-2 pl-5">
+        <h2 id={titleId} className="text-lg">{title}</h2>
+        <button type="button" onClick={onClose} aria-label="Close" className="flex size-10 cursor-pointer items-center justify-center rounded-md hover:bg-page focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
           <CloseIcon className="size-4" />
         </button>
       </div>
-      <div className="p-4">{open && children}</div>
+      <div className="p-5">{open && children}</div>
     </dialog>
   )
 }
@@ -77,7 +77,7 @@ export function ConfirmDialog({ label, ariaLabel, triggerClassName = 'link curso
             <input key={name} type="hidden" name={name} value={value} />
           ))}
           <div className="text-sm">{children}</div>
-          <div className="mt-5 flex justify-end gap-2">
+          <div className="mt-6 flex justify-end gap-2">
             <button type="button" onClick={() => setOpen(false)} className="btn btn-plain">{cancel}</button>
             <Submit>{confirm}</Submit>
           </div>

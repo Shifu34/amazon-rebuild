@@ -12,10 +12,20 @@ export const metadata: Metadata = { title: 'Invoice' }
 
 type Props = { params: Promise<{ id: string }> }
 
-const box = 'mt-4 rounded-sm border border-[#999] break-inside-avoid'
-const boxHead = 'border-b border-[#999] bg-[#f0f2f2] px-3 py-1.5 font-bold'
+// sections are separated by a rule, the way a paper invoice is, and never break across printed pages
+const section = 'mt-8 break-inside-avoid border-t border-line pt-6'
 
-// Printable order summary, like Amazon's "Final Details for Order #". Printing hides the store header and footer.
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="mt-0.5">{children}</dd>
+    </div>
+  )
+}
+
+// The order as a document: a sheet with a masthead, hairline rules and figures in a column. Printing drops
+// the store header, footer and the page's own chrome so only the sheet comes out (docs/design.md).
 export default async function InvoicePage({ params }: Props) {
   const { id } = await params
   const user = await requireUser(`/orders/${encodeURIComponent(id)}/invoice`)
@@ -29,70 +39,75 @@ export default async function InvoicePage({ params }: Props) {
   const shipment = view.status === 'cancelled' ? 'Cancelled' : view.step >= 1 ? `Shipped on ${fullDate(view.shippedAt)}` : 'Not Yet Shipped'
 
   return (
-    <div className="mx-auto max-w-[760px] px-4 py-6 text-sm">
+    <div className="mx-auto max-w-[760px] px-4 py-10 text-sm">
       <style>{'@media print { header, footer { display: none !important } }'}</style>
       <div className="flex items-center justify-between gap-4 print:hidden">
         <Link href={back} className="link">‹ Back to Order Details</Link>
         <PrintButton />
       </div>
 
-      <h1 className="mt-4 text-xl font-bold">Final Details for Order #{order.id}</h1>
-      <p className="mt-2">Order Placed: {fullDate(order.placedAt)}</p>
-      <p>nile order number: {order.id}</p>
-      <p className="font-bold">Order Total: {m.charged}</p>
+      <article className="card mt-6 p-8 sm:p-10 print:rounded-none print:border-0 print:p-0">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-line pb-5">
+          <h1 className="text-2xl">Invoice</h1>
+          <p className="font-display text-xl">nile</p>
+        </div>
 
-      <section className={box}>
-        <h2 className={boxHead}>{shipment}</h2>
-        <div className="p-3">
-          <table className="w-full">
+        <dl className="mt-6 grid gap-x-10 gap-y-4 sm:grid-cols-3">
+          <Field label="Order placed">{fullDate(order.placedAt)}</Field>
+          <Field label="nile order number"><span className="price">{order.id}</span></Field>
+          <Field label="Status">{shipment}</Field>
+        </dl>
+        {/* one text node: "Order Total: <amount>" is what the region tests read */}
+        <p className="mt-6 border-t border-line pt-4 font-display text-base">Order Total: <span className="price text-xl leading-7">{m.charged}</span></p>
+
+        <section className={section}>
+          <h2 className="text-base">Items ordered</h2>
+          <table className="mt-3 w-full">
             <thead>
-              <tr>
-                <th className="pb-1 text-left">Items Ordered</th>
-                <th className="pb-1 text-right">Price</th>
+              <tr className="border-b border-line text-left text-xs text-muted">
+                <th className="pb-2 font-normal">Item</th>
+                <th className="pb-2 text-right font-normal">Price</th>
               </tr>
             </thead>
             <tbody>
               {view.items.map((i) => (
-                <tr key={i.productId} className="align-top">
-                  <td className="py-1 pr-4">
-                    {i.quantity} of: <i>{i.title}</i>
-                    {i.state.kind === 'cancelled' && !i.state.wholeOrder && <span className="text-danger"> (Cancelled)</span>}
+                <tr key={i.productId} className="border-b border-line align-top last:border-0">
+                  <td className="py-2.5 pr-6">
+                    <span className="price text-muted">{i.quantity} ×</span> {i.title}
+                    {i.state.kind === 'cancelled' && !i.state.wholeOrder && <span className="text-deal"> (Cancelled)</span>}
                   </td>
-                  <td className="py-1 text-right whitespace-nowrap">{m.text(i.priceCents)}</td>
+                  <td className="price py-2.5 text-right whitespace-nowrap">{m.text(i.priceCents)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div>
-              <b>Shipping Address:</b>
-              <AddressLines shipTo={order.shipTo} />
-            </div>
-            <div>
-              <b>Shipping Speed:</b>
-              <p>{speed}</p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className={box}>
-        <h2 className={boxHead}>Payment information</h2>
-        <div className="grid gap-4 p-3 sm:grid-cols-2">
-          <div>
-            <b>Payment Method:</b>
-            <p>{order.paymentKind === 'cod' ? paymentLabel(order) : `${order.payment.brand} | Last digits: ${order.payment.last4}`}</p>
-          </div>
-          <OrderTotals order={order} view={view} />
-        </div>
-        {view.step >= 1 && view.chargedCents > 0 && (
-          <p className="border-t border-[#999] px-3 py-2">
-            <b>{order.paymentKind === 'cod' ? 'Cash on delivery:' : 'Credit Card transactions:'}</b> {paymentLabel(order)}: {fullDate(view.shippedAt)}: {m.charged}
-          </p>
-        )}
-      </section>
+        <section className={section}>
+          <dl className="grid gap-6 sm:grid-cols-3">
+            <Field label="Shipping address"><AddressLines shipTo={order.shipTo} /></Field>
+            <Field label="Shipping speed">{speed}</Field>
+            <Field label="Payment method">
+              {order.paymentKind === 'cod' ? paymentLabel(order) : `${order.payment.brand} · last digits ${order.payment.last4}`}
+            </Field>
+          </dl>
+        </section>
 
-      <p className="mt-4 text-center">
+        <section className={section}>
+          <h2 className="text-base">Order summary</h2>
+          <div className="mt-3 sm:w-[300px] sm:max-w-full">
+            <OrderTotals order={order} view={view} />
+          </div>
+          {view.step >= 1 && view.chargedCents > 0 && (
+            <p className="mt-4 border-t border-line pt-4 text-muted">
+              {order.paymentKind === 'cod' ? 'Cash on delivery' : 'Card transaction'} — {paymentLabel(order)}, {fullDate(view.shippedAt)}:{' '}
+              <span className="price text-ink">{m.charged}</span>
+            </p>
+          )}
+        </section>
+      </article>
+
+      <p className="mt-6 text-center text-muted print:hidden">
         To view the status of your order, return to <Link href={back} className="link">Order Summary</Link>.
       </p>
     </div>

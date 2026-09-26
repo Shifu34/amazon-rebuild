@@ -52,7 +52,7 @@ export function CompareCheckbox({ id, title, thumbnail }: CompareItem) {
   const shown = checked || items.length > 0
   return (
     <label
-      className={`absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded-md border border-line bg-white/95 px-2 py-1 text-xs shadow-[0_1px_2px_rgba(15,17,17,0.15)] transition-opacity motion-reduce:transition-none [@media(hover:none)]:opacity-100 ${
+      className={`absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-md border border-line bg-surface/95 px-2.5 py-1 text-xs transition-opacity motion-reduce:transition-none [@media(hover:none)]:opacity-100 ${
         shown ? 'opacity-100' : 'opacity-0 group-focus-within/card:opacity-100 group-hover/card:opacity-100'
       } ${full ? 'text-muted' : 'cursor-pointer'}`}
     >
@@ -62,7 +62,7 @@ export function CompareCheckbox({ id, title, thumbnail }: CompareItem) {
         disabled={full}
         onChange={() => toggle({ id, title, thumbnail })}
         aria-label={full ? `Compare ${title} (compare up to ${COMPARE_MAX} items)` : `Compare ${title}`}
-        className="size-3.5 accent-link"
+        className="size-3.5 accent-accent"
       />
       Compare
     </label>
@@ -76,13 +76,14 @@ export function CompareTray() {
   if (!items.length) return null
   return (
     <>
-      <div aria-hidden className="h-[84px]" />
-      <section aria-label="Compare" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white shadow-[0_-2px_8px_rgba(15,17,17,0.15)]">
-        <div className="mx-auto flex max-w-[1500px] items-center gap-3 px-4 py-2">
-          <ul className="flex flex-1 gap-2 overflow-x-auto">
+      <div aria-hidden className="h-[92px]" />
+      {/* the tray floats over the page, so it is the one place a shadow is allowed (docs/design.md) */}
+      <section aria-label="Compare" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface shadow-[0_-6px_24px_rgba(25,23,19,0.12)]">
+        <div className="mx-auto flex max-w-[1120px] items-center gap-4 px-4 py-3">
+          <ul className="flex flex-1 gap-2.5 overflow-x-auto">
             {items.map((i) => (
               <li key={i.id} className="relative shrink-0">
-                <span className="flex size-[60px] items-center justify-center rounded-sm border border-line bg-[#f7f7f7] p-1">
+                <span className="flex size-[60px] items-center justify-center rounded-md bg-page p-1.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={i.thumbnail} alt={i.title} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                 </span>
@@ -90,7 +91,7 @@ export function CompareTray() {
                   type="button"
                   onClick={() => remove(i.id)}
                   aria-label={`Remove ${i.title} from compare`}
-                  className="absolute -top-1.5 -right-1.5 flex size-5 cursor-pointer items-center justify-center rounded-full border border-line bg-white hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
+                  className="absolute -top-1.5 -right-1.5 flex size-5 cursor-pointer items-center justify-center rounded-full border border-line bg-surface hover:bg-page focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <CloseIcon className="size-2.5" />
                 </button>
@@ -113,7 +114,7 @@ export function CompareRemove({ id, title }: { id: number; title: string }) {
       type="button"
       onClick={() => remove(id)}
       aria-label={`Remove ${title} from compare`}
-      className="flex size-7 cursor-pointer items-center justify-center rounded-full hover:bg-page focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
+      className="flex size-7 cursor-pointer items-center justify-center rounded-full hover:bg-page focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
       <CloseIcon className="size-3.5" />
     </button>
@@ -125,8 +126,8 @@ export function DiffOnly({ children }: { children: React.ReactNode }) {
   const [on, setOn] = useState(false)
   return (
     <>
-      <label className="mb-3 flex w-fit items-center gap-2 text-sm">
-        <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} className="size-4 accent-link" />
+      <label className="mb-5 flex w-fit cursor-pointer items-center gap-2 text-sm text-muted">
+        <input type="checkbox" checked={on} onChange={(e) => setOn(e.target.checked)} className="size-4 accent-accent" />
         Show differences only
       </label>
       <div className={on ? '[&_tr[data-same=true]]:hidden' : ''}>{children}</div>

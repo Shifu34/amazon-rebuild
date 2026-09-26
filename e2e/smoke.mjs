@@ -23,7 +23,7 @@ try {
   await page.goto(`${base}/ap/signin`)
   await page.getByLabel('Email').fill(email)
   await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByText("Looks like you're new to nile").waitFor()
+  await page.getByText("Looks like you're new here").waitFor()
   await page.getByLabel('Your name').fill('Eve Tester')
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByLabel('Re-enter password').fill('different')

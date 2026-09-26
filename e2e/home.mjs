@@ -12,6 +12,7 @@ const step = (name) => console.log(`- ${name}`)
 const region = (name) => page.getByRole('region', { name, exact: true })
 const cartCount = async () => Number((await page.getByRole('link', { name: /^Cart, / }).getAttribute('aria-label')).match(/\d+/)[0])
 const cards = () => page.locator('main li article')
+// collection cards carry the font-display class; section headings above them do not, so this counts cards only
 const homeCards = () => page.locator('main h2.font-display')
 const decode = (html) => html.replaceAll('&amp;', '&').replaceAll('&#x27;', "'").replaceAll('&quot;', '"')
 
@@ -37,8 +38,8 @@ try {
   assert.ok(firstCard.y >= tilesBox.y + tilesBox.height, 'cards start below the tiles')
 
   step("tiles play like Amazon's video tiles, only while the mouse is over them: pause on leave, replay at the end")
-  const kitchen = tiles.getByRole('link', { name: 'Shop kitchen must-haves', exact: true })
-  const kitchenButton = (verb) => page.getByRole('button', { name: `${verb} Shop kitchen must-haves` })
+  const kitchen = tiles.getByRole('link', { name: 'Kitchen must-haves', exact: true })
+  const kitchenButton = (verb) => page.getByRole('button', { name: `${verb} Kitchen must-haves` })
   await page.mouse.move(5, 815) // off the tiles
   await kitchenButton('Play').waitFor()
   await page.waitForTimeout(1500)
@@ -53,17 +54,18 @@ try {
   await kitchenButton('Replay').waitFor({ timeout: 20000 })
   const still = await browser.newPage({ reducedMotion: 'reduce' })
   await still.goto(base)
-  await still.getByRole('link', { name: 'Shop kitchen must-haves', exact: true }).hover()
+  await still.getByRole('link', { name: 'Kitchen must-haves', exact: true }).hover()
   await still.waitForTimeout(1500)
-  assert.equal(await still.getByRole('button', { name: 'Pause Shop kitchen must-haves' }).count(), 0, 'no hover play with reduced motion')
+  assert.equal(await still.getByRole('button', { name: 'Pause Kitchen must-haves' }).count(), 0, 'no hover play with reduced motion')
   await still.close()
 
-  step('bordered 2x2 cards in four columns, carousels between them, sign-in block at the bottom')
-  assert.equal(await homeCards().count(), 24)
-  for (const name of ['Plug in with our electronics', 'Popular finds under $25', 'Deals on top categories', 'Explore Best Sellers']) await page.getByRole('heading', { name }).waitFor()
-  const firstRow = await homeCards().evaluateAll((hs) => hs.slice(0, 5).map((h) => Math.round(h.parentElement.getBoundingClientRect().top)))
-  assert.equal(new Set(firstRow.slice(0, 4)).size, 1, 'four cards share the first row')
-  assert.ok(firstRow[4] > firstRow[0], 'the fifth card wraps')
+  step('twelve collections in three columns, rails between the sections, sign-in block at the bottom')
+  assert.equal(await homeCards().count(), 12)
+  for (const name of ['Plug in with our electronics', 'Popular finds under $25', 'Deals on top categories']) await page.getByRole('heading', { name }).waitFor()
+  await page.getByText('Everything you need, priced to your door.').waitFor()
+  const firstRow = await homeCards().evaluateAll((hs) => hs.slice(0, 4).map((h) => Math.round(h.parentElement.getBoundingClientRect().top)))
+  assert.equal(new Set(firstRow.slice(0, 3)).size, 1, 'three cards share the first row')
+  assert.ok(firstRow[3] > firstRow[0], 'the fourth card wraps')
   for (const name of ["Today's Deals", 'Best Sellers in Home & Kitchen']) {
     assert.ok((await region(name).locator('li').count()) >= 5, `${name} carousel has items`)
   }
@@ -83,7 +85,7 @@ try {
     ])
     return [...tileLinks, ...cardLinks]
   })
-  assert.ok(links.length >= 24 * 5, 'links collected')
+  assert.ok(links.length >= 12 * 5, 'links collected')
   const bodies = new Map()
   const unique = [...new Set(links.map((l) => l.href))]
   for (let i = 0; i < unique.length; i += 6) {
@@ -210,8 +212,8 @@ try {
   const pickUp = page.getByRole('heading', { name: 'Pick up where you left off' })
   if (!(await pickUp.count())) await page.reload()
   await pickUp.locator('..').locator(`a[href="${viewedHref}"]`).first().waitFor()
-  assert.equal(await homeCards().first().textContent(), 'Pick up where you left off')
-  assert.equal(await homeCards().count(), 24, 'the personal card replaces a generic one')
+  assert.ok((await homeCards().first().textContent()).startsWith('Pick up where you left off'))
+  assert.equal(await homeCards().count(), 12, 'the personal card replaces a generic one')
   await region('Inspired by your browsing history').waitFor()
   await page.getByRole('link', { name: 'View or edit your browsing history' }).waitFor()
 
@@ -248,7 +250,7 @@ try {
   await pkr.addCookies([{ name: 'currency', value: 'PKR', url: base }])
   const rp = await pkr.newPage()
   await rp.goto(base)
-  assert.equal(await rp.locator('main h2.font-display').count(), 24, 'every card still has results in rupees')
+  assert.equal(await rp.locator('main h2.font-display').count(), 12, 'every card still has results in rupees')
   assert.equal(await rp.getByRole('heading', { name: 'Popular finds under PKR 7,000' }).getByRole('link').getAttribute('href'), '/s?max=25.264374')
   assert.ok((await rp.request.get(`${base}/s?max=25.264374`).then((r) => r.text())).includes('Remove filter: Up to PKR 7,000'))
   assert.match(await rp.getByRole('region', { name: "Today's Deals", exact: true }).locator('article').first().textContent(), /PKR [\d,]+/)

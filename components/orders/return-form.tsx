@@ -22,11 +22,11 @@ type Invalid = { field: 'item' | 'reason' | 'comment'; message: string }
 function RadioCard({ title, note, ...input }: { title: string; note: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label
-      className={`flex gap-3 rounded-lg border p-3 text-sm ${input.checked ? 'border-link bg-[#f7fafa] shadow-[inset_0_0_0_1px_#007185]' : 'border-line'} ${input.disabled ? 'opacity-60' : 'cursor-pointer'}`}
+      className={`flex gap-3 rounded-[10px] border p-4 text-sm ${input.checked ? 'border-accent bg-accent-soft' : 'border-line bg-surface'} ${input.disabled ? 'opacity-60' : 'cursor-pointer'}`}
     >
-      <input type="radio" {...input} className="mt-0.5 shrink-0 accent-[#007185]" />
+      <input type="radio" {...input} className="mt-0.5 shrink-0 accent-accent" />
       <span>
-        <b className="block">{title}</b>
+        <span className="block font-medium">{title}</span>
         <span className="text-xs text-muted">{note}</span>
       </span>
     </label>
@@ -37,7 +37,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-2">
       <dt>{label}</dt>
-      <dd className="whitespace-nowrap">{value}</dd>
+      <dd className="price whitespace-nowrap">{value}</dd>
     </div>
   )
 }
@@ -118,17 +118,17 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
         const data = new FormData(e.currentTarget)
         startTransition(() => action(data))
       }}
-      className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_300px] lg:pb-0"
+      className="grid gap-8 pb-24 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12 lg:pb-0"
     >
       <input type="hidden" name="orderId" value={orderId} />
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-8">
         <fieldset>
-          <legend className="text-lg font-bold">Choose items to return</legend>
+          <legend className="font-display text-lg font-semibold">Choose items to return</legend>
           {errorFor('item')}
-          <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
+          <ul className="card mt-3 divide-y divide-line">
             {items.map((i) => (
               <li key={i.productId}>
-                <label className={`flex items-start gap-3 p-3 ${i.blocker ? '' : 'cursor-pointer hover:bg-[#f7fafa]'}`}>
+                <label className={`flex items-start gap-4 p-4 ${i.blocker ? '' : 'cursor-pointer hover:bg-page'}`}>
                   <input
                     type="checkbox"
                     name="item"
@@ -138,15 +138,15 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
                     checked={picked.includes(i.productId)}
                     onChange={() => toggle(i.productId)}
                     {...(i.blocker ? {} : invalidAttrs('item'))}
-                    className="mt-1 size-4 shrink-0 accent-[#007185]"
+                    className="mt-1 size-4 shrink-0 accent-accent"
                   />
-                  <span className={`flex size-16 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1 ${i.blocker ? 'opacity-60' : ''}`}>
+                  <span className={`flex size-16 shrink-0 items-center justify-center rounded-[10px] bg-page p-2 ${i.blocker ? 'opacity-60' : ''}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={i.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
                   </span>
                   <span className="min-w-0 flex-1 text-sm">
                     <span className="line-clamp-2">{i.title}</span>
-                    <span className="block text-xs text-muted">
+                    <span className="price block text-xs text-muted">
                       Qty: {i.quantity}
                       {i.quantity > 1 && ' (all units)'} · {money(i.priceCents)}
                     </span>
@@ -169,7 +169,7 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
               setReason(e.target.value)
             }}
             {...invalidAttrs('reason')}
-            className="select-pill max-w-full aria-invalid:border-[#cc0c39]"
+            className="select-pill max-w-full aria-invalid:border-danger"
           >
             <option value="">Choose a response</option>
             {RETURN_REASONS.map((r) => (
@@ -204,8 +204,8 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
         </div>
 
         <fieldset>
-          <legend className="text-lg font-bold">How can we make it right?</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <legend className="font-display text-lg font-semibold">How can we make it right?</legend>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <RadioCard name="resolution" value="refund" checked={!replace} onChange={() => setResolution('refund')} title="Refund" note={`To ${payment}, 3-5 business days after we receive your item`} />
             <RadioCard
               name="resolution"
@@ -224,8 +224,8 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
         </fieldset>
 
         <fieldset>
-          <legend className="text-lg font-bold">How would you like to return your item?</legend>
-          <div className="mt-2 grid gap-2">
+          <legend className="font-display text-lg font-semibold">How would you like to return your item?</legend>
+          <div className="mt-3 grid gap-3">
             {(Object.keys(RETURN_METHODS) as ReturnMethod[]).map((key) => {
               const m = RETURN_METHODS[key]
               const cost = !m.feeCents ? 'Free' : returnFeeCents(reason, key, replace) ? `${money(m.feeCents)} return shipping, taken from your refund` : 'Free (fee waived for this reason)'
@@ -235,9 +235,9 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
         </fieldset>
       </div>
 
-      <aside aria-label="Refund summary" className="self-start rounded-lg border border-line p-4 lg:sticky lg:top-4">
-        <h2 className="text-lg font-bold">{replace ? 'Replacement summary' : 'Refund summary'}</h2>
-        <dl className="mt-2 space-y-1 text-sm">
+      <aside aria-label="Refund summary" className="card self-start p-5 lg:sticky lg:top-6">
+        <h2 className="text-lg">{replace ? 'Replacement summary' : 'Refund summary'}</h2>
+        <dl className="mt-4 space-y-1.5 text-sm">
           {replace ? (
             <Row label="Replacement order" value={money(0)} />
           ) : (
@@ -247,23 +247,23 @@ export function ReturnForm({ orderId, items, preselect, payment, currency, rate,
               <Row label="Return shipping" value={fee ? `−${minorText(feeMinor)}` : money(0)} />
             </>
           )}
-          <div className="flex justify-between gap-2 border-t border-line pt-2 text-base font-bold">
+          <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-line pt-3 font-display text-base">
             <dt>Total estimated refund</dt>
-            <dd className="whitespace-nowrap">{minorText(totalMinor)}</dd>
+            <dd className="price text-xl leading-7 whitespace-nowrap">{minorText(totalMinor)}</dd>
           </div>
         </dl>
-        {!chosen.length && <p className="mt-2 text-xs text-muted">Select an item to see your refund.</p>}
+        {!chosen.length && <p className="mt-3 text-xs text-muted">Select an item to see your refund.</p>}
         {state?.error && (
-          <p ref={serverError} role="alert" className="mt-3 scroll-mb-24 rounded-lg border border-[#c10015] px-3 py-2 text-sm text-[#c10015] lg:scroll-mb-0">
+          <p ref={serverError} role="alert" className="mt-4 scroll-mb-24 rounded-lg border border-danger/40 px-4 py-3 text-sm text-danger lg:scroll-mb-0">
             {state.error}
           </p>
         )}
-        {confirm('mt-4 hidden w-full lg:flex')}
+        {confirm('mt-5 hidden w-full lg:flex')}
       </aside>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-white px-4 py-3 shadow-[0_-1px_2px_rgba(15,17,17,0.08)] lg:hidden">
-        <p className="text-sm">
-          Estimated refund <b className="block text-base whitespace-nowrap">{minorText(totalMinor)}</b>
+      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-surface px-4 py-3 lg:hidden">
+        <p className="text-sm text-muted">
+          Estimated refund <span className="price block font-display text-lg leading-6 whitespace-nowrap text-ink">{minorText(totalMinor)}</span>
         </p>
         {confirm('')}
       </div>

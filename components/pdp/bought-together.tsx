@@ -34,7 +34,7 @@ export function BoughtTogether({ items, cart, saver = false }: { items: Item[]; 
           {items.map((p, i) => (
             <Fragment key={p.id}>
               {i > 0 && <span className="text-2xl text-muted">+</span>}
-              <span className={`flex size-24 items-center justify-center rounded-sm bg-[#f7f7f7] p-2 transition-opacity sm:size-32 ${checked[i] ? '' : 'opacity-35'}`}>
+              <span className={`flex size-24 items-center justify-center rounded-sm bg-page p-2 transition-opacity sm:size-32 ${checked[i] ? '' : 'opacity-35'}`}>
                 {saver ? (
                   <Image src={p.thumbnail} alt="" width={128} height={128} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                 ) : (
@@ -67,7 +67,7 @@ export function BoughtTogether({ items, cart, saver = false }: { items: Item[]; 
                 value={p.id}
                 checked={checked[i]}
                 onChange={() => setChecked((c) => c.map((v, j) => (j === i ? !v : v)))}
-                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[#007185]"
+                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-accent"
               />
               <label htmlFor={`fbt-${p.id}`} className="cursor-pointer">
                 {i === 0 ? <b>This item: </b> : null}

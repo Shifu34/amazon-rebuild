@@ -8,9 +8,9 @@ import { itemRefundCents, type Order, type OrderItem, type OrderView, type ShipT
 import { convertCents, countryCodeFromName, formatMinor, formatMoney, IMPORT_FEES_NOTE, itemsTotal, lineMinor } from '@/lib/region'
 import { BuyAgainButton } from './buy-again-button'
 
-const small = 'btn min-h-[29px] px-3 text-xs'
-const chip = 'mr-1.5 inline-block rounded-full border px-1.5 text-xs leading-4'
-const green = 'text-[#0b7b3c]'
+const small = 'btn min-h-8 px-3 text-xs'
+const chip = 'mr-1.5 inline-block rounded-full border px-2 py-0.5 text-xs leading-4'
+const green = 'text-success'
 
 // "Your Account › Your Orders › Order Details › {current}", cut to where the page sits
 export function Crumbs({ current, orderId }: { current: string; orderId?: string }) {
@@ -20,21 +20,21 @@ export function Crumbs({ current, orderId }: { current: string; orderId?: string
     ...(orderId ? [[`/orders/${orderId}`, 'Order Details']] : []),
   ]
   return (
-    <nav aria-label="Breadcrumb" className="text-xs">
+    <nav aria-label="Breadcrumb" className="text-sm text-muted">
       {trail.map(([href, label]) => (
         <Fragment key={href}>
           <Link href={href} className="link">{label}</Link>
           <span className="mx-1 text-muted" aria-hidden>›</span>
         </Fragment>
       ))}
-      <span className="text-[#c45500]" aria-current="page">{current}</span>
+      <span className="text-ink" aria-current="page">{current}</span>
     </nav>
   )
 }
 
 export function Thumb({ src, size = 'size-[90px]' }: { src: string; size?: string }) {
   return (
-    <span className={`flex shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1.5 ${size}`}>
+    <span className={`flex shrink-0 items-center justify-center rounded-[10px] bg-page p-2 ${size}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
     </span>
@@ -61,7 +61,7 @@ function ShipToDisclosure({ shipTo }: { shipTo: ShipTo }) {
         {shipTo.fullName}
         <CaretIcon className="h-1.5 w-2.5 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="absolute top-full left-0 z-20 mt-1 w-60 rounded-lg border border-line bg-white p-3 text-sm text-ink shadow-[0_0_14px_rgba(15,17,17,0.25)]">
+      <div className="absolute top-full left-0 z-20 mt-1 w-60 rounded-[10px] border border-line bg-surface p-4 text-sm text-ink shadow-[0_10px_30px_rgba(25,23,19,0.14)]">
         <AddressLines shipTo={shipTo} />
       </div>
     </details>
@@ -105,7 +105,7 @@ function Row({ label, value, className = '' }: { label: string; value: string; c
   return (
     <div className={`flex justify-between gap-2 ${className}`}>
       <dt>{label}</dt>
-      <dd className="whitespace-nowrap">{value}</dd>
+      <dd className="price whitespace-nowrap">{value}</dd>
     </div>
   )
 }
@@ -134,13 +134,13 @@ export function OrderTotals({ order, view }: { order: Order; view: OrderView }) 
         </>
       )}
       {view.cancelledCents > 0 && <Row label={view.status === 'cancelled' ? 'Cancelled:' : 'Cancelled items:'} value={`−${m.cancelled}`} />}
-      <Row label="Grand Total:" value={m.charged} className="font-bold" />
+      <Row label="Grand Total:" value={m.charged} className="mt-2 border-t border-line pt-2 font-medium" />
       {view.refundCents > 0 && (
         // a refund with no return behind it is price protection (lib/price-lock), so say so
         <Row
           label={view.items.filter((i) => i.refundedAt).every((i) => !i.returnedAt) ? 'Price protection refund:' : 'Refund total:'}
           value={m.refunded}
-          className={`font-bold ${green}`}
+          className={`font-medium ${green}`}
         />
       )}
     </dl>
@@ -159,7 +159,7 @@ function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
     </>
   )
   // a whole cancelled order already says so in its headline
-  if (s.kind === 'cancelled') return s.wholeOrder ? null : <p className="text-sm font-bold text-danger">Cancelled</p>
+  if (s.kind === 'cancelled') return s.wholeOrder ? null : <p className="text-sm font-medium text-deal">Cancelled</p>
   if (s.kind === 'non-returnable') return <p className="text-xs text-muted">This item is non-returnable</p>
   if (s.kind === 'closed') return <p className="text-xs text-muted">Return window closed on {fullDate(s.returnBy)}</p>
   if (s.kind === 'open') {
@@ -167,7 +167,7 @@ function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
     return (
       <p className="text-xs">
         Return or replace items: Eligible through {fullDate(s.returnBy)}{' '}
-        <span className={`${chip} ${urgent ? 'border-[#c45500] text-[#c45500]' : `border-[#0b7b3c] ${green}`}`}>
+        <span className={`${chip} ${urgent ? 'border-deal/40 text-deal' : 'border-line text-muted'}`}>
           {s.daysLeft < 1 ? 'Last day' : `${plural(s.daysLeft, 'day')} left`}
         </span>
       </p>
@@ -176,7 +176,7 @@ function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
   if (s.kind === 'return-started') {
     return (
       <p className="text-xs">
-        <span className={`${chip} border-[#0b7b3c] font-bold ${green}`}>Return started</span>
+        <span className={`${chip} border-line text-muted`}>Return started</span>
         {item.returnMethod === 'ups-pickup' ? 'Pickup scheduled' : `Drop off by ${fullDate(s.dropOffBy)}`} ·{' '}
         <Link href={`/orders/${order.id}/return?code=${item.returnCode}`} className="link whitespace-nowrap">View return code</Link>
         {replacement}
@@ -186,7 +186,7 @@ function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
   if (s.kind === 'returned') {
     return (
       <p className="text-xs">
-        <span className={`${chip} border-[#0b7b3c] font-bold ${green}`}>
+        <span className={`${chip} border-line ${green}`}>
           {item.refundCents ? `Refund issued: ${formatMinor(lineOf(order, item, item.refundCents), order.currency)}` : 'Return complete'}
         </span>
         {replacement}
@@ -200,7 +200,7 @@ function ItemStatus({ item, order }: { item: ViewItem; order: OrderRef }) {
 export function ItemRow({ item, order, review }: { item: ViewItem; order: OrderRef; review?: { reviewed: boolean } }) {
   const p = getProduct(item.productId)
   return (
-    <li className="flex gap-3">
+    <li className="flex gap-4">
       {p ? (
         <Link href={`/dp/${p.id}`} tabIndex={-1} aria-hidden>
           <Thumb src={item.thumbnail} />
@@ -209,8 +209,8 @@ export function ItemRow({ item, order, review }: { item: ViewItem; order: OrderR
         <Thumb src={item.thumbnail} />
       )}
       <div className="min-w-0 flex-1 space-y-1 text-sm">
-        {p ? <Link href={`/dp/${p.id}`} className="link line-clamp-2">{item.title}</Link> : <p className="line-clamp-2">{item.title}</p>}
-        <p className="text-xs text-muted">
+        {p ? <Link href={`/dp/${p.id}`} className="line-clamp-2 font-medium hover:underline">{item.title}</Link> : <p className="line-clamp-2 font-medium">{item.title}</p>}
+        <p className="price text-xs text-muted">
           Qty: {item.quantity} · {item.priceCents ? formatMoney(item.priceCents, order.currency, order.fxRate) : 'Free replacement'}
           {item.quantity > 1 && item.priceCents > 0 && ' each'}
         </p>
@@ -225,7 +225,7 @@ export function ItemRow({ item, order, review }: { item: ViewItem; order: OrderR
   )
 }
 
-// Right-hand actions with one yellow primary chosen by state: Cancel items before it ships, Track package in transit,
+// Right-hand actions with one accent primary chosen by state: Cancel items before it ships, Track package in transit,
 // Return or replace items once delivered, otherwise the product review.
 export function OrderActions({ order, view, review }: { order: Order; view: OrderView; review?: { productId: number; reviewed: boolean } }) {
   if (view.status === 'cancelled') return null
@@ -248,7 +248,7 @@ export function OrderActions({ order, view, review }: { order: Order; view: Orde
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs text-muted uppercase">{label}</p>
+      <p className="text-xs text-muted">{label}</p>
       <div>{children}</div>
     </div>
   )
@@ -270,27 +270,27 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
   ].filter(Boolean).join(' · ')
   return (
     <>
-      <Link href={base} className="flex items-center gap-3 rounded-lg border border-line bg-white p-3 sm:hidden">
+      <Link href={base} className="card flex items-center gap-4 p-4 sm:hidden">
         {order.items[0] && <Thumb src={order.items[0].thumbnail} size="size-16" />}
         <span className="min-w-0 flex-1">
-          <b className="block">{view.headline}</b>
-          {note && <span className="block text-xs font-bold">{note}</span>}
+          <b className="block font-display text-base leading-6 font-semibold">{view.headline}</b>
+          {note && <span className="block text-xs text-muted">{note}</span>}
           <span className="line-clamp-1 text-sm">{order.items.map((i) => i.title).join(', ')}</span>
-          <span className="block text-xs text-muted">Order # {order.id}</span>
+          <span className="price block text-xs text-muted">Order # {order.id}</span>
         </span>
         <ChevronIcon className="size-5 shrink-0 text-muted" />
       </Link>
 
-      <article aria-label={`Order ${order.id}`} className="hidden rounded-lg border border-line sm:block">
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-2 rounded-t-lg border-b border-line bg-[#f0f2f2] px-4 py-3 text-sm">
+      <article aria-label={`Order ${order.id}`} className="card hidden sm:block">
+        <div className="flex flex-wrap items-start gap-x-10 gap-y-3 border-b border-line px-5 py-4 text-sm">
           <Meta label="Order placed">{fullDate(order.placedAt)}</Meta>
           <Meta label="Total">
-            <span className="whitespace-nowrap">{m.charged}</span>
-            {view.refundCents > 0 && <span className={`block text-xs whitespace-nowrap ${green}`}>Refunded {m.refunded}</span>}
+            <span className="price whitespace-nowrap">{m.charged}</span>
+            {view.refundCents > 0 && <span className={`price block text-xs whitespace-nowrap ${green}`}>Refunded {m.refunded}</span>}
           </Meta>
           <Meta label="Ship to"><ShipToDisclosure shipTo={order.shipTo} /></Meta>
           <div className="ml-auto text-right">
-            <p className="text-xs text-muted uppercase">Order # {order.id}</p>
+            <p className="price text-xs text-muted">Order # {order.id}</p>
             <p>
               <Link href={base} className="link">View order details</Link>
               <span className="mx-2 text-line" aria-hidden>|</span>
@@ -298,9 +298,9 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
             </p>
           </div>
         </div>
-        <div className="flex flex-col gap-4 p-4 md:flex-row">
+        <div className="flex flex-col gap-6 p-5 md:flex-row md:gap-8">
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold">{view.headline}</h2>
+            <h2 className="text-xl">{view.headline}</h2>
             <p className="text-sm text-muted">{view.subline}</p>
             {view.pooledNote && <p className="text-sm">{view.pooledNote}</p>}
             {order.replacementFor && (
@@ -308,13 +308,13 @@ export function OrderCard({ order, view, reviewed }: { order: Order; view: Order
                 Replacement for <Link href={`/orders/${order.replacementFor}`} className="link">order # {order.replacementFor}</Link>
               </p>
             )}
-            <ul className="mt-3 space-y-5">
+            <ul className="mt-4 space-y-6">
               {view.items.map((i) => (
                 <ItemRow key={i.productId} item={i} order={order} review={!single && reviewable.includes(i) ? { reviewed: reviewed.has(i.productId) } : undefined} />
               ))}
             </ul>
           </div>
-          <div className="md:w-[220px]">
+          <div className="md:w-[200px] md:shrink-0">
             <OrderActions order={order} view={view} review={single ? { productId: single.productId, reviewed: reviewed.has(single.productId) } : undefined} />
           </div>
         </div>

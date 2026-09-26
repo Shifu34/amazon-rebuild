@@ -24,7 +24,7 @@ export function Field({ label, error, hint, className, children }: { label: stri
 export function FieldError({ id, children }: { id?: string; children: React.ReactNode }) {
   return (
     <p id={id} className="field-error flex items-start gap-1.5">
-      <span aria-hidden className="mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-full bg-[#cc0c39] text-[10px] font-bold text-white">!</span>
+      <span aria-hidden className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-danger text-[10px] font-semibold text-white">!</span>
       {children}
     </p>
   )
@@ -39,8 +39,8 @@ export function FormProblem({ problem, errors }: { problem?: string; errors: obj
 
 export function Problem({ children }: { children: React.ReactNode }) {
   return (
-    <div role="alert" className="mb-4 rounded-lg border border-[#cc0c39] px-4 py-3 shadow-[0_0_0_4px_#fcf4f4_inset]">
-      <p className="font-bold text-[#cc0c39]">There was a problem</p>
+    <div role="alert" className="mb-5 rounded-lg border border-danger bg-danger/5 px-4 py-3">
+      <p className="font-medium text-danger">There was a problem</p>
       <p className="text-[13px]">{children}</p>
     </div>
   )

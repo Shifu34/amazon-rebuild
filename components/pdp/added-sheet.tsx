@@ -60,7 +60,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [], saver
         <ul className="space-y-3">
           {items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 text-sm">
-              <span className="flex size-15 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1">
+              <span className="flex size-15 shrink-0 items-center justify-center rounded-sm bg-page p-1">
                 {saver ? (
                   <Image src={item.thumbnail} alt="" width={60} height={60} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                 ) : (
@@ -75,7 +75,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [], saver
             </li>
           ))}
         </ul>
-        {note && <p className="mt-3 text-[13px] text-[#c10015]">{note}</p>}
+        {note && <p className="mt-3 text-[13px] text-deal">{note}</p>}
 
         {freeMin !== null && (
           <div className="mt-4 text-[13px]">
@@ -85,7 +85,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [], saver
                   value={cart.subtotalCents}
                   max={toCents(freeMin)}
                   aria-label="Progress toward FREE Shipping"
-                  className="mb-1.5 block h-2 w-full appearance-none overflow-hidden rounded-full [&::-moz-progress-bar]:bg-success [&::-webkit-progress-bar]:bg-[#e3e6e6] [&::-webkit-progress-value]:bg-success"
+                  className="mb-1.5 block h-2 w-full appearance-none overflow-hidden rounded-full [&::-moz-progress-bar]:bg-success [&::-webkit-progress-bar]:bg-line [&::-webkit-progress-value]:bg-success"
                 />
                 Add <b className="whitespace-nowrap text-danger">{formatMinor(convertCents(toCents(freeMin), currency, rate) - cart.subtotalMinor, currency)}</b> of eligible items to your order to qualify for FREE Shipping.
               </>
@@ -108,7 +108,7 @@ export function AddedSheet({ open, onClose, items, cart, note, picks = [], saver
             <ul className="mt-3 grid grid-cols-2 gap-3">
               {picks.map((p) => (
                 <li key={p.id} className="flex flex-col text-sm">
-                  <Link href={`/dp/${p.id}`} tabIndex={-1} aria-hidden className="flex h-28 items-center justify-center rounded-sm bg-[#f7f7f7] p-2">
+                  <Link href={`/dp/${p.id}`} tabIndex={-1} aria-hidden className="flex h-28 items-center justify-center rounded-sm bg-page p-2">
                     {saver ? (
                       <Image src={p.thumbnail} alt="" width={112} height={112} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                     ) : (

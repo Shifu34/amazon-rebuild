@@ -31,10 +31,10 @@ export function PriceLock({ productId, priceText, locked }: Props) {
   const left = useLeft(locked?.expiresAt)
 
   return (
-    <div className="mt-3 border-t border-line pt-3 text-sm">
+    <div className="mt-5 border-t border-line pt-5 text-sm">
       {locked ? (
         <>
-          <p className="font-bold text-success">Price locked at {locked.text}</p>
+          <p className="font-medium text-accent">Price locked at {locked.text}</p>
           <p className="text-xs text-muted">
             We&apos;ll charge this at checkout{left && left !== 'expired' ? ` · ${left}` : ''}.
           </p>
@@ -47,14 +47,14 @@ export function PriceLock({ productId, priceText, locked }: Props) {
         <form action={lock}>
           <input type="hidden" name="productId" value={productId} />
           <button type="submit" className="btn btn-plain w-full">Lock this price for 48 hours</button>
-          <p className="mt-1.5 text-xs text-muted">
+          <p className="mt-2 text-[13px] text-muted">
             Hold {priceText} while you decide. We refund the difference automatically if the price drops before delivery.
           </p>
         </form>
       )}
       <form action={demoDrop} className="mt-2">
         <input type="hidden" name="productId" value={productId} />
-        <button type="submit" className="link cursor-pointer text-xs">Demo: drop this price 10%</button>
+        <button type="submit" className="link cursor-pointer text-[13px]">Demo: drop this price 10%</button>
       </form>
     </div>
   )

@@ -13,7 +13,7 @@ function Error({ id, message }: { id: string; message?: string }) {
   if (!message) return null
   return (
     <p id={id} role="alert" className="field-error flex items-center gap-1.5">
-      <span aria-hidden className="flex size-3.5 items-center justify-center rounded-full bg-[#cc0c39] text-[10px] font-bold text-white">!</span>
+      <span aria-hidden className="flex size-3.5 items-center justify-center rounded-full bg-[var(--color-danger)] text-[10px] font-bold text-white">!</span>
       {message}
     </p>
   )
@@ -37,7 +37,7 @@ export function ReviewForm({ productId, existing }: { productId: number; existin
 
   if (state.ok) {
     return (
-      <div role="status" className="rounded-lg border border-[#0b7b3c] p-5">
+      <div role="status" className="rounded-lg border border-accent p-5">
         <h2 className="flex items-center gap-2 text-lg text-success">
           <CheckCircle /> Review submitted - Thank you!
         </h2>
@@ -60,10 +60,10 @@ export function ReviewForm({ productId, existing }: { productId: number; existin
         <legend className="text-lg font-bold">Overall rating</legend>
         <div className="mt-2 flex items-center gap-1" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (
-            <label key={n} onMouseEnter={() => setHover(n)} className="cursor-pointer rounded p-0.5 has-[:focus-visible]:bg-[#e6f6f8] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus">
+            <label key={n} onMouseEnter={() => setHover(n)} className="cursor-pointer rounded p-0.5 has-[:focus-visible]:bg-accent-soft has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus">
               <input type="radio" name="rating" value={n} checked={rating === n} onChange={() => setRating(n)} aria-label={n === 1 ? '1 star' : `${n} stars`} className="sr-only" />
               <svg viewBox="0 0 24 24" className="size-9" aria-hidden>
-                <path d={STAR} strokeWidth="1.3" strokeLinejoin="round" className={n <= shown ? 'fill-[#ffa41c] stroke-star' : 'fill-white stroke-[#949494]'} />
+                <path d={STAR} strokeWidth="1.3" strokeLinejoin="round" className={n <= shown ? 'fill-star stroke-star' : 'fill-white stroke-[#949494]'} />
               </svg>
             </label>
           ))}

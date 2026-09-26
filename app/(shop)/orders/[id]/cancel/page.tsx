@@ -25,20 +25,20 @@ export default async function CancelPage({ params }: Props) {
     : ["This order has already shipped and can't be cancelled.", 'You can return it after delivery.']
 
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-4">
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
       <Crumbs current="Cancel items" orderId={order.id} />
       <div className="max-w-[700px]">
-        <h1 className="mt-2 text-[28px] leading-9 font-normal">Cancel items</h1>
-        <p className="text-sm text-muted">Order # {order.id} · placed {fullDate(order.placedAt)}</p>
+        <h1 className="text-[28px] leading-9">Cancel items</h1>
+        <p className="price mt-1 text-sm text-muted">Order # {order.id} · placed {fullDate(order.placedAt)}</p>
 
-        <div className="mt-5">
+        <div className="mt-8">
           {view.canCancel ? (
             <CancelForm orderId={order.id} items={items} />
           ) : (
-            <div role="alert" className="rounded-lg border border-[#c10015] p-4 text-sm">
-              <p className="font-bold text-[#c10015]">{blocked}</p>
-              {detail && <p className="mt-1">{detail}</p>}
-              <div className="mt-4 flex flex-wrap gap-3">
+            <div role="alert" className="rounded-[10px] border border-danger/40 p-5 text-sm">
+              <p className="font-display text-lg font-semibold text-danger">{blocked}</p>
+              {detail && <p className="mt-1 text-muted">{detail}</p>}
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Link href={back} className="btn btn-plain">Back to order</Link>
                 {view.status !== 'cancelled' && <Link href={`${back}/track`} className="btn btn-cart">Track package</Link>}
               </div>

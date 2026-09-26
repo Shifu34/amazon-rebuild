@@ -15,8 +15,8 @@ const until = async (fn, message) => {
   }
   throw new Error(message)
 }
-// the first .sr-only in a ProductCard is its spoken price, e.g. "$1,099.99" or "PKR 304,544.23"
-const prices = () => page.locator('main article').evaluateAll((cards) => cards.map((c) => Number(c.querySelector('.sr-only').textContent.replace(/[^\d.]/g, ''))))
+// a card marks its own price, e.g. "$1,099.99" or "PKR 304,544.23"
+const prices = () => page.locator('main article').evaluateAll((cards) => cards.map((c) => Number(c.querySelector('[data-card-price]').textContent.replace(/[^\d.]/g, ''))))
 const cartCount = async () => Number((await page.getByRole('link', { name: /^Cart, / }).getAttribute('aria-label')).match(/\d+/)[0])
 
 try {
@@ -30,8 +30,8 @@ try {
   assert.ok(total > 24, 'phone needs more than one page')
   assert.equal(await page.title(), 'nile.com : phone')
   assert.equal(await page.locator('main article').count(), 24)
-  // white 12px bold on the Best Seller badge needs AA (4.5:1): #c45500 reaches it, the old #e67a00 was 2.93:1
-  assert.equal(await page.getByText('Best Seller', { exact: true }).first().evaluate((el) => getComputedStyle(el).backgroundColor), 'rgb(196, 85, 0)')
+  // white on the Best Seller badge needs AA (4.5:1): the accent green #1f5139 is 8.4:1 (docs/design.md, one accent only)
+  assert.equal(await page.getByText('Best Seller', { exact: true }).first().evaluate((el) => getComputedStyle(el).backgroundColor), 'rgb(31, 81, 57)')
 
   step('brand filter narrows results and shows a chip')
   await page.getByRole('checkbox', { name: /^Samsung/ }).click()
@@ -169,7 +169,7 @@ try {
   page = await pk.newPage()
   await page.goto(`${base}/s?k=phone`)
   await h1().waitFor()
-  assert.match(await page.locator('main article .sr-only').first().textContent(), /^PKR [\d,]+\.\d{2}$/)
+  assert.match(await page.locator('main article [data-card-price]').first().textContent(), /^PKR [\d,]+\.\d{2}$/)
   await page.locator('main article').first().getByText(/^PKR 4,153\.28 delivery/).waitFor()
   assert.equal(await page.locator('main').getByText(/FREE delivery|\$/).count(), 0, 'no dollars and no free delivery to Pakistan')
   const filters = page.getByRole('complementary', { name: 'Filters' })

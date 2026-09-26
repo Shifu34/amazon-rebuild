@@ -1,14 +1,11 @@
 type P = { className?: string }
 
 // sized in em: the font size in className (26px by default) scales the word and the smile together
-export function Logo({ className = 'text-[26px]', tone = 'light' }: P & { tone?: 'light' | 'dark' }) {
+// The wordmark: a serif "nile" with an accent full stop (docs/design.md). `tone` keeps the old call sites working.
+export function Logo({ className = 'text-[26px]', tone = 'dark' }: P & { tone?: 'light' | 'dark' }) {
   return (
-    <span className={`inline-flex flex-col items-start leading-none ${tone === 'dark' ? 'text-ink' : 'text-white'} ${className}`}>
-      <span className="font-black tracking-[-0.05em]">nile</span>
-      <svg viewBox="0 0 56 12" className="-mt-[0.15em] ml-[0.08em] h-[0.35em] w-[1.7em]" aria-hidden>
-        <path d="M2 3q26 11 48 1" fill="none" stroke="#ff9900" strokeWidth="3" strokeLinecap="round" />
-        <path d="M45 1l6 2.6-4 5" fill="none" stroke="#ff9900" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <span className={`inline-block font-display leading-none tracking-[-0.02em] ${tone === 'dark' ? 'text-ink' : 'text-white'} ${className}`}>
+      nile<span className={tone === 'dark' ? 'text-accent' : 'text-white/50'}>.</span>
     </span>
   )
 }

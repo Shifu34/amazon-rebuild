@@ -9,20 +9,22 @@ import { departmentOf, displayNumber, priceBounds, priceLabel, priceRanges, toHr
 type Facets = ReturnType<typeof search>['facets']
 type Department = (typeof DEPARTMENTS)[number]
 
-// dense on desktop like Amazon's rail (about 22px rows), roomy touch targets in the mobile drawer
-const row = 'flex items-center gap-2 py-2 text-sm hover:text-link-hover lg:py-px'
+// docs/design.md: rows have room to breathe — 28px on desktop, full touch targets in the mobile drawer
+const row = 'flex items-center gap-2 py-2 text-sm text-muted hover:text-ink lg:py-1'
 
 function Section({ title, clear, children }: { title: string; clear?: string; children: React.ReactNode }) {
   return (
-    <section aria-label={title} className="border-b border-line py-4 last:border-0 lg:border-0 lg:py-2.5">
-      <h3 className="text-sm">{title}</h3>
-      {clear && <Link href={clear} className="link text-xs">Clear<LinkPending /></Link>}
-      <ul className="mt-1">{children}</ul>
+    <section aria-label={title} className="border-b border-line py-5 last:border-0 lg:py-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-base">{title}</h3>
+        {clear && <Link href={clear} className="link text-xs">Clear<LinkPending /></Link>}
+      </div>
+      <ul className="mt-2">{children}</ul>
     </section>
   )
 }
 
-const Count = ({ n }: { n: number }) => <span className="font-normal text-muted">({n.toLocaleString('en-US')})</span>
+const Count = ({ n }: { n: number }) => <span className="price font-normal text-muted/80">({n.toLocaleString('en-US')})</span>
 
 // Filters are links (work without JS, shareable). Checkbox options expose role=checkbox; single choices use aria-current.
 function Item({ href, on = false, checkbox = false, className = '', children }: { href: string; on?: boolean; checkbox?: boolean; className?: string; children: React.ReactNode }) {
@@ -33,10 +35,10 @@ function Item({ href, on = false, checkbox = false, className = '', children }: 
         role={checkbox ? 'checkbox' : undefined}
         aria-checked={checkbox ? on : undefined}
         aria-current={!checkbox && on ? 'true' : undefined}
-        className={`${row} ${on ? 'font-bold' : ''} ${className}`}
+        className={`${row} ${on ? 'font-medium text-ink' : ''} ${className}`}
       >
         {checkbox && (
-          <span aria-hidden className={`grid size-4 shrink-0 place-items-center rounded-[3px] border text-[11px] leading-none text-white ${on ? 'border-link bg-link' : 'border-[#888c8c] bg-white'}`}>
+          <span aria-hidden className={`grid size-4 shrink-0 place-items-center rounded-[4px] border text-[11px] leading-none text-white ${on ? 'border-accent bg-accent' : 'border-line bg-surface'}`}>
             {on && '✓'}
           </span>
         )}
@@ -51,7 +53,7 @@ function SeeMore({ label, open, children }: { label: string; open: boolean; chil
   return (
     <li>
       <details open={open} className="group">
-        <summary className="link cursor-pointer list-none py-2 text-sm lg:py-px [&::-webkit-details-marker]:hidden">
+        <summary className="link cursor-pointer list-none py-2 text-sm lg:py-1 [&::-webkit-details-marker]:hidden">
           <span className="group-open:hidden">▾ {label}</span>
           <span className="hidden group-open:inline">▴ See less</span>
         </summary>
@@ -67,7 +69,7 @@ function Departments({ q, facets }: { q: Query; facets: Facets }) {
   const total = (d: Department) => d.categories.reduce((n, c) => n + (counts.get(c) ?? 0), 0)
   const child = (c: string) =>
     c === q.i ? (
-      <li key={c} className="py-2 pl-4 text-sm font-bold lg:py-px">{categoryName(c)}</li>
+      <li key={c} className="py-2 pl-4 text-sm font-medium lg:py-1">{categoryName(c)}</li>
     ) : (
       <Item key={c} href={toHref(q, { i: c })} className="pl-4">{categoryName(c)} <Count n={counts.get(c) ?? 0} /></Item>
     )
@@ -78,7 +80,7 @@ function Departments({ q, facets }: { q: Query; facets: Facets }) {
       <Section title="Department">
         <Item href={toHref(q, { i: '' })}>‹ Any Department</Item>
         {q.i === current.slug ? (
-          <li className="py-2 text-sm font-bold lg:py-px">{current.name}</li>
+          <li className="py-2 text-sm font-medium lg:py-1">{current.name}</li>
         ) : (
           <Item href={toHref(q, { i: current.slug })}>‹ {current.name}</Item>
         )}
@@ -139,7 +141,7 @@ export function Filters({ q, base, facets, currency }: { q: Query; base: SearchP
                   href={toHref(q, { rating: on ? undefined : r })}
                   aria-label={`${r} Stars & Up, ${ratingCounts[idx]} results`}
                   aria-current={on ? 'true' : undefined}
-                  className={`${row} ${on ? 'font-bold' : ''}`}
+                  className={`${row} ${on ? 'font-medium text-ink' : ''}`}
                 >
                   <Stars rating={r} className="h-[18px]" /> <span>&amp; Up</span> <Count n={ratingCounts[idx]} />
                   <LinkPending />

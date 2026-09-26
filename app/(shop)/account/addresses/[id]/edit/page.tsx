@@ -13,9 +13,9 @@ export default async function EditAddressPage({ params, searchParams }: { params
   const address = await getAddress(user.id, id) // someone else's address is a 404 like a missing one
   if (!address) notFound()
   return (
-    <div className="mx-auto max-w-[560px] px-4 py-6">
+    <div className="mx-auto max-w-[560px] px-4 py-10">
       <Crumbs trail={[['Your Account', '/account'], ['Your Addresses', '/account/addresses'], ['Edit Address']]} />
-      <h1 className="mb-4 text-[28px] leading-9 font-normal">Edit your address</h1>
+      <h1 className="mb-6 text-[28px] leading-9">Edit your address</h1>
       <AddressForm address={address} returnTo="/account/addresses?alert=saved" openInstructions={instructions === '1'} />
     </div>
   )

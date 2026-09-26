@@ -56,21 +56,21 @@ function Flow({ returnTo, start, email: initialEmail, restart }: Props & { email
   return (
     <>
       {errors.form && (
-        <div role="alert" className="mb-4 rounded-lg border border-[#cc0c39] p-4 shadow-[0_0_0_4px_#fcf4f4_inset]">
-          <h2 className="text-[17px] font-normal text-[#cc0c39]">There was a problem</h2>
-          <p className="text-[13px]">{errors.form}</p>
+        <div role="alert" className="mb-5 rounded-lg border border-danger bg-danger/5 p-4">
+          <h2 className="text-base text-danger">There was a problem</h2>
+          <p className="mt-1 text-sm">{errors.form}</p>
         </div>
       )}
-      <div className="rounded-lg border border-[#ddd] px-5 py-5">
-        <h1 className="mb-3 text-[28px] leading-9 font-normal">
+      <div className="card px-6 py-7">
+        <h1 className="mb-4 text-[26px] leading-8">
           {step === 'email' ? 'Sign in or create account' : step === 'password' ? 'Sign in' : 'Create account'}
         </h1>
 
         {step === 'create' && start === 'email' && !errors.email && (
-          <p className="mb-3 text-[13px]">Looks like you&apos;re new to nile. Let&apos;s create your account.</p>
+          <p className="mb-4 text-sm text-muted">Looks like you&apos;re new here. Let&apos;s make your account.</p>
         )}
 
-        <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className="space-y-3.5">
+        <form ref={formRef} action={action} onSubmit={onSubmit} noValidate className="space-y-4">
           <input type="hidden" name="step" value={step} />
           <input type="hidden" name="return_to" value={returnTo} />
 
@@ -83,7 +83,7 @@ function Flow({ returnTo, start, email: initialEmail, restart }: Props & { email
               name="password"
               type="password"
               reveal
-              aside={step === 'password' && <Link href={`/ap/forgotpassword${query}`} className="link text-[13px]">Forgot password?</Link>}
+              aside={step === 'password' && <Link href={`/ap/forgotpassword${query}`} className="link text-sm">Forgot password?</Link>}
               autoComplete={step === 'create' ? 'new-password' : 'current-password'}
               placeholder={step === 'create' ? 'At least 6 characters' : undefined}
               hint={step === 'create' ? 'Passwords must be at least 6 characters.' : undefined}
@@ -94,24 +94,24 @@ function Flow({ returnTo, start, email: initialEmail, restart }: Props & { email
 
           {step === 'create' && <Field label="Re-enter password" name="confirm" type="password" autoComplete="new-password" error={errors.confirm} />}
 
-          <button type="submit" disabled={pending} className="btn btn-cart w-full">
+          <button type="submit" disabled={pending} className="btn btn-cart btn-lg w-full">
             {pending ? 'Please wait…' : step === 'email' ? 'Continue' : step === 'password' ? 'Sign in' : 'Create your nile account'}
           </button>
         </form>
 
-        <p className="mt-5 text-xs leading-[18px]">
-          By continuing, you agree to nile&apos;s Conditions of Use and Privacy Notice. This is a demo store: no real orders or charges.
+        <p className="mt-6 text-xs leading-5 text-muted">
+          By continuing you agree to nile&apos;s conditions of use and privacy notice. This is a demo store: nothing is charged and nothing ships.
         </p>
 
         {step === 'email' && (
-          <details className="mt-3 text-[13px]">
+          <details className="mt-4 text-sm">
             <summary className="link w-fit cursor-pointer">Need help?</summary>
-            <Link href={`/ap/forgotpassword${query}`} className="link mt-1.5 ml-4 block w-fit">Forgot your password?</Link>
+            <Link href={`/ap/forgotpassword${query}`} className="link mt-2 ml-4 block w-fit">Forgot your password?</Link>
           </details>
         )}
 
         {step === 'create' && (
-          <p className="mt-5 border-t border-[#e7e7e7] pt-4 text-[13px]">
+          <p className="mt-6 border-t border-line pt-5 text-sm">
             Already a customer?{' '}
             {start === 'create' ? (
               <Link href={`/ap/signin${query}`} className="link">Sign in</Link>
@@ -141,18 +141,18 @@ function Field({ label, error, hint, name, aside, reveal, type, ...props }: Fiel
       <div className="relative">
         <input id={id} name={name} type={shown ? 'text' : type} className={reveal ? 'input pr-14' : 'input'} aria-invalid={!!error} aria-describedby={note} {...props} />
         {reveal && (
-          <button type="button" onClick={() => setShown(!shown)} aria-pressed={shown} aria-controls={id} className="link absolute inset-y-0 right-0 cursor-pointer px-3 text-[13px]">
+          <button type="button" onClick={() => setShown(!shown)} aria-pressed={shown} aria-controls={id} className="link absolute inset-y-0 right-0 cursor-pointer px-3 text-sm">
             {shown ? 'Hide' : 'Show'}
           </button>
         )}
       </div>
       {error ? (
         <p id={note} className="field-error flex items-center gap-1.5">
-          <span aria-hidden className="flex size-3.5 items-center justify-center rounded-full bg-[#cc0c39] text-[10px] font-bold text-white">!</span>
+          <span aria-hidden className="flex size-4 items-center justify-center rounded-full bg-danger text-[10px] font-semibold text-white">!</span>
           {error}
         </p>
       ) : (
-        hint && <p id={note} className="mt-1 text-xs text-muted">ⓘ {hint}</p>
+        hint && <p id={note} className="mt-1.5 text-xs text-muted">{hint}</p>
       )}
     </div>
   )

@@ -26,10 +26,10 @@ export default async function TrackPage({ params }: Props) {
 
   if (view.status === 'cancelled') {
     return (
-      <div className="mx-auto max-w-[600px] px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold">This order was cancelled.</h1>
+      <div className="mx-auto max-w-[600px] px-4 py-20 text-center">
+        <h1 className="text-2xl">This order was cancelled.</h1>
         <p className="mt-2 text-sm text-muted">Nothing will be shipped, and you have not been charged.</p>
-        <Link href={back} className="btn btn-plain btn-lg mt-5">Back to order</Link>
+        <Link href={back} className="btn btn-plain btn-lg mt-6">Back to order</Link>
       </div>
     )
   }
@@ -48,32 +48,32 @@ export default async function TrackPage({ params }: Props) {
   const latest = events[0]
 
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-4">
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
       <Crumbs current="Track package" orderId={order.id} />
 
-      <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section aria-labelledby="track-headline" className="min-w-0 self-start rounded-lg border border-line p-5">
-          <h1 id="track-headline" className="text-[28px] leading-9 font-bold">{view.headline}</h1>
-          <p className="text-sm text-muted">{view.subline}</p>
-          <div className="mt-6">
+      <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
+        <section aria-labelledby="track-headline" className="card min-w-0 self-start p-6">
+          <h1 id="track-headline" className="text-[28px] leading-9">{view.headline}</h1>
+          <p className="mt-0.5 text-sm text-muted">{view.subline}</p>
+          <div className="mt-8">
             <Progress step={view.step} notes={notes} large />
           </div>
           {latest && (
-            <p className="mt-6 text-sm">
-              <b>Latest update:</b> {latest.label}
+            <p className="mt-8 text-sm">
+              <span className="font-medium">Latest update:</span> {latest.label}
               {latest.place && ` · ${latest.place}`} · {stamp(latest.at)}
             </p>
           )}
-          <details className="mt-4 border-t border-line pt-3">
+          <details className="mt-6 border-t border-line pt-4">
             <summary className="link cursor-pointer text-sm">See all updates</summary>
-            <div className="mt-3 space-y-4">
+            <div className="mt-4 space-y-5">
               {[...days].map(([day, list]) => (
                 <div key={day}>
-                  <h2 className="text-sm font-bold">{day}</h2>
-                  <ul className="mt-1 space-y-1.5 text-sm">
+                  <h2 className="text-base">{day}</h2>
+                  <ul className="mt-1.5 space-y-2 text-sm">
                     {list.map((e) => (
-                      <li key={e.label} className="grid grid-cols-[76px_minmax(0,1fr)] gap-2">
-                        <span className="text-muted">{time(e.at)}</span>
+                      <li key={e.label} className="grid grid-cols-[84px_minmax(0,1fr)] gap-2">
+                        <span className="price text-muted">{time(e.at)}</span>
                         <span>
                           {e.label}
                           {e.place && <span className="block text-xs text-muted">{e.place}</span>}
@@ -87,34 +87,36 @@ export default async function TrackPage({ params }: Props) {
           </details>
         </section>
 
-        <aside aria-label="Shipment details" className="space-y-4 text-sm">
-          <div className="rounded-lg border border-line p-4">
-            <h2 className="font-bold">{view.status === 'delivered' ? 'Delivered by nile' : intl ? 'Shipping internationally with nile' : 'Shipping with nile'}</h2>
-            {view.step >= 1 ? (
-              <p className="mt-1">
-                Tracking ID: <span className="font-mono select-all">{trackingId(order.id)}</span>
-              </p>
-            ) : (
-              <p className="mt-1 text-muted">Tracking info will be available when your package ships.</p>
-            )}
-            {intl && <p className="mt-2 text-xs text-muted">{IMPORT_FEES_NOTE}</p>}
-          </div>
-          <div className="rounded-lg border border-line p-4">
-            <h2 className="font-bold">Shipping Address</h2>
-            <AddressLines shipTo={order.shipTo} />
-          </div>
-          <div className="rounded-lg border border-line p-4">
-            <h2 className="font-bold">{plural(active.length, 'item')} in this package</h2>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {active.map((i) => (
-                <li key={i.productId}>
-                  <Link href={`/dp/${i.productId}`} title={i.title} className="block rounded-sm focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
-                    <Thumb src={i.thumbnail} size="size-16" />
-                    <span className="sr-only">{i.title}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        <aside aria-label="Shipment details" className="space-y-6 text-sm">
+          <div className="card divide-y divide-line [&>div]:p-5">
+            <div>
+              <h2 className="text-base">{view.status === 'delivered' ? 'Delivered by nile' : intl ? 'Shipping internationally with nile' : 'Shipping with nile'}</h2>
+              {view.step >= 1 ? (
+                <p className="mt-1 text-muted">
+                  Tracking ID: <span className="price text-ink select-all">{trackingId(order.id)}</span>
+                </p>
+              ) : (
+                <p className="mt-1 text-muted">Tracking info will be available when your package ships.</p>
+              )}
+              {intl && <p className="mt-2 text-xs text-muted">{IMPORT_FEES_NOTE}</p>}
+            </div>
+            <div>
+              <h2 className="mb-1 text-base">Shipping Address</h2>
+              <AddressLines shipTo={order.shipTo} />
+            </div>
+            <div>
+              <h2 className="text-base">{plural(active.length, 'item')} in this package</h2>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {active.map((i) => (
+                  <li key={i.productId}>
+                    <Link href={`/dp/${i.productId}`} title={i.title} className="block rounded-[10px] focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
+                      <Thumb src={i.thumbnail} size="size-16" />
+                      <span className="sr-only">{i.title}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             {view.canReturn && <Link href={`${back}/return`} className="btn btn-cart w-full">Return or replace items</Link>}

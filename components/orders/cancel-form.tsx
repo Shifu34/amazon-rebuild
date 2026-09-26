@@ -21,30 +21,30 @@ export function CancelForm({ orderId, items }: { orderId: string; items: Item[] 
         const data = new FormData(e.currentTarget)
         startTransition(() => action(data))
       }}
-      className="space-y-5"
+      className="space-y-6"
     >
       <input type="hidden" name="orderId" value={orderId} />
       <fieldset>
-        <legend className="mb-2 text-base font-bold">Check the items you want to cancel</legend>
-        <ul className="divide-y divide-line rounded-lg border border-line">
+        <legend className="mb-3 font-display text-base font-semibold">Check the items you want to cancel</legend>
+        <ul className="card divide-y divide-line">
           {items.map((i) => (
             <li key={i.productId}>
-              <label className="flex cursor-pointer items-center gap-3 p-3 hover:bg-[#f7fafa]">
+              <label className="flex cursor-pointer items-center gap-4 p-4 hover:bg-page">
                 <input
                   type="checkbox"
                   name="item"
                   value={i.productId}
                   checked={picked.includes(i.productId)}
                   onChange={() => toggle(i.productId)}
-                  className="size-4 shrink-0 accent-[#007185]"
+                  className="size-4 shrink-0 accent-accent"
                 />
-                <span className="flex size-16 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1">
+                <span className="flex size-16 shrink-0 items-center justify-center rounded-[10px] bg-page p-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={i.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
                 </span>
                 <span className="min-w-0 flex-1 text-sm">
                   <span className="line-clamp-2">{i.title}</span>
-                  <span className="text-xs text-muted">Qty: {i.quantity}</span>
+                  <span className="price text-xs text-muted">Qty: {i.quantity}</span>
                 </span>
               </label>
             </li>
@@ -63,7 +63,7 @@ export function CancelForm({ orderId, items }: { orderId: string; items: Item[] 
       </div>
 
       {state?.error && (
-        <p role="alert" className="rounded-lg border border-[#c10015] px-3 py-2 text-sm text-[#c10015]">{state.error}</p>
+        <p role="alert" className="rounded-lg border border-danger/40 px-4 py-3 text-sm text-danger">{state.error}</p>
       )}
 
       <div className="flex flex-wrap gap-3">

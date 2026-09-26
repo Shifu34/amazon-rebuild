@@ -39,7 +39,7 @@ export function CardForm({ returnTo, onSaved, onCancel, defaultName }: Props) {
       <FormProblem problem={state?.problem} errors={e} />
       {returnTo && <input type="hidden" name="return_to" value={returnTo} />}
 
-      <div className="rounded-lg border border-[#246fb6] bg-[#f3f8fc] px-3 py-2 text-[13px]">
+      <div className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-3 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p>
             <b>Demo store: nothing is charged.</b> Only test cards work, such as <span className="font-mono whitespace-nowrap">4242 4242 4242 4242</span> with any

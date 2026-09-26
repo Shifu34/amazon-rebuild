@@ -1,12 +1,14 @@
-# nile: Amazon.com, rebuilt
+# nile: a shop with its own interface
 
-A working rebuild of Amazon's shopping loop: search, product pages, cart, checkout, orders, returns, lists, reviews and accounts. It runs on a real database and has no ads.
+A working shop — search, product pages, cart, checkout, orders, returns, lists, reviews and accounts — with an interface designed for it rather than copied from anyone. It runs on a real Postgres database, real server actions and real API routes: no mock data, no hardcoded responses, and no ads.
+
+It began as a study of amazon.com, which is why the flows will feel familiar. The look, the layout and the ideas are ours: see [`docs/design.md`](docs/design.md) for the design language, and "What we do differently" below for the product decisions.
 
 - **Live:** https://amazon-rebuild-teal.vercel.app
 - **Repo:** https://github.com/Shifu34/amazon-rebuild
 - **Walkthrough:** _Loom link_
 
-> nile is a portfolio rebuild of Amazon.com for the 8x assignment. It is not affiliated with Amazon. Orders, payments and deliveries are simulated, and only test card numbers are accepted.
+> nile is a portfolio project for the 8x assignment. It is not affiliated with Amazon. Orders, payments and deliveries are simulated, and only test card numbers are accepted.
 
 ## Try it
 
@@ -19,10 +21,10 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 | Flow | What's in it |
 |---|---|
-| **Home & browse** | Department **video tiles** like Amazon's: hover a tile and its video plays, turning each product through its angles; moving off pauses it, and it ends on a replay button (Play, Pause and Replay buttons for keyboard and touch). Department cards, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. Every product card (rows, search and department results, Today's Deals, Best Sellers) has **Quick look**: a dialog with the price, "See product details" and a "Customers also bought" strip you can click through. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
+| **Home & browse** | A masthead that says what the shop is for, then department **video tiles**: hover one and it plays, turning each product through its angles; moving off pauses it, and it ends on a replay button (Play, Pause and Replay buttons for keyboard and touch). Twelve borderless collections, Today's Deals and Best Sellers rows, a "Pick up where you left off" card and an "Inspired by your browsing history" row once you've viewed products. Every product card (rows, search and department results, Today's Deals, Best Sellers) has **Quick look**: a dialog with the price, "See product details" and a "Customers also bought" strip you can click through. A guest can set a delivery ZIP. Today's Deals has department and discount filters; Best Sellers is ranked by department and category. |
 | **Search** | Header search with instant suggestions and a department scope. A department page opens with "Featured categories" circles; hovering one reveals its top brands. The results page filters by department, rating, brand, price, deals and stock. Filters show as chips with "Clear all", with sorting, pagination, spelling correction ("Showing results for…") and a filter drawer on phones. |
 | **Pakistan & rupees** | Prices in US dollars or Pakistani rupees (switch in the EN menu; a Pakistani visitor gets rupees and "Deliver to Pakistan" by default). Pakistan addresses with provinces, 5-digit postal codes and Pakistani phone numbers. Landed-cost pricing: the product page shows the real "to your door" price, and checkout charges the estimated import duty with the order instead of leaving the courier to collect it. Orders keep the currency they were placed in, and a refund returns that line's share of the duty. Rules in [`docs/region.md`](docs/region.md). |
-| **Emails** | Amazon-style order confirmation, cancellation, return and delivery emails, sent over Gmail SMTP and capped per recipient and per day. Test addresses (`@example.com`) are never emailed. |
+| **Emails** | Order confirmation, cancellation, return and delivery emails, sent over Gmail SMTP and capped per recipient and per day. Test addresses (`@example.com`) are never emailed. |
 | **Product page** | Image gallery with zoom and full-screen view. The buy box shows the delivery date with an order-by countdown, stock messages and quantity, plus Add to Cart (with an "Added to cart" sheet), Buy Now and Add to List. Below: frequently bought together, related products, a full reviews page, and writing a review with "Verified Purchase". |
 | **Review digest** | "What buyers say": the aspects reviewers actually mention (battery, fit, delivery, value…) with "6 of 8 positive" bars, verified purchases first, and the most helpful positive and critical review pinned. Every number is checkable — click a bar and the list below is exactly those reviews. |
 | **Compare** | Tick up to four products from search or a department, and a docked tray follows you. The compare page puts them side by side: price, delivery date, rating, availability, warranty, returns, weight and dimensions, with "show differences only" and Add to Cart per column. |
@@ -35,7 +37,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 | **Cart** | Guest cart that merges on sign-in, quantity stepper, save for later, free-shipping progress, and an empty state for guests and for signed-in shoppers. |
 | **Checkout** | Sign-in gate that returns you to checkout, address book with validation, saved cards (test cards only), a delivery-speed choice for the order, and an order summary with tax. "Place your order" is safe to double-click. Ends on a thank-you page. |
 | **Orders** | Tabs (Orders, Buy Again, Not Yet Shipped, Cancelled), a date filter, order search, order details with an invoice, a tracking timeline, cancel before shipping, returns and replacements with a refund summary, and Buy it again. |
-| **Account** | Amazon's email-first "Sign in or create account" flow. Your Account hub; Login & Security (name, email, password); addresses; payments wallet; lists (create, rename, move, add to cart); browsing history (remove, clear, pause). |
+| **Account** | An email-first "Sign in or create account" flow. Your Account hub; Login & Security (name, email, password); addresses; payments wallet; lists (create, rename, move, add to cart); browsing history (remove, clear, pause). |
 
 ## Product judgement
 
@@ -54,7 +56,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 - **Product variants, coupons, lightning-deal countdowns:** the catalog has no such data, and fake urgency is worse than none.
 - **Also out:** customer service chat, registries, gift cards, Subscribe & Save (replaced by one-off restock reminders), the AI shopping assistant, per-state tax and ZIP-based delivery. Reviews are digested by counting what reviewers wrote, never summarised by a model you can't check.
 
-### Better than Amazon
+### What we do differently
 
 - No ads or sponsored rows.
 - The delivered price up front for international shoppers, duty included, instead of a customs bill at the door.
@@ -77,6 +79,7 @@ A working rebuild of Amazon's shopping loop: search, product pages, cart, checko
 
 ## How it's built
 
+- **Interface:** our own, in the language set out in [`docs/design.md`](docs/design.md) — a serif display face for headings, one deep-green accent for anything you can act on, warm paper, hairlines instead of boxes, money in tabular figures.
 - **App:** Next.js 16 App Router (Server Components and Server Actions), React 19, Tailwind 4, TypeScript. No ORM, no UI kit, no auth library.
 - **Catalog:** 184 products from [DummyJSON](https://dummyjson.com), held in memory, with a deterministic review corpus (~14 written reviews per product, seeded from the product id in `lib/review-seed.ts`) so ratings, the digest and the review pages have something real to work with. Search, facets and sorting run in-process, which at this size beats a database round trip. Amazon-style signals ("bought in past month", Best Seller badges) are derived deterministically.
 - **Data:** Postgres. Production uses Neon through the Vercel Marketplace. Locally the app uses an embedded PGlite database, so `npm run dev` needs no setup. Money is stored in integer cents. Writes that must be atomic, like placing an order or merging a guest cart, are single SQL statements with CTEs, because Neon's HTTP driver has no interactive transactions.

@@ -49,16 +49,17 @@ const tile = (title: string, href: string, bg: string, products: (Product | unde
 }
 const ids = (...list: number[]) => list.map(getProduct)
 
-// products with several angle photos first, so the reels show them turning
+// products with several angle photos first, so the reels show them turning. Tints are paper-adjacent (docs/design.md):
+// the photograph is the colour on the page, the tile behind it only separates one department from the next.
 const TILES: PictureTile[] = [
-  tile('Shop kitchen must-haves', find({ i: 'kitchen-accessories' }), '#d2dad9', ids(66, 51, 56)),
-  tile('Upgrade your everyday tech', find({ i: 'electronics' }), '#aaf3fc', ids(82, 127, 161, 123), 'Phones, laptops & more'),
-  tile('Shop all things beauty', find({ i: 'beauty-personal-care' }), '#f7cdbf', ids(2, 8, 4, 7)),
-  tile('Start looking sharp', find({ i: 'mens-fashion' }), '#d3cdc4', ids(85, 93, 90)),
-  tile('Get in the game', find({ i: 'sports' }), '#c5d5f2', ids(144, 139, 140)),
-  tile('Dress to impress', find({ i: 'womens-fashion' }), '#f3d3ec', ids(177, 172, 187)),
-  tile('Fresh picks for your pantry', find({ i: 'grocery' }), '#e1eec3', ids(28, 19, 41)),
-  tile("Today's Deals", '/deals', '#ffe3a3', ALL_DEALS.slice(0, 3), ALL_DEALS.length ? `Up to ${ALL_DEALS[0].discount}% off` : undefined),
+  tile('Kitchen must-haves', find({ i: 'kitchen-accessories' }), '#e6e3db', ids(66, 51, 56)),
+  tile('Everyday tech', find({ i: 'electronics' }), '#dde5e7', ids(82, 127, 161, 123), 'Phones, laptops & more'),
+  tile('All things beauty', find({ i: 'beauty-personal-care' }), '#f0e2db', ids(2, 8, 4, 7)),
+  tile('Looking sharp', find({ i: 'mens-fashion' }), '#e4e0d7', ids(85, 93, 90)),
+  tile('Game day', find({ i: 'sports' }), '#dee6df', ids(144, 139, 140)),
+  tile('Dress to impress', find({ i: 'womens-fashion' }), '#ece0e3', ids(177, 172, 187)),
+  tile('The pantry', find({ i: 'grocery' }), '#e5e8da', ids(28, 19, 41)),
+  tile("Today's deals", '/deals', '#efe4d2', ALL_DEALS.slice(0, 3), ALL_DEALS.length ? `Up to ${ALL_DEALS[0].discount}% off` : undefined),
 ].flat()
 
 // "under $25" cards in rupees: a round amount at or above the dollar one, so every destination still has results
@@ -103,9 +104,9 @@ const cardsIn = (c: CurrencyCode): Card[] => {
 }
 const CARDS: Record<CurrencyCode, Card[]> = { USD: cardsIn('USD'), PKR: cardsIn('PKR') }
 
-// soft picture backgrounds, one per card in turn
-const TINTS = ['#eef3f8', '#fdf1e7', '#eef6ee', '#f6eff8', '#fff6d9', '#eaf5f7', '#f9eeee', '#f2f2f2']
-const PAGE = 24 // divisible by 4, 3, 2 and 1 columns, so every grid row is full
+// Amazon runs 24 of these in a four-column wall. Twelve in three columns is still every way into the catalogue, with room
+// to breathe and a first screen that says something. Divisible by 3, 2 and 1, so no grid row is left ragged.
+const PAGE = 12
 
 // Views are written by the product page. A failed read only hides the personalized card, like Amazon's silent widgets.
 async function recentlyViewed(userId: string): Promise<Product[]> {
@@ -123,15 +124,22 @@ async function boughtBefore(userId: string): Promise<Product[]> {
 }
 
 const productTiles = (list: Product[]) => list.slice(0, 4).map((p) => ({ label: p.title, href: `/dp/${p.id}`, image: p.thumbnail }))
-const railBox = 'overflow-hidden rounded-lg border border-line'
 
-function CardGrid({ cards, offset }: { cards: Card[]; offset: number }) {
+// Sections are a hairline and air, never a grey block (docs/design.md). `flush` is for children that bring their own
+// gutters (the shared carousels), so they are not padded twice.
+function Section({ title, link, flush = false, children }: { title?: string; link?: { href: string; label: string }; flush?: boolean; children: React.ReactNode }) {
   return (
-    <div className="grid gap-x-2 gap-y-3 sm:grid-cols-2 sm:gap-y-[25px] lg:grid-cols-3 xl:grid-cols-4">
-      {cards.map((c, i) => (
-        <QuadCard key={c.title} {...c} tint={TINTS[(offset + i) % TINTS.length]} eager={offset + i < 4} />
-      ))}
-    </div>
+    <section className="border-t border-line">
+      <div className={`mx-auto max-w-[1120px] py-10 lg:py-14 ${flush ? '' : 'px-4 sm:px-6'}`}>
+        {title && (
+          <div className={`mb-6 flex items-baseline justify-between gap-4 ${flush ? 'px-4 sm:px-6' : ''}`}>
+            <h2 className="text-[26px] leading-8">{title}</h2>
+            {link && <Link href={link.href} className="link shrink-0 text-sm">{link.label} ›</Link>}
+          </div>
+        )}
+        {children}
+      </div>
+    </section>
   )
 }
 
@@ -147,48 +155,68 @@ export default async function Home() {
   const inspired = [...new Set(viewed.slice(0, 6).flatMap((p) => related(p, 8)))].filter((p) => !seen.has(p.id)).slice(0, 20)
 
   return (
-    <div className="bg-white">
-      <h1 className="sr-only">nile home</h1>
-      {/* overflow-x-clip: sr-only prices inside the shared carousels are positioned outside their scroll box and would widen the page */}
-      <div className="mx-auto max-w-[1536px] overflow-x-clip pt-2">
-        <PictureTiles tiles={TILES} saver={await dataSaver()} />
-        <div className="space-y-3 px-4 pt-5 sm:space-y-[25px]">
-          <CardGrid cards={cards.slice(0, PAGE / 2)} offset={0} />
-          <div className={railBox}>
-            <DealRail products={ALL_DEALS.slice(0, 20)} />
-          </div>
-          <CardGrid cards={cards.slice(PAGE / 2)} offset={PAGE / 2} />
-          {inspired.length > 0 && (
-            <div className={railBox}>
-              <ProductCarousel title="Inspired by your browsing history" products={inspired} />
-            </div>
-          )}
-          <div className={railBox}>
-            <ProductCarousel title="Best Sellers in Home & Kitchen" products={ranked('home-kitchen', 20)} href="/bestsellers/home-kitchen" />
-          </div>
-        </div>
+    // overflow-x-clip: sr-only prices inside the shared carousels are positioned outside their scroll box and would widen the page
+    <div className="overflow-x-clip">
+      {/* The opening says what this shop is for, in one sentence, instead of five rows of boxes competing to be clicked.
+          It is the page's h1: the visible statement and the heading a screen reader announces are the same words. */}
+      <div className="mx-auto max-w-[1120px] px-4 py-12 sm:px-6 lg:py-16">
+        <h1 className="max-w-[17ch] text-[34px] leading-[1.1] sm:max-w-[24ch] sm:text-[44px]">
+          Everything you need, priced to your door.
+        </h1>
+        <p className="mt-5 max-w-[58ch] text-[17px] leading-7 text-muted">
+          No ads and no invented countdowns. Duty and delivery are in the price before you decide, and every review number
+          opens the reviews behind it.
+        </p>
       </div>
 
-      {/* -mb-10 cancels the footer's top margin so "Back to top" sits right under this band, as on Amazon */}
-      <section aria-labelledby="home-bottom" className="mt-8 -mb-10 border-t border-line px-4 py-6 text-center">
-        {user ? (
-          <>
-            <h2 id="home-bottom" className="text-base">Your browsing history</h2>
-            {viewed.length > 0 ? (
-              <Link href="/history" className="link mt-1 inline-block text-sm">View or edit your browsing history</Link>
-            ) : (
-              <p className="mx-auto mt-1 max-w-xl text-sm text-muted">After viewing product detail pages, look here to find an easy way to navigate back to pages you are interested in.</p>
-            )}
-          </>
-        ) : (
-          <>
-            <h2 id="home-bottom" className="text-sm font-normal">See personalized recommendations</h2>
-            <Link href="/ap/signin" className="btn btn-cart mt-2 w-56">Sign in</Link>
-            <p className="mt-1.5 text-xs">
-              New customer? <Link href="/ap/register" className="link">Start here.</Link>
-            </p>
-          </>
-        )}
+      <Section title="Shop by department">
+        <PictureTiles tiles={TILES} saver={await dataSaver()} />
+      </Section>
+
+      <Section>
+        <DealRail products={ALL_DEALS.slice(0, 20)} />
+      </Section>
+
+      <Section title="Collections">
+        <div className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((c, i) => (
+            <QuadCard key={c.title} {...c} eager={i < 3} />
+          ))}
+        </div>
+      </Section>
+
+      {inspired.length > 0 && (
+        <Section flush>
+          <ProductCarousel title="Inspired by your browsing history" products={inspired} />
+        </Section>
+      )}
+
+      <Section flush>
+        <ProductCarousel title="Best Sellers in Home & Kitchen" products={ranked('home-kitchen', 20)} href="/bestsellers/home-kitchen" />
+      </Section>
+
+      <section aria-labelledby="home-bottom" className="border-t border-line">
+        <div className="mx-auto max-w-[1120px] px-4 py-12 text-center sm:px-6">
+          {user ? (
+            <>
+              <h2 id="home-bottom" className="text-xl">Your browsing history</h2>
+              {viewed.length > 0 ? (
+                <Link href="/history" className="link mt-2 inline-block text-sm">View or edit your browsing history</Link>
+              ) : (
+                <p className="mx-auto mt-2 max-w-[56ch] text-sm text-muted">After viewing product detail pages, look here to find an easy way to navigate back to pages you are interested in.</p>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 id="home-bottom" className="text-xl">See personalized recommendations</h2>
+              <p className="mx-auto mt-2 max-w-[48ch] text-sm text-muted">Sign in for your orders, lists and the things you looked at last time.</p>
+              <Link href="/ap/signin" className="btn btn-cart mt-5 w-56">Sign in</Link>
+              <p className="mt-3 text-sm text-muted">
+                New customer? <Link href="/ap/register" className="link">Start here.</Link>
+              </p>
+            </>
+          )}
+        </div>
       </section>
     </div>
   )

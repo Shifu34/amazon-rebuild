@@ -3,7 +3,7 @@ import { fullDate } from '@/lib/format'
 import type { Reminder } from '@/lib/reminders'
 import { WEEK_CHOICES } from '@/lib/reminders'
 
-const small = 'btn min-h-[29px] px-3 text-xs'
+const small = 'btn min-h-8 px-3 text-xs'
 const NO_LOCK_IN = "We'll email you once. No subscription, no card charged."
 
 function Weeks({ name = 'weeks', value }: { name?: string; value: number }) {
@@ -19,11 +19,11 @@ function Weeks({ name = 'weeks', value }: { name?: string; value: number }) {
 // On a delivered consumable: set the nudge, or show and change the one that's set. `weeks` is the category's default.
 export function RestockReminder({ productId, orderId, weeks, reminder }: { productId: number; orderId: string; weeks: number; reminder?: Reminder }) {
   return (
-    <div className="mt-2 rounded-lg border border-line bg-[#f7f8f8] p-3 text-xs">
+    <div className="mt-3 rounded-[10px] bg-page p-4 text-xs">
       {reminder ? (
         <>
-          <p className="text-sm">Reminder set for <b>{fullDate(reminder.dueAt)}</b></p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-sm">Reminder set for <b className="font-medium">{fullDate(reminder.dueAt)}</b></p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <form action={saveReminder} className="flex items-center gap-2">
               <input type="hidden" name="productId" value={productId} />
               <input type="hidden" name="orderId" value={orderId} />
@@ -45,7 +45,7 @@ export function RestockReminder({ productId, orderId, weeks, reminder }: { produ
           <button type="submit" className={`${small} btn-plain`}>Remind me</button>
         </form>
       )}
-      <p className="mt-1.5 text-muted">{NO_LOCK_IN}</p>
+      <p className="mt-2 text-muted">{NO_LOCK_IN}</p>
     </div>
   )
 }
@@ -53,18 +53,18 @@ export function RestockReminder({ productId, orderId, weeks, reminder }: { produ
 // Your Account: everything the shopper has set, with the demo control that brings them due now.
 export function ReminderList({ reminders, demo }: { reminders: Reminder[]; demo: React.ReactNode }) {
   return (
-    <section aria-labelledby="reminders-heading" className="rounded-lg border border-line p-4">
-      <h2 id="reminders-heading" className="text-lg font-bold">Restock reminders</h2>
-      <p className="mt-0.5 text-sm text-muted">{NO_LOCK_IN} Set one from a delivered order.</p>
+    <section aria-labelledby="reminders-heading">
+      <h2 id="reminders-heading" className="text-lg">Restock reminders</h2>
+      <p className="mt-1 max-w-[70ch] text-sm text-muted">{NO_LOCK_IN} Set one from a delivered order.</p>
       {reminders.length === 0 ? (
-        <p className="mt-3 text-sm">You have no reminders set.</p>
+        <p className="mt-4 text-sm text-muted">You have no reminders set.</p>
       ) : (
-        <ul className="mt-3 divide-y divide-line">
+        <ul className="mt-4 divide-y divide-line border-y border-line">
           {reminders.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
               <div className="min-w-0 text-sm">
                 <p className="line-clamp-2">{r.product.title}</p>
-                <p className="text-xs text-muted">Due {fullDate(r.dueAt)}</p>
+                <p className="price text-xs text-muted">Due {fullDate(r.dueAt)}</p>
               </div>
               <div className="flex items-center gap-2">
                 <form action={saveReminder} className="flex items-center gap-2">

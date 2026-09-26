@@ -75,33 +75,33 @@ function Row({ item: p, listId, otherLists, onGone }: { item: ListRowItem; listI
     })
 
   return (
-    <div className="flex gap-4 py-4">
-      <Link href={href} tabIndex={-1} aria-hidden className="flex size-[100px] shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-2 sm:size-[135px]">
+    <div className="flex gap-4 py-6 sm:gap-6">
+      <Link href={href} tabIndex={-1} aria-hidden className="flex size-[100px] shrink-0 items-center justify-center rounded-[10px] bg-page p-3 sm:size-[135px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={p.thumbnail} alt="" loading="lazy" className="max-h-full max-w-full object-contain mix-blend-multiply" />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row">
         <div className="min-w-0 flex-1 space-y-1">
           <h3 className="text-base leading-6 font-normal">
-            <Link href={href} className="line-clamp-2 hover:text-link-hover hover:underline">{p.title}</Link>
+            <Link href={href} className="line-clamp-2 hover:underline">{p.title}</Link>
           </h3>
           {p.brand && <p className="text-xs text-muted">by {p.brand}</p>}
-          <p className="flex items-center gap-1 text-sm">
-            <Stars rating={p.rating} />
-            <span className="text-link">{p.ratingCount.toLocaleString('en-US')}</span>
+          <p className="flex items-center gap-1.5 text-sm text-muted">
+            <Stars rating={p.rating} className="h-3.5" />
+            <span className="price">({p.ratingCount.toLocaleString('en-US')})</span>
           </p>
           <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-xl"><Price value={p.price} currency={currency} rate={rate} /></span>
+            <span className="font-display text-[22px] leading-7"><Price value={p.price} currency={currency} rate={rate} /></span>
             {p.listPrice && (
-              <span className="text-xs text-muted">
-                List: <s>{formatDollars(p.listPrice, currency, rate)}</s>
+              <span className="price text-xs text-muted">
+                was <s>{formatDollars(p.listPrice, currency, rate)}</s>
               </span>
             )}
           </p>
-          <p className="text-xs text-muted">Item added {fullDate(new Date(p.addedAt))}</p>
+          <p className="price text-xs text-muted">Item added {fullDate(new Date(p.addedAt))}</p>
           {p.stock > 0 ? <p className="text-xs text-success">In Stock</p> : <p className="text-sm text-danger">Currently unavailable.</p>}
         </div>
-        <div className="flex shrink-0 flex-col items-start gap-2 sm:w-44 sm:items-stretch">
+        <div className="flex shrink-0 flex-col items-start gap-3 sm:w-44 sm:items-stretch">
           {p.stock > 0 && <AddToCartButton productId={p.id} inCart={p.inCart} className="w-full" />}
           <div className="flex items-center gap-4 text-sm">
             {otherLists.length > 0 && <MoveMenu title={p.title} lists={otherLists} disabled={pending} onPick={move} />}
@@ -143,7 +143,7 @@ function MoveMenu({ title, lists, disabled, onPick }: { title: string; lists: Li
         Move <CaretIcon className="h-1.5 w-2" />
       </button>
       {open && (
-        <div role="group" aria-label="Move to" className="absolute top-full left-0 z-30 mt-1 w-56 rounded-lg border border-line bg-white py-2 shadow-[0_0_14px_rgba(15,17,17,0.35)]">
+        <div role="group" aria-label="Move to" className="absolute top-full left-0 z-30 mt-1 w-56 rounded-[10px] border border-line bg-surface py-2 shadow-[0_10px_30px_rgba(25,23,19,0.14)]">
           <p className="px-3 pb-1 text-xs text-muted">Move to</p>
           {lists.map((l) => (
             <button
@@ -154,7 +154,7 @@ function MoveMenu({ title, lists, disabled, onPick }: { title: string; lists: Li
                 setOpen(false)
                 onPick(l)
               }}
-              className="block w-full cursor-pointer truncate px-3 py-2 text-left hover:bg-[#f0f2f2] focus-visible:bg-[#f0f2f2] focus-visible:outline-none"
+              className="block w-full cursor-pointer truncate px-3 py-2 text-left hover:bg-page focus-visible:bg-page focus-visible:outline-none"
             >
               {l.name}
             </button>
@@ -173,15 +173,15 @@ function GhostRow({ ghost: { item, movedTo, undo }, listId, onRestored }: { ghos
       onRestored()
     })
   return (
-    <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 py-4 text-sm">
+    <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 py-5 text-sm">
       <p className="min-w-0">
-        <b>{movedTo ? `Moved to ${movedTo.name}` : 'Deleted'}</b> <span className="text-muted">{item.title}</span>
+        <b className="font-medium">{movedTo ? `Moved to ${movedTo.name}` : 'Deleted'}</b> <span className="text-muted">{item.title}</span>
       </p>
       {movedTo ? (
         <Link href={`/lists/${movedTo.id}`} className="link">View list</Link>
       ) : (
         undo && (
-          <button type="button" onClick={restore} disabled={pending} className="link cursor-pointer font-bold">
+          <button type="button" onClick={restore} disabled={pending} className="link cursor-pointer font-medium">
             {pending ? 'Undoing…' : 'Undo'}
           </button>
         )

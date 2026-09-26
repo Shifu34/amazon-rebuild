@@ -60,7 +60,7 @@ try {
   await noDollarsIn(main)
 
   step('typed rupee prices keep their decimals, and the results stay inside the bounds shown ($9.99 shows PKR 2,767.93)')
-  const shownPrices = async () => (await main.locator('article').evaluateAll((cards) => cards.map((c) => c.querySelector('.sr-only').textContent))).map(minor)
+  const shownPrices = async () => (await main.locator('article').evaluateAll((cards) => cards.map((c) => c.querySelector('[data-card-price]').textContent))).map(minor)
   const priceFilters = page.getByRole('complementary', { name: 'Filters' })
   await page.goto(`${base}/s?i=beauty-personal-care`)
   await priceFilters.getByLabel('Minimum price, in Pakistani Rupees').fill('2767.5')
@@ -209,7 +209,7 @@ try {
   const lemonOrder = new URL(page.url()).pathname.split('/').pop()
   assert.equal((await rows(details))['Items (2):'], lemons)
   await page.goto(`${base}/orders/${lemonOrder}/invoice`)
-  await main.getByText('2 of: Lemon').waitFor()
+  await main.getByText('2 × Lemon').waitFor()
   assert.equal((await rows(main))['Item(s) Subtotal:'], lemons)
   await main.getByText('Standard International Delivery').waitFor()
 

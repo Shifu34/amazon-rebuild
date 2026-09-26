@@ -60,7 +60,7 @@ export function Gallery({ images, title, saver = false }: { images: string[]; ti
                   onClick={() => setIndex(i)}
                   aria-label={`Image ${i + 1} of ${n}`}
                   aria-current={i === index}
-                  className={`block size-11 cursor-pointer overflow-hidden rounded-lg border bg-[#f7f7f7] p-0.5 focus-visible:outline-2 focus-visible:outline-focus ${i === index ? 'border-[#e77600] shadow-[0_0_3px_2px_rgba(228,121,17,0.5)]' : 'border-[#a2a6ac] hover:border-[#e77600]'}`}
+                  className={`block size-11 cursor-pointer overflow-hidden rounded-lg border bg-page p-0.5 focus-visible:outline-2 focus-visible:outline-focus ${i === index ? 'border-accent' : 'border-line hover:border-muted'}`}
                 >
                   {shot(src, '', 44, 'size-full object-contain mix-blend-multiply')}
                 </button>
@@ -80,22 +80,22 @@ export function Gallery({ images, title, saver = false }: { images: string[]; ti
             }}
             onPointerLeave={() => setLens(null)}
             aria-label="Open full-screen image viewer"
-            className="relative flex aspect-square max-h-[560px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-sm bg-[#f7f7f7] focus-visible:outline-2 focus-visible:outline-focus"
+            className="relative flex aspect-square max-h-[560px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-sm bg-page focus-visible:outline-2 focus-visible:outline-focus"
           >
             {shot(images[index], title, 560, 'max-h-full max-w-full object-contain mix-blend-multiply', { priority: true })}
             {lens && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute border border-[#6f7373] bg-white/40"
+                className="pointer-events-none absolute border border-ink/40 bg-white/40"
                 style={{ left: `${lens.x * 100}%`, top: `${lens.y * 100}%`, width: `${LENS * 100}%`, height: `${LENS * 100}%` }}
               />
             )}
           </button>
-          <p className="mt-2 text-center text-xs text-muted">Roll over image to zoom in · Click to see full view</p>
+          <p className="mt-2 text-center text-xs text-muted">Hover to zoom · click for the full-screen view</p>
           {lens && (
             <div
               aria-hidden
-              className="pointer-events-none absolute top-0 left-full z-30 ml-8 aspect-square w-full border border-line bg-[#f7f7f7] bg-no-repeat bg-blend-multiply shadow-[0_0_14px_rgba(15,17,17,0.35)]"
+              className="pointer-events-none absolute top-0 left-full z-30 ml-8 aspect-square w-full border border-line bg-page bg-no-repeat bg-blend-multiply shadow-[0_12px_30px_rgba(25,23,19,0.18)]"
               style={{
                 backgroundImage: `url("${images[index]}")`,
                 backgroundSize: `${ZOOM * 100}%`,
@@ -114,7 +114,7 @@ export function Gallery({ images, title, saver = false }: { images: string[]; ti
         >
           {images.map((src, i) => (
             <li key={src} className="w-full shrink-0 snap-center">
-              <button type="button" onClick={() => openViewer(i)} aria-label={`Image ${i + 1} of ${n}, open full-screen viewer`} className="flex aspect-square w-full items-center justify-center bg-[#f7f7f7] p-4">
+              <button type="button" onClick={() => openViewer(i)} aria-label={`Image ${i + 1} of ${n}, open full-screen viewer`} className="flex aspect-square w-full items-center justify-center bg-page p-4">
                 {shot(src, i === 0 ? title : '', 390, 'max-h-full max-w-full object-contain mix-blend-multiply', { loading: 'eager' })}
               </button>
             </li>
@@ -182,7 +182,7 @@ export function Gallery({ images, title, saver = false }: { images: string[]; ti
                       }}
                       aria-label={`Show image ${i + 1} of ${n}`}
                       aria-current={i === index}
-                      className={`block size-14 cursor-pointer rounded-lg border-2 bg-[#f7f7f7] p-1 ${i === index ? 'border-[#e77600]' : 'border-transparent hover:border-line'}`}
+                      className={`block size-14 cursor-pointer rounded-lg border-2 bg-page p-1 ${i === index ? 'border-accent' : 'border-transparent hover:border-line'}`}
                     >
                       {shot(src, '', 56, 'size-full object-contain mix-blend-multiply', { loading: 'lazy' })}
                     </button>

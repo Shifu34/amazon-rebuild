@@ -55,10 +55,10 @@ function aboutBullets(p: Product): [string, string][] {
   const sentences = (p.description.match(/[^.!?]+(?:[.!?]+|$)/g) ?? []).map((s) => s.trim()).filter(Boolean)
   return [
     ...sentences.map((s): [string, string] => ['', s]),
-    ...(p.tags.length ? [['PRODUCT TYPE', p.tags.map(titleCase).join(', ')] as [string, string]] : []),
-    ['WARRANTY', `${p.warranty}.`],
-    ['SHIPPING', `${p.shipping}.`],
-    ['RETURNS', `${p.returnPolicy}.`],
+    ...(p.tags.length ? [['Product type', p.tags.map(titleCase).join(', ')] as [string, string]] : []),
+    ['Warranty', `${p.warranty}.`],
+    ['Shipping', `${p.shipping}.`],
+    ['Returns', `${p.returnPolicy}.`],
   ]
 }
 
@@ -66,30 +66,29 @@ function aboutBullets(p: Product): [string, string][] {
 function InfoPopover({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <>
-      <button type="button" popoverTarget={id} aria-label={label} className="ml-1 inline-flex size-4 cursor-pointer items-center justify-center rounded-full border border-muted align-[-2px] text-[10px] leading-none text-muted hover:border-link-hover hover:text-link-hover">
+      <button type="button" popoverTarget={id} aria-label={label} className="ml-1 inline-flex size-4 cursor-pointer items-center justify-center rounded-full border border-line align-[-2px] text-[10px] leading-none text-muted hover:border-accent hover:text-accent">
         i
       </button>
-      <span id={id} popover="auto" className="m-auto w-[min(360px,90vw)] rounded-lg border border-line bg-white p-4 text-sm text-ink shadow-[0_0_14px_rgba(15,17,17,0.5)]">
+      <span id={id} popover="auto" className="card m-auto w-[min(380px,90vw)] p-4 text-sm text-ink shadow-[0_12px_30px_rgba(25,23,19,0.18)]">
         {children}
       </span>
     </>
   )
 }
 
-function InfoTable({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
+// Specs read as a definition list with hairlines — no grey header cells, no table chrome (docs/design.md)
+function Facts({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
   return (
     <div>
-      <h3 className="mb-2 text-lg">{title}</h3>
-      <table className="w-full border-t border-line text-sm">
-        <tbody>
-          {rows.map(([k, v]) => (
-            <tr key={k} className="border-b border-line">
-              <th scope="row" className="w-2/5 bg-[#f0f2f2] px-3 py-2 text-left align-top">{k}</th>
-              <td className="px-3 py-2 break-words">{v}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3 className="mb-3 text-lg">{title}</h3>
+      <dl className="text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex gap-6 border-t border-line py-2.5 last:border-b">
+            <dt className="w-2/5 shrink-0 text-muted">{k}</dt>
+            <dd className="min-w-0 break-words">{v}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }
@@ -178,113 +177,122 @@ export default async function ProductPage({ params, searchParams }: Props) {
     ['Warranty', p.warranty],
   ]
   const signInHere = `/ap/signin?return_to=${encodeURIComponent(`/dp/${p.id}`)}`
-  const jump = 'flex h-10 items-center hover:text-link-hover hover:underline'
+  const jump = 'flex h-11 items-center text-muted hover:text-ink'
+  const section = 'border-t border-line py-12'
 
   return (
-    <div className="mx-auto max-w-[1500px] px-4 pt-3">
-      <nav aria-label="Breadcrumb" className="text-xs text-muted">
+    <div className="mx-auto max-w-[1120px] px-4 pt-4 md:px-6">
+      <nav aria-label="Breadcrumb" className="text-[13px] text-muted">
         <ol className="flex flex-wrap items-center gap-1.5">
           {dept && (
             <>
-              <li><Link href={`/s?i=${dept.slug}`} className="hover:text-link-hover hover:underline">{dept.name}</Link></li>
-              <li aria-hidden>›</li>
+              <li><Link href={`/s?i=${dept.slug}`} className="hover:text-ink hover:underline">{dept.name}</Link></li>
+              <li aria-hidden>/</li>
             </>
           )}
-          <li><Link href={`/s?i=${p.category}`} className="hover:text-link-hover hover:underline">{category}</Link></li>
+          <li><Link href={`/s?i=${p.category}`} className="hover:text-ink hover:underline">{category}</Link></li>
         </ol>
       </nav>
 
-      {/* DOM order is gallery, title, price, buy box, specs so focus follows the columns; on phones the title moves above the gallery. */}
-      <div className="mt-3 grid gap-x-8 gap-y-4 pb-6 md:grid-cols-2 md:grid-rows-[auto_auto_auto_1fr] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(240px,270px)] lg:grid-rows-[auto_auto_1fr]">
-        <div className="md:sticky md:top-3 md:col-start-1 md:row-span-4 md:row-start-1 md:self-start lg:row-span-3">
+      {/* Two columns: the picture and the detail on the left, everything you decide with in one column on the right.
+          On a phone it stacks picture → decision → detail, so the price is never below a wall of bullets. */}
+      <div className="mt-6 grid gap-x-16 gap-y-10 pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <Gallery images={p.images.length ? p.images : [p.thumbnail]} title={p.title} saver={saver} />
         </div>
 
-        <div className="max-md:order-first md:col-start-2 md:row-start-1">
-          <h1 className="text-xl leading-7 font-normal md:text-2xl md:leading-8">{p.title}</h1>
-          {p.brand && <Link href={`/s?brand=${encodeURIComponent(p.brand)}`} className="link text-sm">Visit the {p.brand} Store</Link>}
-          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm">
-            <span>{summary.average.toFixed(1)}</span>
-            <Stars rating={summary.average} />
+        {/* The decision column: title, price, promise, then the actions, read top to bottom. */}
+        <aside aria-label="Buy box" className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-w-[420px]">
+          <h1 className="text-[28px] leading-9 md:text-[32px] md:leading-10">{p.title}</h1>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="flex items-center gap-1.5">
+              <Stars rating={summary.average} />
+              <span className="price">{summary.average.toFixed(1)}</span>
+            </span>
             <Link href="#reviews" className="link">{plural(summary.total, 'rating')}</Link>
+            {p.brand && (
+              <>
+                <span aria-hidden className="text-line">·</span>
+                <Link href={`/s?brand=${encodeURIComponent(p.brand)}`} className="link">{p.brand}</Link>
+              </>
+            )}
           </div>
-          {p.badge === 'best-seller' && (
-            <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="rounded-sm bg-[#c45500] px-1.5 py-0.5 font-bold text-white">#1 Best Seller</span>
-              <Link href={`/s?i=${p.category}&sort=bestsellers`} className="link">in {category}</Link>
-            </p>
-          )}
-          {p.badge === 'amazons-choice' && (
-            <p className="mt-1.5 text-xs">
-              <Badge badge={p.badge} />
-              <InfoPopover id="choice-info" label="About nile's Choice">nile&apos;s Choice highlights highly rated, well-priced products available to ship immediately.</InfoPopover>
-            </p>
-          )}
-          {p.boughtPastMonth > 0 && (
-            <p className="mt-1.5 text-sm text-muted"><b className="text-ink">{compactCount(p.boughtPastMonth)} bought</b> in past month</p>
-          )}
-        </div>
 
-        {inStock && (
-          <div className="border-t border-line pt-3 md:col-start-2 md:row-start-2">
-            {isDeal(p) && <span className="rounded-sm bg-deal px-1.5 py-0.5 text-xs font-bold text-white">Deal</span>}
-            <div className="mt-1 flex items-start gap-2">
-              {p.discount > 0 && <span className="text-[28px] leading-8 font-light text-deal">-{p.discount}%</span>}
-              <span className="text-[28px] leading-8"><Price value={p.price} currency={currency} rate={rate} /></span>
+          {(p.badge || p.boughtPastMonth > 0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+              {p.badge === 'best-seller' && (
+                <>
+                  <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[13px] font-medium text-accent">#1 Best Seller</span>
+                  <Link href={`/s?i=${p.category}&sort=bestsellers`} className="link text-[13px]">in {category}</Link>
+                </>
+              )}
+              {p.badge === 'amazons-choice' && (
+                <span className="text-[13px]">
+                  <Badge badge={p.badge} />
+                  <InfoPopover id="choice-info" label="About nile's Choice">nile&apos;s Choice highlights highly rated, well-priced products available to ship immediately.</InfoPopover>
+                </span>
+              )}
+              {p.boughtPastMonth > 0 && <span className="text-[13px] text-muted">{compactCount(p.boughtPastMonth)} bought in the past month</span>}
             </div>
-            {p.listPrice && (
-              <p className="mt-1 text-xs text-muted">
-                List Price: <s>{formatDollars(p.listPrice, currency, rate)}</s>
-                <InfoPopover id="list-price-info" label="About List Price">
-                  The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller.
-                </InfoPopover>
-              </p>
-            )}
-            {dutyCents > 0 && (
-              <p className="mt-1.5 text-sm">
-                <b>{formatMoney(toCents(p.price) + dutyCents + shipCents, currency, rate)} to your door</b>
-                <InfoPopover id="landed-cost-info" label="About the delivered price">
-                  Includes {formatMoney(dutyCents, currency, rate)} estimated import duty and {formatMoney(shipCents, currency, rate)} international shipping, so nothing is collected on delivery.
-                </InfoPopover>
-              </p>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* lg:z-30: sticky makes the aside a stacking context, so without it the Add to List menu would sit under the sticky nav below */}
-        <aside aria-label="Buy box" className="rounded-lg border border-line p-4 md:col-start-2 md:row-start-3 lg:sticky lg:top-3 lg:z-30 lg:col-start-3 lg:row-span-3 lg:row-start-1 lg:self-start">
           {inStock ? (
             <>
-              <div className="mb-2 hidden text-[28px] leading-8 lg:block"><Price value={p.price} currency={currency} rate={rate} /></div>
-              <div className="space-y-2 text-sm">
+              <div className="mt-6 border-t border-line pt-6">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="price font-display text-[34px] leading-10"><Price value={p.price} currency={currency} rate={rate} /></span>
+                  {p.discount > 0 && <span className="price text-lg text-deal">−{p.discount}%</span>}
+                  {isDeal(p) && <span className="rounded-full bg-deal/10 px-2.5 py-0.5 text-[13px] font-medium text-deal">Deal</span>}
+                </div>
+                {p.listPrice && (
+                  <p className="mt-1.5 text-sm text-muted">
+                    List price: <s className="price">{formatDollars(p.listPrice, currency, rate)}</s>
+                    <InfoPopover id="list-price-info" label="About List Price">
+                      The List Price is the suggested retail price of a new product as provided by a manufacturer, supplier, or seller.
+                    </InfoPopover>
+                  </p>
+                )}
+                {dutyCents > 0 && (
+                  <p className="mt-2 text-[15px]">
+                    <b className="price font-semibold">{formatMoney(toCents(p.price) + dutyCents + shipCents, currency, rate)} to your door</b>
+                    <InfoPopover id="landed-cost-info" label="About the delivered price">
+                      Includes {formatMoney(dutyCents, currency, rate)} estimated import duty and {formatMoney(shipCents, currency, rate)} international shipping, so nothing is collected on delivery.
+                    </InfoPopover>
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 space-y-1.5 border-t border-line pt-6 text-sm">
                 <p>
-                  {label} <b>{dayLabel(standard)}</b>
+                  {label} <b className="font-semibold">{dayLabel(standard)}</b>
                   {!fastest && countdown}
                 </p>
-                {note && <p className="text-xs text-muted">{note}</p>}
+                {note && <p className="text-muted">{note}</p>}
                 {fastest && (
                   <p>
-                    Or fastest delivery <b>{dayLabel(fastest)}</b> for <b className="whitespace-nowrap">{formatDollars(promise.expeditedFeeUsd, currency, rate)}</b>
+                    Or fastest delivery <b className="font-semibold">{dayLabel(fastest)}</b> for <b className="price whitespace-nowrap font-semibold">{formatDollars(promise.expeditedFeeUsd, currency, rate)}</b>
                     {countdown}
                   </p>
                 )}
                 {country === 'PK' && (
-                  <p>
-                    <b>Ships to {countryName}</b>
-                    <span className="block text-xs text-muted">{IMPORT_FEES_NOTE}</span>
+                  <p className="pt-1">
+                    <b className="font-semibold">Ships to {countryName}</b>
+                    <span className="block text-muted">{IMPORT_FEES_NOTE}</span>
                   </p>
                 )}
+                {/* signed in: the address book; guests: the header's location dialog (sign in or pick a place) */}
+                {user ? (
+                  <Link href="/account/addresses" className="link flex items-center gap-1.5 pt-1">{pin}</Link>
+                ) : (
+                  <LocationPicker className="link flex cursor-pointer items-center gap-1.5 pt-1 text-left">{pin}</LocationPicker>
+                )}
+                <p className={`pt-2 text-base ${p.stock < 10 ? 'text-deal' : 'text-success'}`}>
+                  {p.stock < 10 ? `Only ${p.stock} left in stock — order soon.` : 'In stock'}
+                </p>
               </div>
-              {/* signed in: the address book; guests: the header's location dialog (sign in or pick a place) */}
-              {user ? (
-                <Link href="/account/addresses" className="link mt-3 flex items-center gap-1 text-xs">{pin}</Link>
-              ) : (
-                <LocationPicker className="link mt-3 flex cursor-pointer items-center gap-1 text-left text-xs">{pin}</LocationPicker>
-              )}
-              <p className={`mt-3 text-lg ${p.stock < 10 ? 'text-[#c10015]' : 'text-success'}`}>
-                {p.stock < 10 ? `Only ${p.stock} left in stock - order soon.` : 'In Stock'}
-              </p>
-              <div className="mt-3">
+
+              <div className="mt-6">
                 <PurchaseControls saver={saver} product={slim(p)} max={Math.min(p.stock, MAX_QTY)} stock={p.stock} signedIn={!!user} inCart={inCart} cart={cartTotals} picks={pairs.map(slim)} />
                 <PriceLock
                   productId={p.id}
@@ -304,67 +312,60 @@ export default async function ProductPage({ params, searchParams }: Props) {
                   />
                 )}
               </div>
-              <table className="mt-4 w-full text-xs">
-                <tbody>
-                  <tr><th scope="row" className="w-20 py-0.5 pr-2 text-left align-top font-normal text-muted">Ships from</th><td>nile</td></tr>
-                  <tr><th scope="row" className="py-0.5 pr-2 text-left align-top font-normal text-muted">Sold by</th><td>nile</td></tr>
-                  <tr>
-                    <th scope="row" className="py-0.5 pr-2 text-left align-top font-normal text-muted">Returns</th>
-                    <td>
-                      {returnDays ? `Returnable until ${fullDate(new Date(standard.getTime() + returnDays * DAY))}` : 'Non-returnable'}
-                      <InfoPopover id="returns-info" label="Return policy details">
-                        {returnDays ? `Eligible for Return, Refund or Replacement within ${returnDays} days of receipt.` : 'This item is non-returnable.'}
-                      </InfoPopover>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row" className="py-0.5 pr-2 text-left align-top font-normal text-muted">Payment</th>
-                    <td>
-                      <button type="button" popoverTarget="payment-info" className="link cursor-pointer">Secure transaction</button>
-                      <span id="payment-info" popover="auto" className="m-auto w-[min(360px,90vw)] rounded-lg border border-line bg-white p-4 text-sm text-ink shadow-[0_0_14px_rgba(15,17,17,0.5)]">
-                        Your transaction is secure. This is a demo store: payments are simulated, nothing is charged, and full card numbers are never stored.
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+
+              <dl className="mt-6 space-y-1.5 border-t border-line pt-6 text-[13px] text-muted">
+                <div className="flex gap-3"><dt className="w-20 shrink-0">Ships from</dt><dd className="text-ink">nile</dd></div>
+                <div className="flex gap-3"><dt className="w-20 shrink-0">Sold by</dt><dd className="text-ink">nile</dd></div>
+                <div className="flex gap-3">
+                  <dt className="w-20 shrink-0">Returns</dt>
+                  <dd className="text-ink">
+                    {returnDays ? `Returnable until ${fullDate(new Date(standard.getTime() + returnDays * DAY))}` : 'Non-returnable'}
+                    <InfoPopover id="returns-info" label="Return policy details">
+                      {returnDays ? `Eligible for Return, Refund or Replacement within ${returnDays} days of receipt.` : 'This item is non-returnable.'}
+                    </InfoPopover>
+                  </dd>
+                </div>
+                <div className="flex gap-3">
+                  <dt className="w-20 shrink-0">Payment</dt>
+                  <dd className="text-ink">
+                    <button type="button" popoverTarget="payment-info" className="link cursor-pointer">Secure transaction</button>
+                    <span id="payment-info" popover="auto" className="card m-auto w-[min(380px,90vw)] p-4 text-sm text-ink shadow-[0_12px_30px_rgba(25,23,19,0.18)]">
+                      Your transaction is secure. This is a demo store: payments are simulated, nothing is charged, and full card numbers are never stored.
+                    </span>
+                  </dd>
+                </div>
+              </dl>
             </>
           ) : (
-            <>
-              <p className="text-lg text-[#c10015]">Currently unavailable.</p>
-              <p className="mt-1 text-sm">We don&apos;t know when or if this item will be back in stock.</p>
-            </>
+            <div className="mt-6 border-t border-line pt-6">
+              <p className="text-lg text-deal">Currently unavailable.</p>
+              <p className="mt-1 text-sm text-muted">We don&apos;t know when or if this item will be back in stock.</p>
+            </div>
           )}
-          <div className="mt-4 border-t border-line pt-4">
+
+          <div className="mt-6 border-t border-line pt-6">
             <AddToList productId={p.id} lists={lists.map(({ id, name, isDefault }) => ({ id, name, isDefault }))} signedIn={!!user} />
           </div>
         </aside>
 
-        <div className="border-t border-line pt-4 md:col-start-2 md:row-start-4 lg:row-start-3">
-          <table className="text-sm">
-            <tbody>
-              {specs.map(([k, v]) => (
-                <tr key={k}>
-                  <th scope="row" className="py-1 pr-6 text-left align-top">{k}</th>
-                  <td className="py-1 break-words">{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <h2 id="about" className="mt-4 scroll-mt-12 border-t border-line pt-4 text-base">About this item</h2>
-          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <h2 id="about" className="scroll-mt-14 text-xl">About this item</h2>
+          <ul className="mt-3 space-y-2 text-sm">
             {aboutBullets(p).map(([lead, text]) => (
-              <li key={lead + text}>{lead && <b>{lead}: </b>}{text}</li>
+              <li key={lead + text} className="flex gap-3">
+                <span aria-hidden className="mt-2.5 size-1 shrink-0 rounded-full bg-muted" />
+                <span>{lead && <b className="font-semibold">{lead}: </b>}{text}</span>
+              </li>
             ))}
           </ul>
-          <Link href="#product-details" className="link mt-2 inline-block text-sm">› See more product details</Link>
+          <Link href="#product-details" className="link mt-4 inline-block text-sm">See full product information</Link>
         </div>
       </div>
 
       {/* In flow under the hero, then sticks to the top while the long lower page scrolls. */}
-      <nav aria-label="On this page" className="sticky top-0 z-20 -mx-4 -mb-px flex items-center gap-6 border-y border-line bg-white px-4 text-[13px] sm:text-sm">
-        <ul className="flex min-w-0 flex-1 gap-4 overflow-x-auto whitespace-nowrap [scrollbar-width:none] sm:gap-5">
-          <li className="max-sm:hidden"><a href="#" className={jump}>↑ Top</a></li>
+      <nav aria-label="On this page" className="sticky top-0 z-20 -mx-4 flex items-center gap-6 border-y border-line bg-paper px-4 text-sm md:-mx-6 md:px-6">
+        <ul className="flex min-w-0 flex-1 gap-5 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
+          <li className="max-sm:hidden"><a href="#" className={jump}>Top</a></li>
           <li><a href="#about" className={jump}>About this item</a></li>
           <li><a href="#similar" className={jump}>Similar</a></li>
           <li><a href="#product-details" className={jump}>Product information</a></li>
@@ -377,46 +378,43 @@ export default async function ProductPage({ params, searchParams }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={p.thumbnail} alt="" loading="lazy" className="size-8 shrink-0 object-contain mix-blend-multiply" />
           )}
-          <span className="line-clamp-2 text-xs">{p.title}</span>
+          <span className="line-clamp-2 text-xs text-muted">{p.title}</span>
         </div>
       </nav>
 
       {pairs.length > 0 && <BoughtTogether items={[p, ...pairs].map(slim)} cart={cartTotals} saver={saver} />}
 
       {relatedItems.length > 0 && (
-        <div id="similar" className="-mx-4 scroll-mt-10 overflow-hidden border-t border-line">
+        <div id="similar" className="-mx-4 scroll-mt-14 overflow-hidden border-t border-line md:-mx-6">
           <ProductCarousel title="Products related to this item" products={relatedItems} />
         </div>
       )}
 
-      <section id="product-details" aria-labelledby="product-info-title" className="scroll-mt-10 border-t border-line py-6">
-        <h2 id="product-info-title" className="text-xl">Product information</h2>
-        <div className="mt-3 grid gap-6 lg:grid-cols-2">
-          <InfoTable title="Technical Details" rows={[...specs, ['Manufacturer', p.brand ?? 'Generic']]} />
-          <InfoTable
-            title="Additional Information"
+      <section id="product-details" aria-labelledby="product-info-title" className={`scroll-mt-14 ${section}`}>
+        <h2 id="product-info-title" className="text-2xl">Product information</h2>
+        <div className="mt-6 grid gap-10 lg:grid-cols-2">
+          <Facts title="Technical details" rows={[...specs, ['Manufacturer', p.brand ?? 'Generic']]} />
+          <Facts
+            title="Additional information"
             rows={[
               ['nile item number', String(p.id)],
-              ['Customer Reviews', <span key="r" className="flex flex-wrap items-center gap-1.5">{summary.average.toFixed(1)} <Stars rating={summary.average} /> <Link href="#reviews" className="link">{plural(summary.total, 'rating')}</Link></span>],
-              ['Best Sellers Rank', <span key="b">#{rank} in {category} (<Link href={`/s?i=${p.category}&sort=bestsellers`} className="link">See Top 100 in {category}</Link>)</span>],
-              ['Date First Available', fullDate(new Date(p.createdAt))],
+              ['Customer reviews', <span key="r" className="flex flex-wrap items-center gap-1.5"><span className="price">{summary.average.toFixed(1)}</span> <Stars rating={summary.average} /> <Link href="#reviews" className="link">{plural(summary.total, 'rating')}</Link></span>],
+              ['Best sellers rank', <span key="b">#{rank} in {category} (<Link href={`/s?i=${p.category}&sort=bestsellers`} className="link">see the top 100</Link>)</span>],
+              ['Date first available', fullDate(new Date(p.createdAt))],
             ]}
           />
         </div>
-      </section>
-
-      <section aria-labelledby="description-title" className="border-t border-line py-6">
-        <h2 id="description-title" className="text-xl">Product Description</h2>
-        <p className="mt-2 max-w-4xl text-sm">{p.description}</p>
-      </section>
-
-      {/* Phones read summary, reviews, then the write prompt; on desktop the prompt sits under the histogram. */}
-      <section id="reviews" aria-labelledby="reviews-title" className="grid scroll-mt-10 gap-x-8 gap-y-6 border-t border-line py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.4fr)] lg:grid-rows-[auto_1fr]">
-        <div>
-          <h2 id="reviews-title" className="mb-2 text-2xl">Customer reviews</h2>
-          <RatingBreakdown summary={summary} productId={p.id} />
+        <div className="mt-10">
+          <h3 className="text-lg">Product description</h3>
+          <p className="mt-3 max-w-2xl text-[15px] text-muted">{p.description}</p>
         </div>
-        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+      </section>
+
+      {/* Reviews lead with the digest: it is the most trustworthy thing on the page, so it gets the full width. */}
+      <section id="reviews" aria-labelledby="reviews-title" className={`scroll-mt-14 ${section}`}>
+        <h2 id="reviews-title" className="text-2xl">Customer reviews</h2>
+
+        <div className="mt-6">
           <ReviewDigest
             aspects={aspects}
             pinned={pinnedReviews(reviews)}
@@ -428,50 +426,61 @@ export default async function ProductPage({ params, searchParams }: Props) {
             signedIn={!!user}
             returnTo={reviewLink({})}
           />
-          <h3 className="text-lg">
-            {mentions || verifiedOnly ? `${plural(shown.length, 'review')}` : 'Top reviews'}
-            {mentions && ` mentioning ${mentions}`}
-            {verifiedOnly && ' from verified purchases'}
-          </h3>
-          {(mentions || (verifiedOnly && param('verified'))) && (
-            <Link href={reviewLink({ mentions: undefined, verified: verifiedOnly ? 'all' : undefined })} className="link text-sm">Clear filter</Link>
-          )}
-          {topReviews.length ? (
-            <div className="divide-y divide-line">
-              {topReviews.map((r) => (
-                <ReviewCard key={r.id} review={r} productId={p.id} signedIn={!!user} returnTo={reviewLink({})} />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-3 text-sm">No customer reviews match this filter.</p>
-          )}
-          {/* carries the digest's filter through, so a capped aspect still lands on exactly its reviews (reviewerType is the reviews page's name for it) */}
-          {shown.length > topReviews.length && (
-            <Link href={`/product-reviews/${p.id}?${new URLSearchParams({ ...(mentions ? { mentions } : {}), reviewerType: verifiedOnly ? 'avp_only_reviews' : 'all_reviews' })}`} className="link mt-2 inline-block font-bold">
-              See more reviews ›
-            </Link>
-          )}
         </div>
-        <div className="border-t border-line pt-6 lg:col-start-1 lg:row-start-2 lg:self-start">
-          <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
+
+        <div className="mt-12 grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+          <div className="space-y-10 lg:self-start">
+            <RatingBreakdown summary={summary} productId={p.id} />
+            <div className="border-t border-line pt-8">
+              <WriteReviewPrompt productId={p.id} hasReview={!!mine} />
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-3">
+              <h3 className="text-lg">
+                {mentions || verifiedOnly ? `${plural(shown.length, 'review')}` : 'Top reviews'}
+                {mentions && ` mentioning ${mentions}`}
+                {verifiedOnly && ' from verified purchases'}
+              </h3>
+              {(mentions || (verifiedOnly && param('verified'))) && (
+                <Link href={reviewLink({ mentions: undefined, verified: verifiedOnly ? 'all' : undefined })} className="link text-sm">Clear filter</Link>
+              )}
+            </div>
+            {topReviews.length ? (
+              <div className="divide-y divide-line">
+                {topReviews.map((r) => (
+                  <ReviewCard key={r.id} review={r} productId={p.id} signedIn={!!user} returnTo={reviewLink({})} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">No customer reviews match this filter.</p>
+            )}
+            {/* carries the digest's filter through, so a capped aspect still lands on exactly its reviews (reviewerType is the reviews page's name for it) */}
+            {shown.length > topReviews.length && (
+              <Link href={`/product-reviews/${p.id}?${new URLSearchParams({ ...(mentions ? { mentions } : {}), reviewerType: verifiedOnly ? 'avp_only_reviews' : 'all_reviews' })}`} className="link mt-4 inline-block font-medium">
+                See more reviews
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
-      <div id={relatedItems.length ? undefined : 'similar'} className="-mx-4 scroll-mt-10 overflow-hidden border-t border-line">
+      <div id={relatedItems.length ? undefined : 'similar'} className="-mx-4 scroll-mt-14 overflow-hidden border-t border-line md:-mx-6">
         <ProductCarousel title="Customers who viewed this item also viewed" products={related(p, 12)} />
       </div>
 
       {user ? (
         recent.length > 0 && (
-          <section aria-labelledby="history-title" className="border-t border-line py-6">
-            <div className="mb-3 flex flex-wrap items-baseline gap-x-4">
+          <section aria-labelledby="history-title" className={section}>
+            <div className="mb-5 flex flex-wrap items-baseline gap-x-4">
               <h2 id="history-title" className="text-xl">Your Browsing History</h2>
-              <Link href="/history" className="link text-sm">View or edit your browsing history ›</Link>
+              <Link href="/history" className="link text-sm">View or edit</Link>
             </div>
             <Scroller label="Your Browsing History">
               {recent.map(({ product }) => (
                 <li key={product.id} className="w-[120px] shrink-0 snap-start">
-                  <Link href={`/dp/${product.id}`} aria-label={product.title} className="flex h-[120px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2">
+                  <Link href={`/dp/${product.id}`} aria-label={product.title} className="flex h-[120px] items-center justify-center rounded-lg bg-page p-2">
                     {saver ? (
                       <Image src={product.thumbnail} alt="" width={120} height={120} quality={40} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                     ) : (
@@ -485,11 +494,11 @@ export default async function ProductPage({ params, searchParams }: Props) {
           </section>
         )
       ) : (
-        <section className="border-t border-line py-8 text-center">
-          <p className="text-sm">See personalized recommendations</p>
-          <Link href={signInHere} className="btn btn-cart mt-2 w-56">Sign in</Link>
-          <p className="mt-1.5 text-xs">
-            New customer? <Link href={signInHere} className="link">Start here.</Link>
+        <section className={`${section} text-center`}>
+          <p className="text-[15px]">Sign in to see recommendations picked from what you have looked at.</p>
+          <Link href={signInHere} className="btn btn-cart mt-4 w-56">Sign in</Link>
+          <p className="mt-2 text-sm text-muted">
+            New here? <Link href={signInHere} className="link">Create an account</Link>
           </p>
         </section>
       )}

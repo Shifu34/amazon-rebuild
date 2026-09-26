@@ -16,7 +16,7 @@ export function Stars({ rating, className = 'h-4' }: { rating: number; className
   return (
     <span role="img" aria-label={`${rating.toFixed(1)} out of 5 stars`} className={`relative inline-block aspect-[5/1] shrink-0 ${className}`}>
       <Row className="absolute inset-0 size-full fill-white stroke-star" />
-      <Row className="absolute inset-0 size-full fill-[#ffa41c] stroke-star" style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }} />
+      <Row className="absolute inset-0 size-full fill-star stroke-star" style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }} />
     </span>
   )
 }

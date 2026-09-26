@@ -61,7 +61,7 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
   const options = [...terms.map((term) => ({ kind: 'term' as const, term, at: at(term) })), ...data.products.map((p) => ({ kind: 'product' as const, p }))]
   const showList = open && options.length > 0
   const highlighted = options[active]
-  // arrowing through queries previews each one in the box, like Amazon; typing then edits the previewed text
+  // arrowing through queries previews each one in the box; typing then edits the previewed text
   const shown = highlighted?.kind === 'term' ? highlighted.term : q
 
   const submit = (term: string) => {
@@ -89,18 +89,19 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
   const scopeLabel = departments.find((d) => d.slug === scope)?.name ?? 'All'
 
   return (
+    // docs/design.md: one field with a hairline, not a scope block welded to a coloured button
     <form
       role="search"
       onSubmit={(e) => {
         e.preventDefault()
         choose(active)
       }}
-      className="relative order-last flex h-10 w-full rounded-md text-ink focus-within:ring-[3px] focus-within:ring-brand md:order-none md:mx-3.5 md:flex-1 md:rounded"
+      className="relative order-last flex h-10 w-full items-center rounded-md border border-line bg-surface focus-within:outline-2 focus-within:outline-offset-[-1px] focus-within:outline-accent md:order-none md:mx-4 md:max-w-[560px] md:flex-1"
     >
-      {/* phones get a full-width box, like Amazon's mobile web */}
-      <label className="relative hidden shrink-0 cursor-pointer items-center rounded-l border-r border-[#cdcdcd] bg-[#e6e6e6] pr-2 pl-3 text-xs text-[#555] hover:bg-[#d4d4d4] hover:text-ink md:flex">
+      {/* the department scope stays, as a quiet label inside the field */}
+      <label className="relative hidden h-full shrink-0 cursor-pointer items-center gap-1.5 border-r border-line pr-2.5 pl-3 text-sm text-muted hover:text-ink md:flex">
         <span className="pointer-events-none max-w-24 truncate">{scopeLabel}</span>
-        <CaretIcon className="pointer-events-none ml-3 h-[5px] w-2 shrink-0" />
+        <CaretIcon className="pointer-events-none h-[5px] w-2 shrink-0" />
         <select value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Search in" className="absolute inset-0 cursor-pointer opacity-0">
           <option value="">All Departments</option>
           {departments.map((d) => (
@@ -138,11 +139,15 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
         placeholder="Search nile"
         autoComplete="off"
         spellCheck={false}
-        className="min-w-0 flex-1 bg-white px-2.5 text-[15px] outline-none placeholder:text-[#6f7373] max-md:rounded-l-md"
+        className="min-w-0 flex-1 bg-transparent px-3 text-[15px] outline-none placeholder:text-muted"
       />
 
-      <button type="submit" aria-label="Go" className="flex w-11 shrink-0 cursor-pointer items-center justify-center rounded-r-md bg-search hover:bg-search-hover md:w-[45px] md:rounded-r">
-        <SearchIcon className="size-5 text-ink md:size-6" />
+      <button
+        type="submit"
+        aria-label="Go"
+        className="mr-1 grid size-8 shrink-0 cursor-pointer place-items-center rounded text-muted hover:bg-page hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <SearchIcon className="size-5" />
       </button>
 
       {showList && (
@@ -150,7 +155,7 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
           id={listId}
           role="listbox"
           onMouseDown={(e) => e.preventDefault()}
-          className="absolute top-full right-11 left-0 z-50 md:right-[45px] mt-px overflow-hidden rounded-b-md border border-line bg-white py-1 shadow-lg"
+          className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-[10px] border border-line bg-surface py-1.5 shadow-[0_12px_30px_rgba(25,23,19,0.14)]"
         >
           {options.map((o, index) => (
             <li
@@ -160,30 +165,32 @@ function SearchBox({ departments, initialQuery, initialScope }: { departments: {
               aria-selected={active === index}
               onMouseEnter={() => setActive(index)}
               onClick={() => choose(index)}
-              className={`flex cursor-pointer items-center gap-3 px-3 py-1.5 ${active === index ? 'bg-page' : ''} ${o.kind === 'product' && terms.length && index === terms.length ? 'mt-1 border-t border-line pt-2' : ''}`}
+              className={`flex cursor-pointer items-center gap-3 px-3.5 py-2 text-[15px] ${active === index ? 'bg-page' : ''} ${o.kind === 'product' && terms.length && index === terms.length ? 'mt-1.5 border-t border-line pt-3' : ''}`}
             >
               {o.kind === 'term' ? (
                 <>
                   <SearchIcon className="size-4 shrink-0 text-muted" />
-                  {/* what was typed in normal weight, the completion around it in bold, like Amazon */}
+                  {/* what was typed stays light, the completion around it goes semibold */}
                   <span className="truncate">
                     {o.at < 0 ? (
                       o.term // an earlier answer still on screen while the next one loads
                     ) : (
                       <>
-                        <b>{o.term.slice(0, o.at)}</b>
+                        <b className="font-semibold">{o.term.slice(0, o.at)}</b>
                         {o.term.slice(o.at, o.at + prefix.length)}
-                        <b>{o.term.slice(o.at + prefix.length)}</b>
+                        <b className="font-semibold">{o.term.slice(o.at + prefix.length)}</b>
                       </>
                     )}
                   </span>
                 </>
               ) : (
                 <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={o.p.thumbnail} alt="" className="size-10 shrink-0 object-contain" />
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-page p-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={o.p.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                  </span>
                   <span className="min-w-0 flex-1 truncate">{o.p.title}</span>
-                  <span className="shrink-0 font-bold">{formatDollars(o.p.price, currency, rate)}</span>
+                  <span className="price shrink-0 text-sm font-medium">{formatDollars(o.p.price, currency, rate)}</span>
                 </>
               )}
             </li>

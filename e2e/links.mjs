@@ -37,8 +37,7 @@ async function check(label, found) {
   assert.deepEqual(bad, [], `${label}: broken links`)
 }
 
-// direct children only: the All drawer renders its own links inside this nav
-const shortcuts = () => page.locator('nav[aria-label="Shortcuts"] > a').allTextContents()
+const shortcuts = () => page.locator('nav[aria-label="Shortcuts"] a').allTextContents()
 
 try {
   step('signed out: header, drawer and footer')

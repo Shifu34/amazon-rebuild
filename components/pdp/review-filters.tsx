@@ -23,7 +23,7 @@ export function ReviewFilters({ productId, star, starOptions, verifiedOnly, sort
         </button>
       </div>
       <div className="flex flex-wrap items-end gap-x-4 gap-y-2 text-[13px]">
-        <span className="font-bold">Filter by</span>
+        <span className="font-medium text-muted">Filter by</span>
         <label className="flex items-center gap-1">
           <span className="sr-only">Star rating</span>
           <select name="filterByStar" defaultValue={star} className="select-pill">
@@ -40,7 +40,7 @@ export function ReviewFilters({ productId, star, starOptions, verifiedOnly, sort
           </select>
         </label>
         <label className="flex items-center gap-1 sm:ml-auto">
-          <span className="font-bold">Sort by</span>
+          <span className="font-medium text-muted">Sort by</span>
           <select name="sortBy" defaultValue={sort} className="select-pill">
             <option value="helpful">Top reviews</option>
             <option value="recent">Most recent</option>

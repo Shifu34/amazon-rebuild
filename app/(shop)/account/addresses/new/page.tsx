@@ -11,11 +11,11 @@ export default async function NewAddressPage() {
   const user = await requireUser('/account/addresses/new')
   const full = (await getAddresses(user.id)).length >= MAX_ADDRESSES
   return (
-    <div className="mx-auto max-w-[560px] px-4 py-6">
+    <div className="mx-auto max-w-[560px] px-4 py-10">
       <Crumbs trail={[['Your Account', '/account'], ['Your Addresses', '/account/addresses'], ['New Address']]} />
-      <h1 className="mb-4 text-[28px] leading-9 font-normal">Add a new address</h1>
+      <h1 className="mb-6 text-[28px] leading-9">Add a new address</h1>
       {full ? (
-        <p>
+        <p className="text-sm text-muted">
           You can save up to {MAX_ADDRESSES} addresses. <Link href="/account/addresses" className="link">Remove one</Link> to add another.
         </p>
       ) : (

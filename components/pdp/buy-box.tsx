@@ -39,7 +39,7 @@ export function PurchaseControls({ product, max, stock, signedIn, inCart, cart, 
         <input type="hidden" name="productId" value={product.id} />
         {room > 0 ? (
           <>
-            <div className="select-pill relative inline-flex items-center gap-1 pr-2 has-[:focus-visible]:border-focus has-[:focus-visible]:shadow-[0_0_0_3px_#c8f3fa]">
+            <div className="select-pill relative inline-flex items-center gap-1 pr-2 has-[:focus-visible]:border-accent has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus">
               <span aria-hidden>Quantity:</span>
               <select
                 name="quantity"

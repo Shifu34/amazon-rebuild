@@ -148,7 +148,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
   )
 
   return (
-    <div className="mx-auto grid w-full max-w-[1150px] gap-4 px-3 py-4 sm:px-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:py-6">
+    <div className="mx-auto grid w-full max-w-[1120px] gap-8 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
       <form id="place-order" action={submit} hidden>
         <input type="hidden" name="token" value={token} />
         <input type="hidden" name="lines" value={linesKey} />
@@ -160,23 +160,25 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
         <input type="hidden" name="speed" value={speed} />
       </form>
 
-      <div className="min-w-0 space-y-4">
+      <div className="min-w-0">
         {error && (
-          <div ref={alertRef} tabIndex={-1} role="alert" className="rounded-lg border border-[#cc0c39] bg-white px-4 py-3 shadow-[0_0_0_4px_#fcf4f4_inset] outline-none">
-            <p className="font-bold text-[#cc0c39]">There was a problem</p>
-            <p className="text-sm">{error}</p>
+          <div ref={alertRef} tabIndex={-1} role="alert" className="mb-8 rounded-lg border border-danger bg-danger/5 px-4 py-3 outline-none">
+            <p className="text-base text-danger">There was a problem</p>
+            <p className="mt-1 text-sm">{error}</p>
           </div>
         )}
         {notices.length > 0 && (
-          <div className="rounded-lg border border-[#ffb14a] bg-white px-4 py-3 shadow-[0_0_0_4px_#fffaf3_inset]">
-            <p className="font-bold">Important message</p>
-            <ul className="list-disc pl-5 text-sm">
+          <div className="mb-8 rounded-lg border border-deal/40 bg-deal/5 px-4 py-3">
+            <p className="text-base">Before you order</p>
+            <ul className="mt-1 list-disc pl-5 text-sm">
               {notices.map((n) => (
                 <li key={n}>{n}</li>
               ))}
             </ul>
           </div>
         )}
+        {/* one column of steps: a hairline between each, no panels stacked on grey (docs/design.md) */}
+        <div className="divide-y divide-line">
 
         {aView === 'summary' && address ? (
           <Section
@@ -215,9 +217,9 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                 setAddressView('new')
                 focusNext.current = 'section[aria-labelledby="address-heading"] input[name="fullName"]'
               }}
-              className="link mt-3 block cursor-pointer text-sm"
+              className="link mt-4 block cursor-pointer text-sm"
             >
-              + Add a new delivery address
+              Add a new delivery address
             </button>
             <button
               type="button"
@@ -226,13 +228,15 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                 focusNext.current = ADDRESS_HEADING
               }}
               disabled={!address}
-              className="btn btn-cart mt-3"
+              className="btn btn-cart mt-5"
             >
               Deliver to this address
             </button>
           </Section>
         ) : (
           <Section headingId="address-heading" title="Enter a new delivery address">
+            {/* a form reads better on a short measure than across the whole column */}
+            <div className="max-w-[560px]">
             <AddressForm
               submitLabel="Use this address"
               onSaved={(id) => {
@@ -250,6 +254,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                   : undefined
               }
             />
+            </div>
           </Section>
         )}
 
@@ -281,7 +286,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
           </Section>
         ) : cView === 'list' ? (
           <Section headingId="payment-heading" title="Payment method">
-            <h3 className="mb-2 text-sm">Your credit and debit cards</h3>
+            <h3 className="label">Your credit and debit cards</h3>
             <Choices
               legend="Payment method"
               options={cards.map((c) => ({
@@ -298,7 +303,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
               onChange={(id) => choose('card', id)}
             />
             {/* cash is what most shoppers here trust; the advance, when there is one, says why in plain words */}
-            <h3 className="mt-4 mb-2 text-sm">Other ways to pay</h3>
+            <h3 className="label mt-6">Other ways to pay</h3>
             <Choices
               legend="Cash on delivery"
               options={[
@@ -327,9 +332,9 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                 setCardView('new')
                 focusNext.current = CARD_NUMBER
               }}
-              className="link mt-3 block cursor-pointer text-sm"
+              className="link mt-4 block cursor-pointer text-sm"
             >
-              + Add a credit or debit card
+              Add a credit or debit card
             </button>
             <button
               type="button"
@@ -338,13 +343,14 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                 focusNext.current = PAYMENT_HEADING
               }}
               disabled={!card && !payCash}
-              className="btn btn-cart mt-3"
+              className="btn btn-cart mt-5"
             >
               Use this payment method
             </button>
           </Section>
         ) : (
           <Section headingId="payment-heading" title="Add a credit or debit card">
+            <div className="max-w-[560px]">
             <CardForm
               defaultName={address?.fullName}
               onSaved={(id) => {
@@ -368,6 +374,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                 {cod.detail} On this order that is {advanceText}, with {cashDueText} in cash on delivery.
               </p>
             )}
+            </div>
             {!cards.length && (
               <button
                 type="button"
@@ -384,12 +391,12 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
           </Section>
         )}
 
-        <section aria-label="Review items and delivery" aria-busy={editing} className={`rounded-lg border border-line bg-white p-4 transition-opacity sm:p-5 ${editing ? 'opacity-60' : ''}`}>
-          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="space-y-5">
+        <section aria-label="Review items and delivery" aria-busy={editing} className={`py-8 transition-opacity first:pt-0 ${editing ? 'opacity-60' : ''}`}>
+          <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="space-y-6">
               {groups.map((g, i) => (
                 <div key={g.date.getTime()}>
-                  <h2 className="text-lg leading-6 text-success">Arriving {longDate(g.date)}</h2>
+                  <h2 className="text-lg leading-6">Arriving {longDate(g.date)}</h2>
                   <p className="text-xs text-muted">
                     {[
                       groups.length > 1 && `Shipment ${i + 1} of ${groups.length}`,
@@ -398,7 +405,7 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
-                  <ul className="mt-3 space-y-3">
+                  <ul className="mt-4 space-y-5">
                     {g.items.map((l) => (
                       <ReviewLine key={l.id} line={l} editable={!buy} onEdit={edit} />
                     ))}
@@ -407,13 +414,14 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
               ))}
             </div>
             <fieldset className="self-start">
-              <legend className="mb-1 text-sm font-bold">Choose your delivery option:</legend>
+              <legend className="label">Choose your delivery option:</legend>
+              <div className="divide-y divide-line overflow-hidden rounded-md border border-line">
               {(['standard', 'expedited'] as const).map((s) => {
                 const o = quotes[country][s]
                 const price = o.freeShippingCents ? 'FREE' : formatMoney(o.shippingCents, currency, rate)
                 const split = shipments(lines, (l) => l.arrives[country][s]).length > 1
                 return (
-                  <label key={s} className="flex cursor-pointer gap-2 rounded-md p-1.5 text-sm has-[:checked]:bg-[#f0f8f9]">
+                  <label key={s} className="flex cursor-pointer gap-2.5 p-3 text-sm has-[:checked]:bg-accent-soft">
                     <input
                       type="radio"
                       name="delivery-speed"
@@ -422,16 +430,16 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                         choose('speed', s)
                         if (pooling) setDay(null) // leaving the pooled option turns the nile day off
                       }}
-                      className="mt-0.5 size-4 shrink-0 accent-link"
+                      className="mt-0.5 size-4 shrink-0 accent-accent"
                     />
                     <span>
-                      <b className="text-success">
+                      <b className="font-medium">
                         {split && 'All by '}
                         {longDate(o.deliverBy)}
                       </b>
-                      <span className="block">
-                        {price} {deliveryName(s, country)}
-                        <span className="text-xs text-muted"> · {s === 'standard' ? 'Cheapest' : 'Fastest'}</span>
+                      <span className="block text-muted">
+                        <span className="price">{price}</span> {deliveryName(s, country)}
+                        <span className="text-xs"> · {s === 'standard' ? 'Cheapest' : 'Fastest'}</span>
                       </span>
                     </span>
                   </label>
@@ -439,8 +447,8 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
               })}
               {/* Your nile day: the week's orders arrive in one trip, and the shipping that saves comes back. The date and
                   the saving are both on the label, so nothing is ever delayed without the shopper seeing what for. */}
-              <div className="rounded-md p-1.5 has-[:checked]:bg-[#f0f8f9]">
-                <label className="flex cursor-pointer gap-2 text-sm">
+              <div className="p-3 has-[input:checked]:bg-accent-soft">
+                <label className="flex cursor-pointer gap-2.5 text-sm">
                   <input
                     type="radio"
                     name="delivery-speed"
@@ -449,18 +457,18 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                       choose('speed', 'standard')
                       setDay(day)
                     }}
-                    className="mt-0.5 size-4 shrink-0 accent-link"
+                    className="mt-0.5 size-4 shrink-0 accent-accent"
                   />
                   <span>
-                    <b className="text-success">{longDate(pooledQuote.deliverBy)}</b>
-                    <span className="block">
+                    <b className="font-medium">{longDate(pooledQuote.deliverBy)}</b>
+                    <span className="block text-muted">
                       With the rest of your week
-                      {pooledQuote.creditCents > 0 && <> · you save {formatMoney(pooledQuote.creditCents, currency, rate)}</>}
+                      {pooledQuote.creditCents > 0 && <> · you save <span className="price">{formatMoney(pooledQuote.creditCents, currency, rate)}</span></>}
                     </span>
                   </span>
                 </label>
                 {/* the select is a sibling, not inside the label: it would otherwise land in the radio's spoken name */}
-                <span className="mt-1 flex flex-wrap items-center gap-1 pl-6 text-xs text-muted">
+                <span className="mt-2 flex flex-wrap items-center gap-2 pl-7 text-xs text-muted">
                   Your nile day:
                   <select value={day} onChange={(e) => setDay(Number(e.target.value))} aria-label="Your nile day" className="select-pill">
                     {DAY_NAMES.map((name, i) => (
@@ -469,50 +477,52 @@ export function Checkout({ token, buy, lines, linesKey, quotes, nileDay, address
                   </select>
                 </span>
               </div>
+              </div>
             </fieldset>
           </div>
         </section>
 
-        <section aria-label="Place your order" className="hidden items-center gap-3 rounded-lg border border-line bg-white p-5 lg:flex">
-          {placeButton('px-8')}
-          <div>
-            <p className="text-lg font-bold text-danger">Order total: {summary.total}</p>
-            <p className="text-xs">{blocker ? <span className="text-danger">{blocker}</span> : LEGAL}</p>
+        <section aria-label="Place your order" className="hidden items-center gap-5 py-8 lg:flex">
+          {placeButton('btn-lg px-8')}
+          <div className="min-w-0">
+            <p className="font-display text-xl leading-7">Order total: <span className="price">{summary.total}</span></p>
+            <p className="mt-0.5 text-xs text-muted">{blocker ? <span className="text-danger">{blocker}</span> : LEGAL}</p>
           </div>
         </section>
-        <p className="px-1 text-xs text-muted">
+        </div>
+        <p className="mt-6 text-xs text-muted">
           When you place your order you&apos;ll see a confirmation right away. This is a demo store: nothing is charged and nothing ships.
         </p>
       </div>
 
-      <aside aria-label="Order summary" className="self-start lg:sticky lg:top-4">
-        <div className="rounded-lg border border-line bg-white p-4">
+      <aside aria-label="Order summary" className="self-start lg:sticky lg:top-6">
+        <div className="card p-5">
           <div className="hidden lg:block">
-            {placeButton('w-full')}
-            <p className="mt-2 text-center text-xs">{LEGAL}</p>
+            {placeButton('btn-lg w-full')}
+            <p className="mt-2.5 text-center text-xs text-muted">{LEGAL}</p>
             {blocker && <p className="mt-1 text-center text-xs text-danger">{blocker}</p>}
-            <hr className="my-3 border-line" />
+            <hr className="my-5 border-line" />
           </div>
-          <h2 className="mb-2 text-lg leading-6">Order Summary</h2>
-          <dl className="space-y-1 text-[13px]">
+          <h2 className="mb-3 text-lg leading-6">Order summary</h2>
+          <dl className="space-y-1.5 text-sm">
             {summary.rows.map((r) => (
               <Row key={r.label} label={r.label} value={r.text} />
             ))}
             <Row label="Order total:" value={summary.total} total />
           </dl>
-          <p className="mt-3 text-xs text-muted">{summary.note ?? `Estimated tax is a flat ${(q.taxRate * 100).toFixed(2)}% of items and shipping.`}</p>
-          <p className="mt-2 text-xs lg:hidden">{blocker ? <span className="text-danger">{blocker}</span> : LEGAL}</p>
+          <p className="mt-4 text-xs text-muted">{summary.note ?? `Estimated tax is a flat ${(q.taxRate * 100).toFixed(2)}% of items and shipping.`}</p>
+          <p className="mt-3 text-xs text-muted lg:hidden">{blocker ? <span className="text-danger">{blocker}</span> : LEGAL}</p>
         </div>
       </aside>
 
       {/* phones and tablets: one Place your order, always in reach, once there is nothing left to fill in */}
       {!blocker && (
-        <div className="sticky bottom-0 z-10 -mx-3 -mb-4 flex items-center gap-3 border-t border-line bg-white px-3 py-2.5 shadow-[0_-2px_8px_rgba(15,17,17,0.1)] sm:-mx-4 sm:px-4 lg:hidden">
-          <p className="min-w-0 flex-1 text-xs">
+        <div className="sticky bottom-0 z-10 -mx-4 -mb-10 flex items-center gap-4 border-t border-line bg-surface px-4 py-3 lg:hidden">
+          <p className="min-w-0 flex-1 text-xs text-muted">
             Order total
-            <b className="block text-lg leading-6 text-danger">{summary.total}</b>
+            <b className="price block font-display text-xl leading-7 font-semibold text-ink">{summary.total}</b>
           </p>
-          {placeButton('px-6')}
+          {placeButton('btn-lg px-6')}
         </div>
       )}
     </div>
@@ -529,13 +539,13 @@ function ReviewLine({ line: l, editable, onEdit }: { line: Line; editable: boole
   }
   return (
     <li className="flex gap-3">
-      <Link href={`/dp/${l.id}`} aria-hidden tabIndex={-1} className="flex size-20 shrink-0 items-center justify-center rounded-sm bg-[#f7f7f7] p-1">
+      <Link href={`/dp/${l.id}`} aria-hidden tabIndex={-1} className="flex size-20 shrink-0 items-center justify-center rounded-md bg-page p-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={l.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
       </Link>
       <div className="min-w-0 text-sm">
-        <Link href={`/dp/${l.id}`} className="line-clamp-2 font-bold hover:text-link-hover hover:underline">{l.title}</Link>
-        <p className="font-bold text-danger">{formatDollars(l.price, currency, rate)}</p>
+        <Link href={`/dp/${l.id}`} className="line-clamp-2 hover:underline">{l.title}</Link>
+        <p className="price mt-0.5">{formatDollars(l.price, currency, rate)}</p>
         {editable ? (
           <div className="mt-1 flex items-center gap-3">
             {/* keyed by the saved quantity: it resets to the server's value after each change */}
@@ -557,7 +567,7 @@ function ReviewLine({ line: l, editable, onEdit }: { line: Line; editable: boole
         ) : (
           <p>Qty: {l.quantity}</p>
         )}
-        {l.stock < 10 && <p className="text-xs text-danger">Only {l.stock} left in stock - order soon.</p>}
+        {l.stock < 10 && <p className="mt-1 text-xs text-deal">Only {l.stock} left in stock — order soon.</p>}
       </div>
     </li>
   )
@@ -566,13 +576,13 @@ function ReviewLine({ line: l, editable, onEdit }: { line: Line; editable: boole
 function AlreadyPlaced({ orderId }: { orderId: string }) {
   return (
     <div className="mx-auto w-full max-w-[600px] px-4 py-10">
-      <div role="status" className="rounded-lg border border-line bg-white p-6 text-center">
-        <CheckCircleIcon className="mx-auto size-8 text-success" />
+      <div role="status" className="card p-8 text-center">
+        <CheckCircleIcon className="mx-auto size-8 text-accent" />
         <h2 className="mt-2 text-xl">You already placed this order</h2>
         <p className="mt-1 text-sm text-muted">Order # {orderId}. To buy more, add items to your cart and check out again.</p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           <Link href={`/thankyou/${orderId}`} className="btn btn-cart">View your order</Link>
-          <Link href="/cart" className="btn btn-plain">Go to Cart</Link>
+          <Link href="/cart" className="btn btn-plain">Go to cart</Link>
         </div>
       </div>
     </div>
@@ -581,10 +591,10 @@ function AlreadyPlaced({ orderId }: { orderId: string }) {
 
 function Section({ headingId, title, done, muted, onChange, changeLabel, children }: { headingId: string; title: string; done?: boolean; muted?: boolean; onChange?: () => void; changeLabel?: string; children: React.ReactNode }) {
   return (
-    <section aria-labelledby={headingId} className="rounded-lg border border-line bg-white p-4 sm:p-5">
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <h2 id={headingId} tabIndex={-1} className={`flex items-center gap-2 text-lg leading-6 outline-none ${muted ? 'text-muted' : ''}`}>
-          {done && <CheckCircleIcon className="size-5 shrink-0 text-success" />}
+    <section aria-labelledby={headingId} className="py-8 first:pt-0">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <h2 id={headingId} tabIndex={-1} className={`flex items-center gap-2 text-lg leading-6 outline-none sm:text-xl sm:leading-7 ${muted ? 'text-muted' : ''}`}>
+          {done && <CheckCircleIcon className="size-5 shrink-0 text-accent" />}
           {title}
         </h2>
         {onChange && (
@@ -603,9 +613,9 @@ function Choices({ legend, options, value, onChange }: { legend: string; options
       {options.map((o) => (
         <label
           key={o.id}
-          className={`flex gap-3 rounded-lg border p-3 text-sm ${o.id === value ? 'border-[#fbd8b4] bg-[#fcf5ee]' : 'border-line'} ${o.disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+          className={`flex gap-3 rounded-md border p-3 text-sm ${o.id === value ? 'border-accent bg-accent-soft' : 'border-line'} ${o.disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
         >
-          <input type="radio" name={legend} checked={o.id === value} disabled={o.disabled} onChange={() => onChange(o.id)} className="mt-0.5 size-4 shrink-0 accent-link" />
+          <input type="radio" name={legend} checked={o.id === value} disabled={o.disabled} onChange={() => onChange(o.id)} className="mt-0.5 size-4 shrink-0 accent-accent" />
           <span>{o.label}</span>
         </label>
       ))}
@@ -615,9 +625,9 @@ function Choices({ legend, options, value, onChange }: { legend: string; options
 
 function Row({ label, value, total }: { label: string; value: string; total?: boolean }) {
   return (
-    <div className={`flex justify-between gap-2 ${total ? 'mt-2 border-t border-line pt-2 text-lg font-bold text-danger' : ''}`}>
-      <dt className="min-w-0">{label}</dt>
-      <dd className="whitespace-nowrap">{value}</dd>
+    <div className={`flex justify-between gap-3 ${total ? 'mt-3 border-t border-line pt-3 font-display text-xl leading-7 font-semibold' : ''}`}>
+      <dt className={`min-w-0 ${total ? '' : 'text-muted'}`}>{label}</dt>
+      <dd className="price whitespace-nowrap">{value}</dd>
     </div>
   )
 }

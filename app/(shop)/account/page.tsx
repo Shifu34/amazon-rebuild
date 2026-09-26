@@ -77,22 +77,23 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   ]
 
   return (
-    <div className="mx-auto max-w-[1000px] px-4 py-6">
-      <h1 className="text-[28px] leading-9 font-normal">Your Account</h1>
-      <p className="mt-1 text-sm break-words">
-        Signed in as <b>{user.name}</b> ({user.email})
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
+      <h1 className="text-[28px] leading-9">Your Account</h1>
+      <p className="mt-1 text-sm break-words text-muted">
+        Signed in as <b className="font-medium text-ink">{user.name}</b> ({user.email})
       </p>
 
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* an index, not a wall of boxes: a rule over each entry, the accent only on the marks you can follow */}
+      <ul className="mt-8 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((t) => (
-          <li key={t.href}>
-            <Link href={t.href} className="flex h-full items-start gap-4 rounded-lg border border-line p-4 hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
-              <svg viewBox="0 0 24 24" className="size-12 shrink-0 text-[#4c8da3]" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <li key={t.href} className="border-t border-line">
+            <Link href={t.href} className="group flex h-full items-start gap-4 py-5 focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
+              <svg viewBox="0 0 24 24" className="mt-0.5 size-8 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d={t.icon} />
               </svg>
               <span className="min-w-0">
-                <span className="block text-[17px] leading-6 font-bold">{t.title}</span>
-                <span className="block text-sm break-words text-muted">{t.text}</span>
+                <span className="block font-display text-lg leading-6 font-semibold group-hover:underline">{t.title}</span>
+                <span className="mt-0.5 block text-sm break-words text-muted">{t.text}</span>
               </span>
             </Link>
           </li>
@@ -100,28 +101,28 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       </ul>
 
       {stopped && (
-        <p role="status" className="mt-5 rounded-lg border border-line bg-[#f7f8f8] p-3 text-sm">
+        <p role="status" className="mt-8 rounded-lg border border-line bg-accent-soft px-4 py-3 text-sm">
           Stopped. We won&apos;t remind you about {stopped} again.
         </p>
       )}
 
-      <div className="mt-5">
+      <div className="mt-10 border-t border-line pt-8">
         <NileDay day={nileDay} />
       </div>
 
       {/* cash standing in plain words: what it costs them today and how it changes (lib/cod.ts) */}
-      <section aria-labelledby="cod-standing" className="mt-5 rounded-lg border border-line p-4">
-        <h2 id="cod-standing" className="font-bold">{cod.headline}</h2>
-        <p className="mt-1 text-sm">{cod.detail}</p>
+      <section aria-labelledby="cod-standing" className="mt-10 border-t border-line pt-8">
+        <h2 id="cod-standing" className="text-lg">{cod.headline}</h2>
+        <p className="mt-1 max-w-[70ch] text-sm text-muted">{cod.detail}</p>
       </section>
 
-      <div className="mt-5">
+      <div className="mt-10 border-t border-line pt-8">
         <ReminderList
           reminders={reminders}
           demo={
-            <form action={demoSendReminders} className="mt-3 rounded-lg border-2 border-dashed border-[#c7c7c7] p-3">
+            <form action={demoSendReminders} className="mt-4 rounded-[10px] border border-dashed border-line p-4">
               <button type="submit" className="btn btn-plain">Demo: send due reminders now</button>
-              <p className="mt-1 text-xs text-muted">Reminders are weeks away, so this brings yours forward and emails them now.</p>
+              <p className="mt-2 text-xs text-muted">Reminders are weeks away, so this brings yours forward and emails them now.</p>
             </form>
           }
         />

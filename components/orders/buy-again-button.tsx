@@ -9,7 +9,8 @@ export function BuyAgainButton({ productId, title }: { productId: number; title:
   return (
     <form action={action}>
       <input type="hidden" name="productId" value={productId} />
-      <button type="submit" disabled={pending} className="btn btn-cart min-h-[29px] px-3 text-xs">
+      {/* the card's right column carries the one accent button; in a row of items this stays an outline (docs/design.md) */}
+      <button type="submit" disabled={pending} className="btn btn-buy min-h-8 px-3 text-xs">
         {pending ? 'Adding…' : state?.ok ? '✓ In cart' : 'Buy it again'}
         <span className="sr-only">: {title}</span>
       </button>

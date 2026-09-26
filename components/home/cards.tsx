@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { dataSaver } from '@/app/actions/data-saver'
-import { ChevronIcon } from '@/components/icons'
 import { shot } from '@/components/product-card'
 
 export type Tile = { label: string; href: string; image: string }
@@ -9,32 +8,32 @@ export type Card = { title: string; href: string; tiles: Tile[] }
 
 const focus = 'rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink'
 
-// Amazon's bordered home card: a heavy headline linking to the whole collection over a 2x2 grid of picture links.
-// Cards in a grid row stretch to the tallest one and the picture rows share the extra height, so captions line up.
-export async function QuadCard({ title, href, tiles, tint, eager = false }: Card & { tint: string; eager?: boolean }) {
+// A collection: a serif heading over four pictures of what is inside it (docs/design.md). No border and no fixed height —
+// the heading and the whitespace do the separating, so a page of these reads as a catalogue rather than a wall of boxes.
+export async function QuadCard({ title, href, tiles, eager = false }: Card & { eager?: boolean }) {
   const saver = await dataSaver()
   return (
-    // Amazon's cards keep one height (370x526 at 1536px) whatever the title length; a short title leaves the picture rows more room
-    <div className="flex aspect-[370/526] flex-col self-stretch rounded-lg border border-line bg-white p-3 pt-4">
-      <h2 className="font-display text-[22px] leading-6 font-black tracking-[-0.01em]">
-        <Link href={href} className={`group flex items-start justify-between gap-4 ${focus}`}>
+    <div className="flex flex-col">
+      {/* two lines of room at desktop widths, so a long title never pushes its pictures out of line with the row */}
+      <h2 className="font-display text-xl leading-7 sm:min-h-14">
+        <Link href={href} className={`group inline-flex items-baseline gap-1.5 ${focus}`}>
           <span className="group-hover:underline">{title}</span>
-          <ChevronIcon className="-mt-0.5 -mr-1 size-7 shrink-0 [&_path]:[stroke-width:1.5]" />
+          <span aria-hidden className="text-muted transition-transform group-hover:translate-x-0.5">›</span>
         </Link>
       </h2>
-      <ul className="mt-[11px] grid flex-1 grid-cols-2 gap-2">
+      <ul className="mt-4 grid grid-cols-2 gap-3">
         {tiles.map((t) => (
           <li key={t.href + t.label}>
             <Link href={t.href} prefetch={saver ? false : undefined} className={`group block ${focus}`}>
-              <span className="flex aspect-square items-center justify-center overflow-hidden rounded p-0.5" style={{ backgroundColor: tint }}>
+              <span className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-page p-3">
                 {saver ? (
-                  <Image src={t.image} alt="" width={170} height={170} quality={40} loading={eager ? 'eager' : 'lazy'} className={shot} />
+                  <Image src={t.image} alt="" width={220} height={220} quality={40} loading={eager ? 'eager' : 'lazy'} className={shot} />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={t.image} alt="" loading={eager ? 'eager' : 'lazy'} className={shot} />
                 )}
               </span>
-              <span className="mt-[5px] line-clamp-2 h-10 text-sm leading-5 group-hover:underline">{t.label}</span>
+              <span className="mt-2 block truncate text-[13px] text-muted group-hover:text-ink">{t.label}</span>
             </Link>
           </li>
         ))}

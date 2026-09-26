@@ -4,12 +4,12 @@ import { ClearAlert } from './clear-alert'
 // "Your Account › Your Addresses": every crumb but the last is a link.
 export function Crumbs({ trail }: { trail: [label: string, href?: string][] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-2 text-[13px]">
+    <nav aria-label="Breadcrumb" className="mb-3 text-sm text-muted">
       <ol className="flex flex-wrap items-center gap-1">
         {trail.map(([label, href], i) => (
           <li key={label} className="flex items-center gap-1">
             {i > 0 && <span aria-hidden className="text-muted">›</span>}
-            {href ? <Link href={href} className="link">{label}</Link> : <span aria-current="page" className="text-[#c7511f]">{label}</span>}
+            {href ? <Link href={href} className="link">{label}</Link> : <span aria-current="page" className="text-ink">{label}</span>}
           </li>
         ))}
       </ol>
@@ -17,12 +17,12 @@ export function Crumbs({ trail }: { trail: [label: string, href?: string][] }) {
   )
 }
 
-// Green confirmation box after a change ("Address saved"); role=status so it is announced.
+// Confirmation after a change ("Address saved"); role=status so it is announced (docs/design.md: a hairline, not a slab).
 export function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <div role="status" className="mb-4 flex items-center gap-3 rounded-lg border border-[#0b7b3c] px-4 py-3 shadow-[0_0_0_4px_#e8f5ed_inset]">
-      <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#0b7b3c] text-xs font-bold text-white">✓</span>
-      <p className="font-bold text-[#0b7b3c]">{children}</p>
+    <div role="status" className="mb-6 flex items-center gap-3 rounded-lg border border-line bg-accent-soft px-4 py-3">
+      <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-xs text-white">✓</span>
+      <p className="font-medium text-accent">{children}</p>
       <ClearAlert />
     </div>
   )

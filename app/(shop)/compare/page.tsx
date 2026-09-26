@@ -37,7 +37,7 @@ export default async function ComparePage() {
     {
       label: 'Price',
       text: (p) => String(p.price),
-      cell: (p) => <span className="text-xl leading-7"><Price value={p.price} currency={currency} rate={rate} /></span>,
+      cell: (p) => <span className="font-display text-[20px] leading-7"><Price value={p.price} currency={currency} rate={rate} /></span>,
     },
     { label: 'Delivery', text: delivery, cell: (p) => <span className={p.stock === 0 ? 'text-danger' : ''}>{delivery(p)}</span> },
     {
@@ -62,13 +62,13 @@ export default async function ComparePage() {
     // a row nobody can act on is worse than a missing one, and the product page leaves them out for the same reason
   ]
 
-  // the first column stays put while the products scroll sideways, so it needs its row's own background behind it
-  const head = 'sticky left-0 z-10 text-left align-top text-sm font-bold'
+  // the first column stays put while the products scroll sideways, so it needs the page's own background behind it
+  const head = 'sticky left-0 z-10 bg-paper text-left align-top text-sm font-medium text-muted'
 
   return (
-    <div className="mx-auto max-w-[1500px] px-4 py-5 lg:px-6">
-      <h1 className="mb-1 text-2xl leading-8 font-bold">Compare products</h1>
-      <p className="mb-4 text-sm text-muted">
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
+      <h1 className="text-[28px] leading-10">Compare products</h1>
+      <p className="mt-1 mb-8 text-sm text-muted">
         {products.length} of {COMPARE_MAX} · <Link href="/s" className="link">Keep shopping</Link>
       </p>
 
@@ -78,44 +78,44 @@ export default async function ComparePage() {
             <caption className="sr-only">Side-by-side comparison of the products you selected</caption>
             <thead>
               <tr>
-                <th scope="col" className={`${head} w-[150px] min-w-[150px] border-b border-line bg-white p-3`}>
+                <th scope="col" className={`${head} w-[150px] min-w-[150px] border-b border-line p-4`}>
                   <span className="sr-only">Product</span>
                 </th>
                 {products.map((p) => (
-                  <th key={p.id} scope="col" className="min-w-[200px] border-b border-line bg-white p-3 text-left align-top font-normal">
+                  <th key={p.id} scope="col" className="min-w-[210px] border-b border-line p-4 text-left align-top font-normal">
                     {/* the X rides the picture's corner, so it stays next to its product however wide the column gets */}
-                    <div className="relative w-[110px]">
-                      <Link href={`/dp/${p.id}`} className="flex size-[110px] items-center justify-center rounded-sm bg-[#f7f7f7] p-2">
+                    <div className="relative w-[120px]">
+                      <Link href={`/dp/${p.id}`} className="flex size-[120px] items-center justify-center rounded-[10px] bg-page p-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={p.thumbnail} alt={p.title} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                       </Link>
-                      <span className="absolute -top-2 -right-2 rounded-full border border-line bg-white">
+                      <span className="absolute -top-2.5 -right-2.5 rounded-full border border-line bg-surface">
                         <CompareRemove id={p.id} title={p.title} />
                       </span>
                     </div>
+                    <Link href={`/dp/${p.id}`} className="mt-3 block line-clamp-3 text-[15px] leading-5 hover:underline">{p.title}</Link>
                     {p.badge && <div className="mt-2"><Badge badge={p.badge} /></div>}
-                    <Link href={`/dp/${p.id}`} className="mt-1 block line-clamp-3 hover:text-link-hover">{p.title}</Link>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => {
+              {/* hairlines do the separating, so no zebra stripes (docs/design.md) */}
+              {rows.map((r) => {
                 const same = new Set(products.map(r.text)).size === 1
-                const zebra = i % 2 ? 'bg-[#f7fafa]' : 'bg-white'
                 return (
-                  <tr key={r.label} data-same={same} className={`border-b border-line ${zebra}`}>
-                    <th scope="row" className={`${head} ${zebra} p-3`}>{r.label}</th>
+                  <tr key={r.label} data-same={same} className="border-b border-line">
+                    <th scope="row" className={`${head} p-4`}>{r.label}</th>
                     {products.map((p) => (
-                      <td key={p.id} className="p-3 align-top">{r.cell(p)}</td>
+                      <td key={p.id} className="p-4 align-top">{r.cell(p)}</td>
                     ))}
                   </tr>
                 )
               })}
-              <tr className="bg-white">
-                <th scope="row" className={`${head} bg-white p-3`}>Add to cart</th>
+              <tr>
+                <th scope="row" className={`${head} p-4`}>Add to cart</th>
                 {products.map((p) => (
-                  <td key={p.id} className="p-3 align-top">
+                  <td key={p.id} className="p-4 align-top">
                     {p.stock > 0 ? <AddToCartButton productId={p.id} inCart={inCart.get(p.id)} /> : <span className="text-danger">Unavailable</span>}
                   </td>
                 ))}
@@ -130,10 +130,10 @@ export default async function ComparePage() {
 
 function Empty() {
   return (
-    <div className="mx-auto max-w-[800px] px-4 py-16 text-center">
-      <h1 className="text-2xl leading-8 font-bold">Nothing to compare yet</h1>
-      <p className="mt-2 text-muted">Tick <b>Compare</b> on up to {COMPARE_MAX} products in search results, then come back here.</p>
-      <Link href="/s" className="btn btn-cart mt-5 inline-flex">Browse products</Link>
+    <div className="mx-auto max-w-[620px] px-4 py-24 text-center">
+      <h1 className="text-[28px] leading-10">Nothing to compare yet</h1>
+      <p className="mt-3 text-muted">Tick <b className="font-medium text-ink">Compare</b> on up to {COMPARE_MAX} products in search results, then come back here.</p>
+      <Link href="/s" className="btn btn-cart mt-7 inline-flex">Browse products</Link>
     </div>
   )
 }

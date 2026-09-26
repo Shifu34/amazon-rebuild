@@ -16,23 +16,23 @@ export default async function AddressesPage({ searchParams }: { searchParams: Pr
   const user = await requireUser('/account/addresses')
   const [addresses, { alert }] = await Promise.all([getAddresses(user.id), searchParams])
   const notice = alertFrom(ALERTS, alert)
-  const tile = 'flex h-full flex-col rounded-lg sm:min-h-[260px]'
+  const tile = 'flex h-full flex-col rounded-[10px] sm:min-h-[260px]'
 
   return (
-    <div className="mx-auto max-w-[1000px] px-4 py-6">
+    <div className="mx-auto max-w-[1120px] px-4 py-10">
       <Crumbs trail={[['Your Account', '/account'], ['Your Addresses']]} />
-      <h1 className="mb-4 text-[28px] leading-9 font-normal">Your Addresses</h1>
+      <h1 className="mb-6 text-[28px] leading-9">Your Addresses</h1>
       {notice && <Notice>{notice}</Notice>}
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <li>
           {addresses.length < MAX_ADDRESSES ? (
-            <Link href="/account/addresses/new" className={`${tile} items-center justify-center border-2 border-dashed border-[#c7c7c7] hover:bg-[#f7fafa] focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none`}>
-              <span aria-hidden className="text-6xl leading-none font-light text-[#aaa]">+</span>
-              <span className="mt-2 text-2xl font-bold">Add address</span>
+            <Link href="/account/addresses/new" className={`${tile} items-center justify-center border border-dashed border-line hover:bg-surface focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none`}>
+              <span aria-hidden className="text-5xl leading-none font-light text-accent">+</span>
+              <span className="mt-3 font-display text-xl font-semibold">Add address</span>
             </Link>
           ) : (
-            <div className={`${tile} items-center justify-center border-2 border-dashed border-[#c7c7c7] p-6 text-center text-muted`}>
+            <div className={`${tile} items-center justify-center border border-dashed border-line p-6 text-center text-sm text-muted`}>
               You can save up to {MAX_ADDRESSES} addresses. Remove one to add another.
             </div>
           )}
@@ -40,32 +40,32 @@ export default async function AddressesPage({ searchParams }: { searchParams: Pr
 
         {addresses.map((a) => (
           <li key={a.id}>
-            <article aria-label={`${a.isDefault ? 'Default address' : 'Address'}: ${a.fullName}`} className={`${tile} border border-line`}>
+            <article aria-label={`${a.isDefault ? 'Default address' : 'Address'}: ${a.fullName}`} className={`${tile} card`}>
               {a.isDefault && (
-                <p className="border-b border-line px-5 py-2 text-xs text-muted">
-                  Default: <b className="text-ink">nile</b>
+                <p className="border-b border-line px-5 py-2.5 text-xs text-muted">
+                  Default: <b className="font-medium text-accent">nile</b>
                 </p>
               )}
               <div className="flex-1 px-5 py-4 text-sm leading-6 break-words">
-                <p className="font-bold">{a.fullName}</p>
-                <p>{a.line1}</p>
+                <p className="font-display text-base font-semibold">{a.fullName}</p>
+                <p className="mt-1">{a.line1}</p>
                 {a.line2 && <p>{a.line2}</p>}
                 {/* "Seattle, WA 98109" | "Lahore, Punjab 54000" */}
                 <p>{formatAddress({ ...a, line1: '', line2: '' })}</p>
                 <p>{a.country}</p>
-                <p>Phone number: {a.phone}</p>
+                <p className="price text-muted">Phone number: {a.phone}</p>
                 {a.instructions ? (
                   <p className="line-clamp-2 text-muted">Delivery instructions: {a.instructions}</p>
                 ) : (
                   <Link href={`/account/addresses/${a.id}/edit?instructions=1`} className="link">Add delivery instructions</Link>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-2 px-5 pb-4 text-sm">
+              <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3 text-sm">
                 <Link href={`/account/addresses/${a.id}/edit`} aria-label={`Edit address for ${a.fullName}`} className="link">Edit</Link>
                 <Bar />
                 <ConfirmDialog label="Remove" ariaLabel={`Remove address for ${a.fullName}`} title="Confirm removal" action={removeAddress} fields={{ id: a.id }}>
                   <p className="mb-2">Remove this address from your address book?</p>
-                  <p className="font-bold">{a.fullName}</p>
+                  <p className="font-medium">{a.fullName}</p>
                   <p className="break-words">{formatAddress(a)}, {a.country}</p>
                 </ConfirmDialog>
                 {!a.isDefault && (

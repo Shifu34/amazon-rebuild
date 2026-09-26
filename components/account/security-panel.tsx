@@ -35,7 +35,7 @@ export function SecurityPanel({ name, email }: { name: string; email: string }) 
   return (
     <>
       {saved && <Notice>{SAVED[saved]}</Notice>}
-      <div className="rounded-lg border border-line">
+      <div className="card divide-y divide-line">
         <Row label="Name" value={name} {...props('name')}>
           <NameForm name={name} {...done('name')} />
         </Row>
@@ -59,11 +59,11 @@ function Row({ label, value, editing, onEdit, children }: { label: string; value
   }, [editing])
 
   return (
-    <section className="border-b border-line p-4 last:border-b-0">
+    <section className="p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-sm font-bold">{label}</h2>
-          {!editing && <p className="text-sm break-words">{value}</p>}
+          <h2 className="text-base">{label}</h2>
+          {!editing && <p className="mt-0.5 text-sm break-words text-muted">{value}</p>}
         </div>
         {!editing && (
           <button ref={button} type="button" onClick={onEdit} aria-label={`Edit ${label.toLowerCase()}`} className="btn btn-plain w-24 shrink-0">
@@ -71,7 +71,7 @@ function Row({ label, value, editing, onEdit, children }: { label: string; value
           </button>
         )}
       </div>
-      {editing && <div className="mt-3 max-w-md">{children}</div>}
+      {editing && <div className="mt-4 max-w-md">{children}</div>}
     </section>
   )
 }
@@ -112,7 +112,7 @@ function EmailForm({ email, onDone, onCancel }: Done & { email: string }) {
   return (
     <form ref={ref} onSubmit={onSubmit} noValidate className="space-y-3">
       <p className="text-sm">
-        Current email address: <b className="break-all">{email}</b>
+        Current email address: <b className="font-medium break-all">{email}</b>
       </p>
       <Field label="New email address" error={e.email}>
         {(a) => <input {...a} name="email" type="email" className="input" autoComplete="email" inputMode="email" maxLength={254} autoFocus />}
@@ -142,7 +142,7 @@ function PasswordForm({ onDone, onCancel }: Done) {
         {(a) => <input {...a} name="confirm" type={type} className="input" autoComplete="new-password" maxLength={128} />}
       </Field>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={show} onChange={(ev) => setShow(ev.target.checked)} className="size-4 accent-link" />
+        <input type="checkbox" checked={show} onChange={(ev) => setShow(ev.target.checked)} className="size-4 accent-accent" />
         Show passwords
       </label>
       <Buttons pending={pending} onCancel={onCancel} />

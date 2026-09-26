@@ -41,7 +41,7 @@ try {
 
   step('cart: quantity up, save for later + undo, save again, move back to cart')
   await page.goto(`${base}/cart`)
-  await page.getByRole('heading', { name: 'Shopping Cart' }).waitFor()
+  await page.getByRole('heading', { name: 'Your bag' }).waitFor()
   await page.getByText('Subtotal (2 items)').first().waitFor()
   await page.getByRole('button', { name: /^Increase quantity of / }).first().click()
   await page.getByText('Subtotal (3 items)').first().waitFor()
@@ -131,7 +131,7 @@ try {
 
   step('cart is empty and checkout sends you back to it')
   await page.goto(`${base}/cart`)
-  await page.getByRole('heading', { name: 'Your nile Cart is empty' }).waitFor()
+  await page.getByRole('heading', { name: 'Your bag is empty' }).waitFor()
   await page.goto(`${base}/checkout`)
   await page.waitForURL(`${base}/cart`)
 
@@ -143,7 +143,7 @@ try {
   await page.getByText('Buying now: the items in your cart are not affected.').waitFor()
   assert.equal(await summary().getByText(/^Items \(/).textContent(), 'Items (1):')
   await page.getByRole('button', { name: 'Change payment method' }).click()
-  await page.getByRole('button', { name: '+ Add a credit or debit card' }).click()
+  await page.getByRole('button', { name: 'Add a credit or debit card' }).click()
   await addCard('4000 0000 0000 0002')
   await page.getByRole('heading', { name: 'Paying with Visa ending in 0002' }).waitFor()
   await page.getByRole('button', { name: 'Place your order' }).first().click()
@@ -171,7 +171,7 @@ try {
 
   step('Pakistan address: the form swaps province, postal code and phone rules and keeps typed values')
   await page.getByRole('button', { name: 'Change delivery address' }).click()
-  await page.getByRole('button', { name: '+ Add a new delivery address' }).click()
+  await page.getByRole('button', { name: 'Add a new delivery address' }).click()
   await page.getByLabel('Full name (First and Last name)').fill('Ayesha Khan')
   await page.getByLabel('City').fill('Lahore')
   await page.getByLabel('Country/Region').selectOption('PK')

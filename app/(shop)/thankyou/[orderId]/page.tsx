@@ -42,46 +42,46 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
   })
 
   return (
-    <div className="bg-page">
-      <div className="mx-auto grid max-w-[1150px] gap-4 px-3 py-5 sm:px-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="rounded-lg bg-white p-5">
+    <div>
+      <div className="mx-auto grid max-w-[1120px] gap-8 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
+        <section className="min-w-0">
           <div className="flex gap-3">
-            <CheckCircleIcon className="mt-0.5 size-6 shrink-0 text-success" />
+            <CheckCircleIcon className="mt-1 size-6 shrink-0 text-accent" />
             <div className="min-w-0 space-y-2">
-              <h1 className="text-lg leading-7 text-success">Order placed, thanks!</h1>
-              {order.cancelledAt && <p className="text-sm font-bold text-danger">This order was cancelled.</p>}
+              <h1 className="text-2xl leading-8">Order placed, thanks!</h1>
+              {order.cancelledAt && <p className="text-sm text-danger">This order was cancelled.</p>}
               <p className="text-sm">
                 {!canReceiveEmail(user.email) ? (
                   <>Demo accounts don&apos;t get email. <span className="text-muted">Create an account with your own address to receive order confirmations.</span></>
                 ) : emailConfigured() ? (
-                  <>Confirmation will be sent to <b className="break-all">{user.email}</b>.</>
+                  <>Confirmation will be sent to <b className="break-all font-medium">{user.email}</b>.</>
                 ) : (
                   <>Confirmation will be sent to your email. <span className="text-muted">(Email isn&apos;t configured on this copy of nile.)</span></>
                 )}
               </p>
-              <p className="text-sm">
-                <b>Shipping to {shipTo.fullName},</b> {formatAddress(shipTo)}, {shipTo.country}
+              <p className="text-sm text-muted">
+                <span className="text-ink">Shipping to {shipTo.fullName},</span> {formatAddress(shipTo)}, {shipTo.country}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 space-y-4 border-t border-line pt-4">
+          <div className="mt-8 space-y-6 border-t border-line pt-8">
             {groups.map((g, n) => (
               <div key={g.date.getTime()}>
-                <p className="text-base font-bold">Arriving {longDate(g.date)}</p>
+                <h2 className="text-lg leading-6">Arriving {longDate(g.date)}</h2>
                 {n === 0 && <p className="text-sm text-muted">{speed}</p>}
-                <ul className="mt-3 flex flex-wrap gap-3" aria-label={groups.length > 1 ? `Arriving ${longDate(g.date)}` : 'Items in this order'}>
+                <ul className="mt-4 flex flex-wrap gap-4" aria-label={groups.length > 1 ? `Arriving ${longDate(g.date)}` : 'Items in this order'}>
                   {g.items.map((i) => (
                     <li key={i.productId} className="w-24">
                       <Link href={`/dp/${i.productId}`} className="group block text-xs">
-                        <span className="relative flex size-24 items-center justify-center rounded-sm bg-[#f7f7f7] p-1.5">
+                        <span className="relative flex size-24 items-center justify-center rounded-md bg-page p-2">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={i.thumbnail} alt="" className="max-h-full max-w-full object-contain mix-blend-multiply" />
                           {i.quantity > 1 && (
-                            <span className="absolute right-1 bottom-1 rounded-full bg-white px-1.5 text-xs font-bold shadow">×{i.quantity}</span>
+                            <span className="price absolute right-1 bottom-1 rounded-full border border-line bg-surface px-1.5">×{i.quantity}</span>
                           )}
                         </span>
-                        <span className="mt-1 line-clamp-2 group-hover:text-link-hover group-hover:underline">{i.title}</span>
+                        <span className="mt-1.5 line-clamp-2 group-hover:underline">{i.title}</span>
                       </Link>
                     </li>
                   ))}
@@ -90,33 +90,33 @@ export default async function ThankYouPage({ params }: PageProps<'/thankyou/[ord
             ))}
           </div>
 
-          <Link href="/orders" className="link mt-5 inline-block text-sm">Review or edit your recent orders ›</Link>
+          <Link href="/orders" className="link mt-8 inline-block text-sm">Review or edit your recent orders ›</Link>
         </section>
 
-        <aside aria-label="Order details" className="self-start rounded-lg bg-white p-5 text-sm">
-          <p className="text-muted">Order number</p>
-          <p className="font-mono text-base font-bold">{order.id}</p>
-          <dl className="mt-3 space-y-1 border-t border-line pt-3 text-[13px]">
+        <aside aria-label="Order details" className="card self-start p-5 text-sm">
+          <p className="text-xs text-muted">Order number</p>
+          <p className="font-mono text-base">{order.id}</p>
+          <dl className="mt-4 space-y-1.5 border-t border-line pt-4">
             {rows.map((r) => (
-              <div key={r.label} className="flex justify-between gap-2">
-                <dt className="min-w-0">{r.label}</dt>
-                <dd className="whitespace-nowrap">{r.text}</dd>
+              <div key={r.label} className="flex justify-between gap-3">
+                <dt className="min-w-0 text-muted">{r.label}</dt>
+                <dd className="price whitespace-nowrap">{r.text}</dd>
               </div>
             ))}
-            <div className="flex justify-between gap-2 border-t border-line pt-2 text-base font-bold text-danger">
+            <div className="mt-3 flex justify-between gap-3 border-t border-line pt-3 font-display text-xl leading-7 font-semibold">
               <dt className="min-w-0">Order total:</dt>
-              <dd className="whitespace-nowrap">{total}</dd>
+              <dd className="price whitespace-nowrap">{total}</dd>
             </div>
           </dl>
-          {note && <p className="mt-3 text-xs text-muted">{note}</p>}
-          <p className="mt-3 text-[13px] text-muted">
+          {note && <p className="mt-4 text-xs text-muted">{note}</p>}
+          <p className="mt-3 text-xs text-muted">
             Paid with {order.payment.brand} ending in {order.payment.last4}
           </p>
-          <Link href="/" className="btn btn-plain btn-lg mt-4 w-full">Continue shopping</Link>
+          <Link href="/" className="btn btn-plain btn-lg mt-5 w-full">Continue shopping</Link>
         </aside>
       </div>
       {/* overflow-hidden: the carousel's sr-only price text is absolutely positioned outside its scroll container */}
-      <div className="mx-auto max-w-[1150px] overflow-hidden px-3 pb-6 sm:px-4">
+      <div className="mx-auto max-w-[1120px] overflow-hidden px-4 pb-12">
         <ProductCarousel title={first ? 'Customers who bought items in your order also bought' : 'Best Sellers'} products={recs} />
       </div>
     </div>

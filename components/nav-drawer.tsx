@@ -59,11 +59,11 @@ export function NavDrawer({ departments, userName, account, variant }: { departm
             <CloseIcon className="size-7" />
           </button>
           <nav
-            className="absolute inset-y-0 left-0 w-[min(365px,85vw)] animate-[slide-in_.18s_ease-out] overflow-y-auto bg-white pb-6 text-[15px] text-ink"
+            className="absolute inset-y-0 left-0 w-[min(380px,88vw)] animate-[slide-in_.18s_ease-out] overflow-y-auto bg-surface pb-6 text-[15px] text-ink"
             onClick={(e) => (e.target as HTMLElement).closest('a') && setOpen(false)}
           >
-            <Link href={userName ? '/account' : '/ap/signin'} className="flex items-center gap-3 bg-nav-light px-8 py-3.5 text-lg font-bold text-white">
-              <UserIcon className="size-7 rounded-full bg-white p-1 text-nav-light" /> Hello, {userName ?? 'sign in'}
+            <Link href={userName ? '/account' : '/ap/signin'} className="flex items-center gap-3 border-b border-line bg-accent-soft px-8 py-4 text-lg font-medium text-ink">
+              <UserIcon className="size-7 rounded-full bg-surface p-1 text-accent" /> Hello, {userName ?? 'sign in'}
             </Link>
 
             <h2 className="px-8 pt-5 pb-2 text-lg">Trending</h2>
@@ -85,7 +85,7 @@ export function NavDrawer({ departments, userName, account, variant }: { departm
                     <ChevronIcon className={`size-4 text-muted transition ${expanded === d.slug ? 'rotate-90' : ''}`} />
                   </button>
                   {expanded === d.slug && (
-                    <ul className="bg-[#f7f8f8] py-1">
+                    <ul className="bg-paper py-1">
                       <li><Link href={`/s?i=${d.slug}`} className="block px-12 py-2 font-bold hover:bg-page">All {d.name}</Link></li>
                       {d.categories.map((c) => (
                         <li key={c.slug}><Link href={`/s?i=${c.slug}`} className="block px-12 py-2 hover:bg-page">{c.name}</Link></li>

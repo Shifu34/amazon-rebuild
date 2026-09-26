@@ -5,15 +5,15 @@ import { useState, useTransition } from 'react'
 import { CaretIcon } from '@/components/icons'
 import { PendingMark } from './controls'
 
-// Compact "Sort by: Featured ⌄" pill sized to the chosen label: a native <select> sits invisibly on top of it.
+// A quiet "Sort by: Featured ⌄" pill sized to the chosen label: a native <select> sits invisibly on top of it.
 // Hrefs come precomputed from the server so the client never needs the catalog or URL rules. Remount via key when sort changes.
 export function SortSelect({ value, options }: { value: string; options: { key: string; label: string; href: string }[] }) {
   const router = useRouter()
   const [selected, setSelected] = useState(value)
   const [pending, start] = useTransition()
   return (
-    <label className="select-pill relative inline-flex shrink-0 items-center gap-1 pr-6 text-[13px] whitespace-nowrap focus-within:border-focus focus-within:shadow-[0_0_0_3px_#c8f3fa]">
-      Sort by: {options.find((o) => o.key === selected)?.label}
+    <label className="select-pill relative inline-flex shrink-0 items-center gap-1 pr-7 text-sm whitespace-nowrap text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent">
+      Sort by: <span className="font-medium text-ink">{options.find((o) => o.key === selected)?.label}</span>
       <select
         aria-label="Sort by:"
         value={selected}

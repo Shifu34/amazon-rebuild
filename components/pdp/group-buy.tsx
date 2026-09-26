@@ -59,22 +59,22 @@ export function GroupBuy({ productId, groupId, teamPrice, joined, target, endsAt
   const places = Math.max(0, target - joined)
 
   return (
-    <section aria-label="Group buy" className="mt-3 rounded-lg border border-brand bg-[#fff8e6] p-3 text-sm">
+    <section aria-label="Group buy" className="mt-5 rounded-[10px] border border-accent/25 bg-accent-soft p-4 text-sm">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-bold">
+        <h2 className="font-medium text-accent">
           {filled ? `Group price unlocked: ${teamPrice}` : `Group price ${teamPrice}`}
         </h2>
         {left && <span className="shrink-0 text-xs text-muted">{left}</span>}
       </div>
 
       {/* people keep joining after it fills, so "7 of 5 joined" would read like a mistake */}
-      <p className="mt-1 text-xs">
-        <b>{filled ? `${joined} joined` : `${joined} of ${target} joined`}</b>
+      <p className="price mt-1.5 text-[13px]">
+        <b className="font-medium">{filled ? `${joined} joined` : `${joined} of ${target} joined`}</b>
         {filled ? ` · unlocked at ${target}` : left ? ` · ${places} more to unlock` : ''}
       </p>
       {/* a plain bar: the count above is the number that matters */}
-      <span aria-hidden className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-white">
-        <span className="block h-full rounded-full bg-brand" style={{ width: `${Math.min(100, Math.round((joined / target) * 100))}%` }} />
+      <span aria-hidden className="mt-2 block h-1 overflow-hidden rounded-full bg-white">
+        <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.min(100, Math.round((joined / target) * 100))}%` }} />
       </span>
 
       {!left ? (
