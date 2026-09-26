@@ -36,6 +36,16 @@ export function FlagPK({ className }: P) {
   )
 }
 
+// docs/design.md: a plain outlined bag, drawn on the same 24px grid as the rest of the set
+export function BagIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+      <path d="M4.6 7.4h14.8l-1.2 12.1a1.5 1.5 0 0 1-1.5 1.35H7.3a1.5 1.5 0 0 1-1.5-1.35z" />
+      <path d="M8.9 10V6.9a3.1 3.1 0 0 1 6.2 0V10" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function CartIcon({ className }: P) {
   // Amazon's cart: a handle on the left, a basket open at the top (the count sits in the opening), two solid wheels
   return (

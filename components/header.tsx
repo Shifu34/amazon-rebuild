@@ -8,7 +8,7 @@ import { getUser } from '@/lib/auth'
 import { cartCount } from '@/lib/cart'
 import { CATEGORY_NAMES, DEPARTMENTS } from '@/lib/catalog'
 import { getRegion } from '@/lib/region-server'
-import { CartIcon, Logo, PinIcon } from './icons'
+import { BagIcon, PinIcon } from './icons'
 import { LocaleMenu } from './locale-menu'
 import { Flyout, LocationPicker, NavDrawer } from './nav-drawer'
 import { SearchBar } from './search-bar'
@@ -30,10 +30,8 @@ async function deliverTo(): Promise<{ label: string; place: string; zip?: string
     : { label: 'Deliver to', place: region.countryName }
 }
 
-// two-line items in the top bar ("Hello, sign in / Account & Lists"): 50px tall boxes that outline white on hover
-const item = 'nav-item md:flex md:h-[50px] md:flex-col md:justify-center md:px-[9px] md:py-0'
-const line1 = 'block text-xs leading-[14px] whitespace-nowrap'
-const line2 = 'block text-sm leading-[15px] font-bold whitespace-nowrap'
+// docs/design.md: one white row with a hairline under it, then a quiet row of links. No coloured chrome.
+const barItem = 'nav-item flex items-center gap-1.5 px-2.5 py-2 text-sm'
 
 export async function Header() {
   const user = await getUser()
@@ -58,70 +56,75 @@ export async function Header() {
   const menuLink = 'hover:text-link-hover hover:underline'
 
   return (
-    // a stacking context, so the flyouts' dimmer sits under both bars and over the page
-    <header className="relative z-50 text-white">
-      <div className="flex flex-wrap items-center gap-x-1 gap-y-2 bg-nav px-2 py-2 md:h-[60px] md:flex-nowrap md:gap-x-0 md:py-0">
+    // a stacking context, so the flyouts' dimmer sits under the header and over the page
+    <header className="relative z-50 border-b border-line bg-surface text-ink">
+      <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-2 gap-y-3 px-4 py-3 md:flex-nowrap md:py-4">
         <NavDrawer departments={departments} userName={firstName} account={account} variant="icon" />
-        <Link href="/" aria-label="nile home" className="nav-item px-2 pt-2 pb-1 md:flex md:h-[50px] md:items-center md:px-[9px] md:pt-1 md:pb-0">
-          <Logo className="text-[26px] md:text-[31px]" />
-        </Link>
-        {deliver(
-          'nav-item hidden h-[50px] items-center gap-0.5 pr-[9px] pl-[7px] lg:flex',
-          <>
-            <PinIcon className="mt-2.5 size-[17px] shrink-0" />
-            <span>
-              <span className={`${line1} text-[#ccc]`}>{location.label}</span>
-              <span className={`${line2} max-w-[150px] truncate`} title={location.place}>{location.place}</span>
-            </span>
-          </>,
-        )}
 
-        <Suspense fallback={<div className="order-last h-10 w-full rounded-md bg-white md:order-none md:mx-3.5 md:flex-1 md:rounded" />}>
+        <Link href="/" aria-label="nile home" className="nav-item shrink-0 px-1 py-1">
+          <span className="font-display text-[28px] leading-none tracking-[-0.02em]">
+            nile<span className="text-accent">.</span>
+          </span>
+        </Link>
+
+        <div className="hidden lg:block">
+          <NavDrawer departments={departments} userName={firstName} account={account} variant="all" />
+        </div>
+
+        <Suspense fallback={<div className="order-last h-10 w-full rounded-md border border-line bg-surface md:order-none md:mx-4 md:flex-1" />}>
           <SearchBar departments={departments.map(({ slug, name }) => ({ slug, name }))} />
         </Suspense>
 
-        <div className="ml-auto flex items-center md:ml-0">
-          <Link href={user ? '/account' : '/ap/signin'} className="nav-item px-2 py-2 text-sm md:hidden">
-            {firstName ? `${firstName} ›` : 'Sign in ›'}
-          </Link>
+        <div className="ml-auto flex items-center gap-0.5 md:ml-0">
+          {deliver(
+            `${barItem} hidden max-w-[210px] lg:flex`,
+            <>
+              <PinIcon className="size-4 shrink-0 text-muted" />
+              <span className="min-w-0">
+                <span className="block text-[11px] leading-3 text-muted">{location.label}</span>
+                <span className="block truncate text-sm leading-5 font-medium" title={location.place}>{location.place}</span>
+              </span>
+            </>,
+          )}
 
           <LocaleMenu account={account} />
+
+          <Link href={user ? '/account' : '/ap/signin'} className={`${barItem} md:hidden`}>
+            {firstName ? `${firstName} ›` : 'Sign in ›'}
+          </Link>
 
           <Flyout
             href={user ? '/account' : '/ap/signin'}
             className="hidden md:block"
             toggleLabel="Account & Lists menu"
             label={
-              <>
-                <span className={line1}>Hello, {firstName ?? 'sign in'}</span>
-                <span className={line2}>Account &amp; Lists</span>
-              </>
+              <span className="block max-w-[150px] truncate text-left">
+                <span className="block text-[11px] leading-3 text-muted">Hello, {firstName ?? 'sign in'}</span>
+                <span className="block text-sm leading-5 font-medium">Account &amp; Lists</span>
+              </span>
             }
-            panelClassName="-right-[102px] w-[523px] pt-0.5"
+            panelClassName="right-0 w-[420px] pt-2"
           >
-            {/* the notch points at the caret */}
-            <span aria-hidden className="absolute top-0 right-[113px] size-2.5 rotate-45 bg-white" />
-            <div className="relative rounded-[3px] border border-[#d5d9d9] bg-white px-6 pt-3.5 pb-3 text-ink shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
+            <div className="card relative p-5 text-ink shadow-[0_12px_30px_rgba(25,23,19,0.12)]">
               {!user && (
-                <div className="mb-3 border-b border-[#eee] pb-2 text-center">
-                  <Link href="/ap/signin" className="btn btn-cart min-h-[35px] w-[230px] rounded-lg">Sign in</Link>
-                  <p className="mt-1.5 text-xs leading-4">
-                    New customer?{' '}
-                    <Link href="/ap/register" className="text-[#0066c0] underline hover:text-link-hover">Start here.</Link>
+                <div className="mb-4 border-b border-line pb-4 text-center">
+                  <Link href="/ap/signin" className="btn btn-cart w-full">Sign in</Link>
+                  <p className="mt-2 text-sm text-muted">
+                    New here? <Link href="/ap/register" className="link">Create an account</Link>
                   </p>
                 </div>
               )}
-              <div className="flex text-[13px] leading-[24px] text-[#444]">
-                <div className="w-[242px] shrink-0 pr-4">
-                  <h2 className="mb-1 text-base leading-6 text-ink">Your Lists</h2>
-                  <ul>
+              <div className="flex gap-6 text-sm leading-7">
+                <div className="w-1/2">
+                  <h2 className="mb-1 text-base">Your lists</h2>
+                  <ul className="text-muted">
                     <li><Link href="/lists?create=1" className={menuLink}>Create a List</Link></li>
                     <li><Link href="/lists" className={menuLink}>Shopping List</Link></li>
                   </ul>
                 </div>
-                <div className="flex-1 border-l border-[#eee] pl-[21px]">
-                  <h2 className="mb-1 text-base leading-6 text-ink">Your Account</h2>
-                  <ul>
+                <div className="w-1/2 border-l border-line pl-6">
+                  <h2 className="mb-1 text-base">Your account</h2>
+                  <ul className="text-muted">
                     <li><Link href="/account" className={menuLink}>Account</Link></li>
                     <li><Link href="/orders" className={menuLink}>Orders</Link></li>
                     <li><Link href="/orders?tab=buy-again" className={menuLink}>Buy Again</Link></li>
@@ -141,43 +144,49 @@ export async function Header() {
             </div>
           </Flyout>
 
-          <Link href="/orders" className={`${item} hidden`}>
-            <span className={line1}>Returns</span>
-            <span className={line2}>&amp; Orders</span>
+          <Link href="/orders" className={`${barItem} hidden xl:flex`}>
+            <span>
+              <span className="block text-[11px] leading-3 text-muted">Returns</span>
+              <span className="block text-sm leading-5 font-medium">&amp; Orders</span>
+            </span>
           </Link>
 
-          <Link href="/cart" className="nav-item flex items-end px-2 py-1.5 md:h-[50px] md:px-[9px] md:pt-0 md:pb-[7px]" aria-label={`Cart, ${count} ${count === 1 ? 'item' : 'items'}`}>
+          <Link href="/cart" className={`${barItem} relative`} aria-label={`Cart, ${count} ${count === 1 ? 'item' : 'items'}`}>
             <span className="relative">
-              <CartIcon className="h-7 w-10" />
-              {/* centered over the basket at any width: 1, 12 or 99+ */}
-              <span className={`absolute -top-[3px] left-[23px] -translate-x-1/2 leading-5 font-bold text-brand ${count > 99 ? 'text-sm' : 'text-base'}`}>{count > 99 ? '99+' : count}</span>
+              <BagIcon className="size-6" />
+              {count > 0 && (
+                <span className="absolute -top-1.5 -right-2 min-w-[18px] rounded-full bg-accent px-1 text-center text-[11px] leading-[18px] font-semibold text-white">
+                  {count > 99 ? '99+' : count}
+                </span>
+              )}
             </span>
-            <span className="mb-[3px] hidden text-sm leading-4 font-bold md:inline">Cart</span>
+            <span className="hidden text-sm font-medium md:inline">Bag</span>
           </Link>
         </div>
       </div>
 
-      <nav aria-label="Shortcuts" className="flex h-[39px] items-center gap-0.5 overflow-x-auto bg-nav-light px-2 text-sm whitespace-nowrap">
-        <NavDrawer departments={departments} userName={firstName} account={account} variant="all" />
-        {shortcuts.map(([label, href]) => (
-          <Link key={href} href={href} className="nav-item px-2 py-1.5">{label}</Link>
-        ))}
-        {/* a plain form, so the switch works before (and without) any JavaScript — the point of the feature.
-            role="switch" carries the state in aria-checked, so the on/off word stays out of the accessible name */}
-        <form action={setDataSaver} className="ml-auto shrink-0">
-          <input type="hidden" name="on" value={saver ? '0' : '1'} />
-          <button type="submit" role="switch" aria-checked={saver} aria-label="Data saver" className="nav-item flex cursor-pointer items-center gap-1.5 px-2 py-1.5">
-            <span aria-hidden>Data saver</span>
-            <span aria-hidden className={`rounded-sm px-1 text-[11px] font-bold ${saver ? 'bg-brand text-ink' : 'bg-white/15'}`}>{saver ? 'ON' : 'OFF'}</span>
-          </button>
-        </form>
+      <nav aria-label="Shortcuts" className="border-t border-line bg-paper">
+        <div className="mx-auto flex max-w-[1120px] items-center gap-1 overflow-x-auto px-3 py-1.5 text-sm whitespace-nowrap">
+          {shortcuts.map(([label, href]) => (
+            <Link key={href} href={href} className="nav-item px-2.5 py-1.5 text-muted hover:text-ink">{label}</Link>
+          ))}
+          {/* a plain form, so the switch works before (and without) any JavaScript — the point of the feature.
+              role="switch" carries the state in aria-checked, so the on/off word stays out of the accessible name */}
+          <form action={setDataSaver} className="ml-auto shrink-0">
+            <input type="hidden" name="on" value={saver ? '0' : '1'} />
+            <button type="submit" role="switch" aria-checked={saver} aria-label="Data saver" className="nav-item flex cursor-pointer items-center gap-1.5 px-2.5 py-1.5 text-muted hover:text-ink">
+              <span aria-hidden>Data saver</span>
+              <span aria-hidden className={`rounded-full px-1.5 text-[11px] font-semibold ${saver ? 'bg-accent text-white' : 'bg-line text-muted'}`}>{saver ? 'ON' : 'OFF'}</span>
+            </button>
+          </form>
+        </div>
       </nav>
       <DataSaverPrompt on={saver} />
 
       {deliver(
-        'flex w-full items-center gap-1.5 bg-nav-lighter px-3 py-2 text-[13px] lg:hidden',
+        'flex w-full items-center gap-1.5 border-t border-line bg-paper px-4 py-2 text-[13px] text-muted lg:hidden',
         <>
-          <PinIcon className="size-4" /> {location.label} {location.place}
+          <PinIcon className="size-4" /> {location.label} <span className="font-medium text-ink">{location.place}</span>
         </>,
       )}
     </header>
