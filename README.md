@@ -95,6 +95,7 @@ This was built with Claude Code (Opus 5). Every prompt and final response is cap
 3. **Foundation.** Shell, catalog, database layer, auth and cart were written first, with conventions in [`docs/build-guide.md`](docs/build-guide.md).
 4. **Parallel slices.** Home, search, product page and cart/checkout were built at the same time, each agent owning its own files. Orders and account followed, then an integration pass ran the production build and every end-to-end test.
 5. **Polish.** A review-then-fix pass per surface compared nile with the Amazon screenshots at 1280px and 390px. It added the demo shopper and unified the delivery dates.
+6. **Our own interface.** The design language in [`docs/design.md`](docs/design.md) was written first, then the tokens, shell and every surface were rebuilt against it — five agents in parallel, one owning each area, none allowed to touch `lib/`, `app/actions/`, `app/api/` or `db/`. The backend did not move; only test assertions that named old wording changed with it.
 
 ## Run it locally
 

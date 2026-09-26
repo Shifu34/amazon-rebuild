@@ -420,3 +420,14 @@ Scope: the deployed site (https://amazon-rebuild-teal.vercel.app), not a local b
 **Still open:** one "Add to Cart" click was lost immediately after a demo price drop (the cart stayed empty) in a single live run. Fifteen targeted attempts and five scripted loops could not reproduce it, so the cause is unknown and it is being watched rather than explained away. Everything else in that run was correct.
 
 **Checked and correct** (a selection): landed cost agrees across product page, cart, checkout, invoice and email; an unfilled group buy still charges the shelf price while a filled one charges the team price; the nile-day credit comes off before tax and the column still balances; cash on delivery is placeable with no card and the invoice never claims a card was charged; double-clicking "Place your order" creates one order; the review digest's bars matched their filtered lists on 62 bars across 8 products; no sideways scroll at 390px on home, search, product, compare or department pages.
+
+---
+
+## Redesign verification, 26 September 2026 — our own interface
+
+The frontend was rebuilt against [`docs/design.md`](design.md) while the database, server actions and API routes stayed untouched. Verification was the existing suite, run twice: once locally against a production build, then again against the deployed site.
+
+- **Local:** `next build` clean, 20/20 end-to-end scripts, 6/6 assert-based checks, `tsc --noEmit` and eslint clean.
+- **No behaviour changed.** Three assertions moved with the design, all of them naming copy rather than behaviour: the sign-up line ("Looks like you're new here"), the invoice quantity ("2 × Title", replacing Amazon's "2 of:"), and `e2e/links.mjs` reading the shortcuts nav, which is no longer the drawer's parent.
+- **Live (https://amazon-rebuild-teal.vercel.app):** 20/20, with three scripts needing a second run on the freshly deployed build — `suggest` (its frame sampler saw no frames), `data-saver` (17% saved instead of the expected share, the image optimiser's first cold pass) and `group-buy`. All three passed against the same deployment on re-run, so they are first-run effects of a cold deployment, not defects.
+- **Phone width:** no sideways scroll at 390px on home, search, product, cart, orders or account.
